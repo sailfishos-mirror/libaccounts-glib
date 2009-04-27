@@ -1,0 +1,4 @@
+usr/lib/libaccounts-glib.a
+usr/lib/libaccounts-glib.so
+usr/lib/pkgconfig/libaccounts-glib.pc
+usr/include/libaccounts-glib/*

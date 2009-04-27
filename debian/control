@@ -1,0 +1,39 @@
+Source: libaccounts-glib
+Priority: optional
+Maintainer: Alberto Mardegan <alberto-mardegan@nokia.com>
+Build-Depends: debhelper (>= 4.1.0), cdbs, gtk-doc-tools
+Standards-Version: 3.6.0
+
+Package: libaccounts-glib0
+Architecture: any
+Section: libs
+Depends: ${shlibs:Depends}, ${misc:depends}
+Description: Maemo Accounts library
+ A low-level library for managing accounts settings.
+
+Package: libaccounts-glib0-dbg
+Architecture: any
+Section: libdevel
+Depends: libaccounts0 (= ${Source-Version})
+Description: OSSO Accounts library. Debug symbols
+ A low-level library for managing accounts settings.
+ .
+ This package contains the debugging symbols.
+
+Package: libaccounts-glib-dev
+Architecture: any
+Section: libdevel
+Depends: libaccounts0 (= ${Source-Version})
+Description: Development files for the OSSO Accounts library
+ A low-level library for managing accounts settings.
+ .
+ Contains the header files and static libraries
+
+Package: libaccounts-glib-doc
+Architecture: all
+Section: doc
+Description: Documentation for the OSSO Accounts library
+ A library for the Accounts applet and plugin implementions
+ .
+ Contains the library reference
+
