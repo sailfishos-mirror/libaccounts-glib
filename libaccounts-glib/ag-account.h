@@ -67,18 +67,6 @@ gboolean ag_account_conf_get_static (AgAccount *account, const gchar *key,
 void ag_account_conf_set_static (AgAccount *account, const gchar *key,
                                  const GValue *value);
 
-typedef void (*AgAccountConfDynamicReadyCb) (AgAccount *account,
-                                             gpointer userdata,
-                                             GObject *weak_object);
-void ag_account_conf_call_when_dynamic_ready
-    (AgAccount *account, AgAccountConfDynamicReadyCb callback,
-     gpointer userdata, GDestroyNotify destroy, GObject *weak_object);
-
-gboolean ag_account_conf_get_dynamic (AgAccount *account, const gchar *key,
-                                      GValue *value);
-void ag_account_conf_set_dynamic (AgAccount *account, const gchar *key,
-                                  const GValue *value);
-
 void ag_account_conf_begin_edit (AgAccount *account);
 void ag_account_conf_end_edit (AgAccount *account);
 
