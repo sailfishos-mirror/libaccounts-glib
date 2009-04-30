@@ -67,8 +67,10 @@ gboolean ag_account_conf_get_static (AgAccount *account, const gchar *key,
 void ag_account_conf_set_static (AgAccount *account, const gchar *key,
                                  const GValue *value);
 
-void ag_account_conf_begin_edit (AgAccount *account);
-void ag_account_conf_end_edit (AgAccount *account);
+typedef void (AgAccountStoreCb) (AgAccount *account, const GError *error,
+                                 gpointer user_data);
+void ag_account_store (AgAccount *account, AgAccountStoreCb callback,
+                       gpointer user_data);
 
 /* Signon */
 /* TODO: depends on signon-glib */

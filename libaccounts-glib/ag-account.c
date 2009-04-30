@@ -252,36 +252,28 @@ ag_account_conf_set_static (AgAccount *account, const gchar *key,
 }
 
 /**
- * ag_account_conf_begin_edit:
+ * AgAccountStoreCb:
  * @account: the #AgAccount.
+ * @error: a #GError, or %NULL.
+ * @user_data: the user data that was passed to ag_account_store().
  *
- * Start an editing session for the account static configuration on the
- * selected service. This function is used to reduce the number of
- * notifications emitted when many settings on the static configuration are
- * being changed: by grouping the changes in between of
- * ag_account_conf_begin_edit() and ag_account_conf_end_edit(), change
- * notification will happen only once, when editing is finished.
- *
- * If this function is called, one should make no assumption on whether the
- * settings are effectively stored until ag_account_conf_end_edit() is
- * called.
+ * This callback is invoked when storing the account settings is completed. If
+ * @error is not %NULL, then some error occurred and the data has most likely
+ * not been written.
  */
-void
-ag_account_conf_begin_edit (AgAccount *account)
-{
-    g_return_if_fail (AG_IS_ACCOUNT (account));
-    g_warning ("%s not implemented", G_STRFUNC);
-}
 
 /**
- * ag_account_conf_end_edit:
+ * ag_account_store:
  * @account: the #AgAccount.
+ * @callback: function to be called when the settings have been written.
+ * @user_data: pointer to user data, to be passed to @callback.
  *
- * Ends an editing session end emits the "static-conf-changed" signal, if
- * needed.
+ * Store the account settings which have been changed into the account
+ * database, and invoke @callback when the operation has been completed.
  */
 void
-ag_account_conf_begin_edit (AgAccount *account)
+ag_account_store (AgAccount *account, AgAccountStoreCb callback,
+                  gpointer user_data)
 {
     g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
