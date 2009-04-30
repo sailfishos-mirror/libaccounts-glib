@@ -6,22 +6,22 @@ libaccounts_glib_la_LIBADD = $(LIBACCOUNTS_LIBS)
 libaccounts_glib_la_LDFLAGS = -version-info 0:0:0
 
 BUILT_SOURCES = \
-	account-marshal.c \
-	account-marshal.h
+	ag-marshal.c \
+	ag-marshal.h
 
 CLEANFILES = $(BUILT_SOURCES)
 
 libaccounts_glib_la_SOURCES = \
-	account-item.h \
-	account-item.c \
-	account-manager.h \
-	account-manager.c \
+	ag-account.h \
+	ag-account.c \
+	ag-manager.h \
+	ag-manager.c \
 	$(BUILT_SOURCES)
 
 libaccounts_glib_includedir = $(includedir)/libaccounts-glib
 libaccounts_glib_include_HEADERS = \
-	account-item.h \
-	account-manager.h
+	ag-account.h \
+	ag-manager.h
 
 %-marshal.h: %-marshal.list Makefile
 	glib-genmarshal --header --prefix=$(subst -,_,$*)_marshal $< > $*-marshal.h
@@ -30,5 +30,5 @@ libaccounts_glib_include_HEADERS = \
 	glib-genmarshal --body --prefix=$(subst -,_,$*)_marshal $< > $*-marshal.c
 
 
-EXTRA_DIST = account-marshal.list
+EXTRA_DIST = ag-marshal.list
 

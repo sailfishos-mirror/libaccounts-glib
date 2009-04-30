@@ -16,22 +16,22 @@
  */
 
 /**
- * SECTION:account-item
- * @title: AccountItem
+ * SECTION:ag-account
+ * @title: AgAccount
  * @short_description: A representation of an account.
  *
- * An #AccountItem is an object which represents an account. It provides a
+ * An #AgAccount is an object which represents an account. It provides a
  * method for enabling/disabling the account and methods for editing the 
  * account settings.
  */
 
-#include "account-item.h"
+#include "ag-account.h"
 
 enum
 {
     PROP_0,
 
-    PROP_ACCOUNT_MANAGER,
+    PROP_MANAGER,
 };
 
 enum
@@ -44,42 +44,42 @@ enum
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-struct _AccountItemPrivate {
+struct _AgAccountPrivate {
 };
 
-G_DEFINE_TYPE (AccountItem, account_item, G_TYPE_OBJECT);
+G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
 
-#define ACCOUNT_ITEM_PRIV(obj) (ACCOUNT_ITEM(obj)->priv)
+#define AG_ACCOUNT_PRIV(obj) (AG_ACCOUNT(obj)->priv)
 
 static void
-account_item_init (AccountItem *item)
+ag_account_init (AgAccount *account)
 {
-    item->priv = G_TYPE_INSTANCE_GET_PRIVATE (item, ACCOUNT_TYPE_ITEM,
-                                              AccountItemPrivate);
+    account->priv = G_TYPE_INSTANCE_GET_PRIVATE (account, AG_TYPE_ACCOUNT,
+                                                 AgAccountPrivate);
 }
 
 static void
-account_item_finalize (GObject *object)
+ag_account_finalize (GObject *object)
 {
-    AccountItem *item = ACCOUNT_ITEM (object);
-    AccountItemPrivate *priv = item->priv;
+    AgAccount *account = AG_ACCOUNT (object);
+    AgAccountPrivate *priv = account->priv;
 
-    g_free (item->name);
+    g_free (account->name);
 
-    G_OBJECT_CLASS (account_item_parent_class)->finalize (object);
+    G_OBJECT_CLASS (ag_account_parent_class)->finalize (object);
 }
 
 static void
-account_item_class_init (AccountItemClass *klass)
+ag_account_class_init (AgAccountClass *klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
 
-    object_class->finalize = account_item_finalize;
+    object_class->finalize = ag_account_finalize;
 
 
     /**
-     * AccountItem::enabled:
-     * @account: the #AccountItem.
+     * AgAccount::enabled:
+     * @account: the #AgAccount.
      * @service: the service which was enabled/disabled, or %NULL if the global
      * enabledness of the account changed.
      * @enabled: the new state of the @account.
@@ -97,8 +97,8 @@ account_item_class_init (AccountItemClass *klass)
         2, G_TYPE_STRING, G_TYPE_BOOLEAN);
 
     /**
-     * AccountItem::static-conf-changed:
-     * @account: the #AccountItem.
+     * AgAccount::static-conf-changed:
+     * @account: the #AgAccount.
      * @service: the service whose configuration changed, or %NULL if the
      * global configuration of the account changed.
      *
@@ -116,8 +116,8 @@ account_item_class_init (AccountItemClass *klass)
         1, G_TYPE_STRING);
 
     /**
-     * AccountItem::setting-changed:
-     * @account: the #AccountItem.
+     * AgAccount::setting-changed:
+     * @account: the #AgAccount.
      * @service: the service whose setting changed, or %NULL if it was a global
      * setting on the account.
      * @key: the name of the setting which changed.
@@ -138,85 +138,85 @@ account_item_class_init (AccountItemClass *klass)
 }
 
 /**
- * account_item_supports_service:
- * @item: the #AccountItem.
+ * ag_account_supports_service:
+ * @account: the #AgAccount.
  *
- * Returns: a #gboolean which tells whether @item supports the service type
+ * Returns: a #gboolean which tells whether @account supports the service type
  * @service_type. 
  */
 gboolean
-account_item_supports_service (AccountItem *item, const gchar *service_type)
+ag_account_supports_service (AgAccount *account, const gchar *service_type)
 {
-    g_return_val_if_fail (ACCOUNT_IS_ITEM (item), FALSE);
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
     g_warning ("%s not implemented", G_STRFUNC);
     return FALSE;
 }
 
 /**
- * account_item_get_manager:
- * @item: the #AccountItem.
+ * ag_account_get_manager:
+ * @account: the #AgAccount.
  *
  * Returns: the #AccountManager.
  */
-AccountManager *
-account_item_get_manager (AccountItem *item)
+AgManager *
+ag_account_get_manager (AgAccount *account)
 {
-    g_return_val_if_fail (ACCOUNT_IS_ITEM (item), NULL);
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
     g_warning ("%s not implemented", G_STRFUNC);
     return NULL;
 }
 
 /**
- * account_item_conf_select_service:
- * @item: the #AccountItem.
+ * ag_account_conf_select_service:
+ * @account: the #AgAccount.
  * @service: the name of the service.
  *
  * Selects the configuration of service @service: from now on, all the
- * subsequent calls on the #AccountItem configuration will act on the @service.
+ * subsequent calls on the #AgAccount configuration will act on the @service.
  * If @service is %NULL, the global account configuration is selected.
  *
- * Note that if @item is being shared with other code one must take special
+ * Note that if @account is being shared with other code one must take special
  * care to make sure the desired service is always selected.
  */
 void
-account_item_conf_select_service (AccountItem *item, const gchar *service)
+ag_account_conf_select_service (AgAccount *account, const gchar *service)
 {
-    g_return_if_fail (ACCOUNT_IS_ITEM (item));
+    g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
 }
 
 /**
- * account_item_conf_get_enabled:
- * @item: the #AccountItem.
+ * ag_account_conf_get_enabled:
+ * @account: the #AgAccount.
  *
- * Returns: a #gboolean which tells whether the selected service for @item is
+ * Returns: a #gboolean which tells whether the selected service for @account is
  * enabled.
  */
 gboolean
-account_item_conf_get_enabled (AccountItem *item)
+ag_account_conf_get_enabled (AgAccount *account)
 {
-    g_return_val_if_fail (ACCOUNT_IS_ITEM (item), FALSE);
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
     g_warning ("%s not implemented", G_STRFUNC);
     return FALSE;
 }
 
 /**
- * account_item_conf_set_enabled:
- * @item: the #AccountItem.
- * @enabled: whether @item should be enabled.
+ * ag_account_conf_set_enabled:
+ * @account: the #AgAccount.
+ * @enabled: whether @account should be enabled.
  *
- * Sets the "enabled" flag on the selected service for @item.
+ * Sets the "enabled" flag on the selected service for @account.
  */
 void
-account_item_conf_set_enabled (AccountItem *item, gboolean enabled)
+ag_account_conf_set_enabled (AgAccount *account, gboolean enabled)
 {
-    g_return_if_fail (ACCOUNT_IS_ITEM (item));
+    g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
 }
 
 /**
- * account_item_conf_get_static:
- * @item: the #AccountItem.
+ * ag_account_conf_get_static:
+ * @account: the #AgAccount.
  * @key: the name of the setting to retrieve.
  * @value: an initialized #GValue to receive the setting's value.
  * 
@@ -227,43 +227,43 @@ account_item_conf_set_enabled (AccountItem *item, gboolean enabled)
  * the service default configuration.
  */
 gboolean
-account_item_conf_get_static (AccountItem *item, const gchar *key,
+ag_account_conf_get_static (AgAccount *account, const gchar *key,
                               GValue *value)
 {
-    g_return_val_if_fail (ACCOUNT_IS_ITEM (item), FALSE);
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
     g_warning ("%s not implemented", G_STRFUNC);
     return FALSE;
 }
 
 /**
- * account_item_conf_set_static:
- * @item: the #AccountItem.
+ * ag_account_conf_set_static:
+ * @account: the #AgAccount.
  * @key: the name of the setting to change.
  * @value: a #GValue holding the new setting's value.
  *
  * Sets the value of the static configuration setting @key to the value @value.
  */
 void
-account_item_conf_set_static (AccountItem *item, const gchar *key,
+ag_account_conf_set_static (AgAccount *account, const gchar *key,
                               const GValue *value)
 {
-    g_return_if_fail (ACCOUNT_IS_ITEM (item));
+    g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
 }
 
 /**
- * AccountItemConfDynamicReadyCb:
- * @item: the #AccountItem.
- * @user_data: the user data that was passed to account_item_conf_call_when_dynamic_ready().
+ * AgAccountConfDynamicReadyCb:
+ * @account: the #AgAccount.
+ * @user_data: the user data that was passed to ag_account_conf_call_when_dynamic_ready().
  * @weak_object: the weakly-referenced #GObject.
  *
- * This callback is invoked when the dynamic configuration for @item can be
+ * This callback is invoked when the dynamic configuration for @account can be
  * accessed.
  */
 
 /**
- * account_item_conf_call_when_dynamic_ready:
- * @item: the #AccountItem.
+ * ag_account_conf_call_when_dynamic_ready:
+ * @account: the #AgAccount.
  * @callback: function to be called when the account dynamic configuration is
  * ready to be accessed.
  * @user_data: pointer to user data, to be passed to @callback.
@@ -274,20 +274,20 @@ account_item_conf_set_static (AccountItem *item, const gchar *key,
  * @callback is %NULL.
  *
  * Starts monitoring the dynamic configuration for the selected service for
- * @item. Once the settings are available for retrieval, @callback is invoked.
+ * @account. Once the settings are available for retrieval, @callback is invoked.
  */
 void
-account_item_conf_call_when_dynamic_ready
-    (AccountItem *item, AccountItemConfDynamicReadyCb callback,
+ag_account_conf_call_when_dynamic_ready
+    (AgAccount *account, AgAccountConfDynamicReadyCb callback,
      gpointer user_data, GDestroyNotify destroy, GObject *weak_object)
 {
-    g_return_if_fail (ACCOUNT_IS_ITEM (item));
+    g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
 }
 
 /**
- * account_item_conf_get_dynamic:
- * @item: the #AccountItem.
+ * ag_account_conf_get_dynamic:
+ * @account: the #AgAccount.
  * @key: the name of the setting to retrieve.
  * @value: an initialized #GValue to receive the setting's value.
  * 
@@ -298,66 +298,66 @@ account_item_conf_call_when_dynamic_ready
  * the service default configuration.
  */
 gboolean
-account_item_conf_get_dynamic (AccountItem *item, const gchar *key,
-                               GValue *value)
+ag_account_conf_get_dynamic (AgAccount *account, const gchar *key,
+                             GValue *value)
 {
-    g_return_val_if_fail (ACCOUNT_IS_ITEM (item), FALSE);
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
     g_warning ("%s not implemented", G_STRFUNC);
     return FALSE;
 }
 
 /**
- * account_item_conf_set_dynamic:
- * @item: the #AccountItem.
+ * ag_account_conf_set_dynamic:
+ * @account: the #AgAccount.
  * @key: the name of the setting to change.
  * @value: a #GValue holding the new setting's value.
  *
  * Sets the value of the dynamic configuration setting @key to the value
- * @value for the selected service on @item. Since the dynamic account storage
+ * @value for the selected service on @account. Since the dynamic account storage
  * might be provided by an asynchronous service, callers of this method must
  * not assume that the new value has already been set when this method returns.
  */
 void
-account_item_conf_set_dynamic (AccountItem *item, const gchar *key,
+ag_account_conf_set_dynamic (AgAccount *account, const gchar *key,
                                const GValue *value)
 {
-    g_return_if_fail (ACCOUNT_IS_ITEM (item));
+    g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
 }
 
 /**
- * account_item_conf_begin_edit:
- * @item: the #AccountItem.
+ * ag_account_conf_begin_edit:
+ * @account: the #AgAccount.
  *
  * Start an editing session for the account static configuration on the
  * selected service. This function is used to reduce the number of
  * notifications emitted when many settings on the static configuration are
  * being changed: by grouping the changes in between of
- * account_item_conf_begin_edit() and account_item_conf_end_edit(), change
+ * ag_account_conf_begin_edit() and ag_account_conf_end_edit(), change
  * notification will happen only once, when editing is finished.
  *
  * If this function is called, one should make no assumption on whether the
- * settings are effectively stored until account_item_conf_end_edit() is
+ * settings are effectively stored until ag_account_conf_end_edit() is
  * called.
  */
 void
-account_item_conf_begin_edit (AccountItem *item)
+ag_account_conf_begin_edit (AgAccount *account)
 {
-    g_return_if_fail (ACCOUNT_IS_ITEM (item));
+    g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
 }
 
 /**
- * account_item_conf_end_edit:
- * @item: the #AccountItem.
+ * ag_account_conf_end_edit:
+ * @account: the #AgAccount.
  *
  * Ends an editing session end emits the "static-conf-changed" signal, if
  * needed.
  */
 void
-account_item_conf_begin_edit (AccountItem *item)
+ag_account_conf_begin_edit (AgAccount *account)
 {
-    g_return_if_fail (ACCOUNT_IS_ITEM (item));
+    g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
 }
 
