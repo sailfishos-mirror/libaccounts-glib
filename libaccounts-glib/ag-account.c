@@ -186,6 +186,20 @@ ag_account_select_service (AgAccount *account, const gchar *service)
 }
 
 /**
+ * ag_account_get_selected_service:
+ * @account: the #AgAccount.
+ *
+ * Returns: the name of the selected service.
+ */
+const gchar *
+ag_account_get_selected_service (AgAccount *account)
+{
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
+    g_warning ("%s not implemented", G_STRFUNC);
+    return NULL;
+}
+
+/**
  * ag_account_get_enabled:
  * @account: the #AgAccount.
  *

@@ -58,6 +58,7 @@ AgManager *ag_account_get_manager (AgAccount *account);
 /* Account configuration */
 void ag_account_select_service (AgAccount *account,
                                 const gchar *service);
+const gchar *ag_account_get_selected_service (AgAccount *account);
 
 gboolean ag_account_get_enabled (AgAccount *account);
 void ag_account_set_enabled (AgAccount *account, gboolean enabled);
