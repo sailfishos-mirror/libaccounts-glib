@@ -215,37 +215,40 @@ ag_account_conf_set_enabled (AgAccount *account, gboolean enabled)
 }
 
 /**
- * ag_account_conf_get_static:
+ * ag_account_get_value:
  * @account: the #AgAccount.
  * @key: the name of the setting to retrieve.
  * @value: an initialized #GValue to receive the setting's value.
  * 
- * Gets the value of the static configuration setting @key: @value must be a
+ * Gets the value of the configuration setting @key: @value must be a
  * #GValue initialized to the type of the setting.
  *
- * Returns: %TRUE if the setting is set on the account, %FALSE if it comes from
- * the service default configuration.
+ * Returns: one of #AgSettingSource: %AG_SETTING_SOURCE_NONE if the setting is
+ * not present, %AG_SETTING_SOURCE_ACCOUNT if the setting comes from the
+ * account configuration, or %AG_SETTING_SOURCE_PROFILE if the value comes as
+ * predefined in the profile.
  */
-gboolean
-ag_account_conf_get_static (AgAccount *account, const gchar *key,
-                              GValue *value)
+AgSettingSource
+ag_account_get_value (AgAccount *account, const gchar *key,
+                      GValue *value)
 {
-    g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), AG_SETTING_SOURCE_NONE);
     g_warning ("%s not implemented", G_STRFUNC);
-    return FALSE;
+    return AG_SETTING_SOURCE_NONE;
 }
 
 /**
- * ag_account_conf_set_static:
+ * ag_account_set_value:
  * @account: the #AgAccount.
  * @key: the name of the setting to change.
  * @value: a #GValue holding the new setting's value.
  *
- * Sets the value of the static configuration setting @key to the value @value.
+ * Sets the value of the configuration setting @key to the value @value.
+ * If @value is %NULL, then the setting is unset.
  */
 void
-ag_account_conf_set_static (AgAccount *account, const gchar *key,
-                              const GValue *value)
+ag_account_set_value (AgAccount *account, const gchar *key,
+                      const GValue *value)
 {
     g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);

@@ -62,10 +62,16 @@ void ag_account_conf_select_service (AgAccount *account,
 gboolean ag_account_conf_get_enabled (AgAccount *account);
 void ag_account_conf_set_enabled (AgAccount *account, gboolean enabled);
 
-gboolean ag_account_conf_get_static (AgAccount *account, const gchar *key,
-                                     GValue *value);
-void ag_account_conf_set_static (AgAccount *account, const gchar *key,
-                                 const GValue *value);
+typedef enum {
+    AG_SETTING_SOURCE_NONE = 0,
+    AG_SETTING_SOURCE_ACCOUNT,
+    AG_SETTING_SOURCE_PROFILE,
+} AgSettingSource;
+
+AgSettingSource ag_account_get_value (AgAccount *account, const gchar *key,
+                                      GValue *value);
+void ag_account_set_value (AgAccount *account, const gchar *key,
+                           const GValue *value);
 
 typedef void (AgAccountStoreCb) (AgAccount *account, const GError *error,
                                  gpointer user_data);
