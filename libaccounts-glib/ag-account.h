@@ -53,6 +53,10 @@ GType ag_account_get_type (void) G_GNUC_CONST;
 
 gboolean ag_account_supports_service (AgAccount *account,
                                       const gchar *service_type);
+GList *ag_account_list_services (AgAccount *account);
+GList *ag_account_list_services_by_type (AgAccount *account,
+                                         const gchar *service_type);
+
 AgManager *ag_account_get_manager (AgAccount *account);
 
 /* Account configuration */

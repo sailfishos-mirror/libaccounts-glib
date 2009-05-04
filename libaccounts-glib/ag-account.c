@@ -153,6 +153,40 @@ ag_account_supports_service (AgAccount *account, const gchar *service_type)
 }
 
 /**
+ * ag_account_list_services:
+ * @account: the #AgAccount.
+ *
+ * Returns: a #GList of #AgService items representing all the services
+ * supported by this account. Must be free'd with g_list_free().
+ */
+GList *
+ag_account_list_services (AgAccount *account)
+{
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
+    g_warning ("%s not implemented", G_STRFUNC);
+    return NULL;
+}
+
+/**
+ * ag_account_list_services_by_type:
+ * @account: the #AgAccount.
+ * @service_type: the service type which all the returned services should
+ * provide.
+ *
+ * Returns: a #GList of #AgService items representing all the services
+ * supported by this account which provide @service_type. Must be free'd with
+ * g_list_free().
+ */
+GList *
+ag_account_list_services_by_type (AgAccount *account,
+                                  const gchar *service_type)
+{
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
+    g_warning ("%s not implemented", G_STRFUNC);
+    return NULL;
+}
+
+/**
  * ag_account_get_manager:
  * @account: the #AgAccount.
  *

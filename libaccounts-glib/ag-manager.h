@@ -60,6 +60,13 @@ void ag_manager_list_free (GList *list);
 AgAccount *ag_manager_get_account (AgManager *manager,
                                    const gchar *account_name);
 
+/* Service APIs */
+typedef struct _AgService AgService;
+
+const gchar *ag_service_get_name (AgService *service);
+const gchar *ag_service_get_service_type (AgService *service);
+const gchar *ag_service_get_provider (AgService *service);
+
 G_END_DECLS
 
 #endif /* _AG_MANAGER_H_ */
