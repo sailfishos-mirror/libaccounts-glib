@@ -255,6 +255,47 @@ ag_account_set_value (AgAccount *account, const gchar *key,
 }
 
 /**
+ * ag_account_settings_iter_init:
+ * @account: the #AgAccount.
+ * @iter: an uninitialized #AgAccountSettingIter structure.
+ * @key_prefix: enumerate only the settings whose key starts with @key_prefix.
+ *
+ * Initializes @iter to iterate over the account settings. If @key_prefix is
+ * not %NULL, only keys whose names start with @key_prefix will be iterated
+ * over.
+ */
+void
+ag_account_settings_iter_init (AgAccount *account,
+                               AgAccountSettingIter *iter,
+                               const gchar *key_prefix)
+{
+    g_return_if_fail (AG_IS_ACCOUNT (account));
+    g_warning ("%s not implemented", G_STRFUNC);
+}
+
+/**
+ * ag_account_settings_iter_next:
+ * @iter: an initialized #AgAccountSettingIter structure.
+ * @key: a pointer to a string receiving the key name.
+ * @value: a pointer to a pointer to a #GValue, to receive the key value.
+ *
+ * Iterates over the account keys. @iter must be an iterator previously
+ * initialized with ag_account_settings_iter_init().
+ *
+ * Returns: %TRUE if @key and @value have been set, %FALSE if we there are no
+ * more account settings to iterate over.
+ */
+gboolean
+ag_account_settings_iter_next (AgAccountSettingIter *iter,
+                               const gchar **key, const GValue **value)
+{
+    g_return_val_if_fail (iter != NULL, FALSE);
+    g_return_val_if_fail (AG_IS_ACCOUNT (iter->account), FALSE);
+    g_warning ("%s not implemented", G_STRFUNC);
+    return FALSE;
+}
+
+/**
  * AgAccountStoreCb:
  * @account: the #AgAccount.
  * @error: a #GError, or %NULL.

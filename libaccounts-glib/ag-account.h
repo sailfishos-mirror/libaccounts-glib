@@ -73,6 +73,24 @@ AgSettingSource ag_account_get_value (AgAccount *account, const gchar *key,
 void ag_account_set_value (AgAccount *account, const gchar *key,
                            const GValue *value);
 
+typedef struct _AgAccountSettingIter AgAccountSettingIter;
+
+struct _AgAccountSettingIter {
+    AgAccount *account;
+    /*< private >*/
+    gpointer ptr1;
+    gpointer ptr2;
+    gint idx1;
+    gint idx2;
+};
+
+void ag_account_settings_iter_init (AgAccount *account,
+                                    AgAccountSettingIter *iter,
+                                    const gchar *key_prefix);
+gboolean ag_account_settings_iter_next (AgAccountSettingIter *iter,
+                                        const gchar **key,
+                                        const GValue *value);
+
 typedef void (AgAccountStoreCb) (AgAccount *account, const GError *error,
                                  gpointer user_data);
 void ag_account_store (AgAccount *account, AgAccountStoreCb callback,
