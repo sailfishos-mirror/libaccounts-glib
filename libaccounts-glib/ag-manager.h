@@ -52,12 +52,12 @@ GType ag_manager_get_type (void) G_GNUC_CONST;
 
 AgManager *ag_manager_new (void);
 
-GList *ag_manager_list (AgManager *ag_manager);
-GList *ag_manager_list_by_service_type (AgManager *ag_manager,
+GList *ag_manager_list (AgManager *manager);
+GList *ag_manager_list_by_service_type (AgManager *manager,
                                         const gchar *service_type);
 void ag_manager_list_free (GList *list);
 
-AgAccount *ag_manager_get_account (AgManager *ag_manager,
+AgAccount *ag_manager_get_account (AgManager *manager,
                                    const gchar *account_name);
 
 G_END_DECLS

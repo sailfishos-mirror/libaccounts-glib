@@ -60,7 +60,7 @@ ag_manager_new ()
 
 /**
  * ag_manager_list:
- * @ag_manager: the #AgManager.
+ * @manager: the #AgManager.
  *
  * Lists the accounts.
  *
@@ -68,16 +68,16 @@ ag_manager_new ()
  * be free'd with ag_manager_list_free().
  */
 GList *
-ag_manager_list (AgManager *ag_manager)
+ag_manager_list (AgManager *manager)
 {
-    g_return_val_if_fail (AG_IS_MANAGER (ag_manager), NULL);
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_warning ("%s not implemented", G_STRFUNC);
     return NULL;
 }
 
 /**
  * ag_manager_list_by_service_type:
- * @ag_manager: the #AgManager.
+ * @manager: the #AgManager.
  *
  * Lists the accounts supporting the given service type.
  *
@@ -85,10 +85,10 @@ ag_manager_list (AgManager *ag_manager)
  * be free'd with ag_manager_list_free().
  */
 GList *
-ag_manager_list_by_service_type (AgManager *ag_manager,
+ag_manager_list_by_service_type (AgManager *manager,
                                  const gchar *service_type)
 {
-    g_return_val_if_fail (AG_IS_MANAGER (ag_manager), NULL);
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_warning ("%s not implemented", G_STRFUNC);
     return NULL;
 }
@@ -107,7 +107,7 @@ ag_manager_list_free (GList *list)
 
 /**
  * ag_manager_get_account:
- * @ag_manager: the #AgManager.
+ * @manager: the #AgManager.
  * @account_name: a string holding the account unique name.
  *
  * Instantiates the object representing the account identified by
@@ -117,10 +117,10 @@ ag_manager_list_free (GList *list)
  * when it's done with it.
  */
 AgAccount *
-ag_manager_get_account (AgManager *ag_manager,
+ag_manager_get_account (AgManager *manager,
                         const gchar *account_name)
 {
-    g_return_val_if_fail (AG_IS_MANAGER (ag_manager), NULL);
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_warning ("%s not implemented", G_STRFUNC);
     return NULL;
 }
