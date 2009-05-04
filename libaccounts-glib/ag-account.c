@@ -296,6 +296,76 @@ ag_account_settings_iter_next (AgAccountSettingIter *iter,
 }
 
 /**
+ * AgAccountNotifyCb:
+ * @account: the #AgAccount.
+ * @key: the name of the key whose value has changed.
+ * @user_data: the user data that was passed when installing this callback.
+ *
+ * This callback is invoked when the value of an account configuration setting
+ * changes. If the callback was installed with ag_account_watch_key() then @key
+ * is the name of the configuration setting which changed; if it was installed
+ * with ag_account_watch_dir() then @key is the same key prefix that was used
+ * when installing this callback.
+ */
+
+/**
+ * ag_account_watch_key:
+ * @account: the #AgAccount.
+ * @key: the name of the key to watch.
+ * @callback: a #AgAccountNotifyCb callback to be called.
+ * @user_data: pointer to user data, to be passed to @callback.
+ *
+ * Installs a watch on @key: @callback will be invoked whenever the value of
+ * @key changes (or the key is removed).
+ *
+ * Returns: a #AgAccountWatch, which can then be used to remove this watch.
+ */
+AgAccountWatch
+ag_account_watch_key (AgAccount *account, const gchar *key,
+                      AgAccountNotifyCb callback, gpointer user_data)
+{
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
+    g_warning ("%s not implemented", G_STRFUNC);
+    return NULL;
+}
+
+/**
+ * ag_account_watch_dir:
+ * @account: the #AgAccount.
+ * @key_prefix: the prefix of the keys to watch.
+ * @callback: a #AgAccountNotifyCb callback to be called.
+ * @user_data: pointer to user data, to be passed to @callback.
+ *
+ * Installs a watch on all the keys under @key_prefix: @callback will be
+ * invoked whenever the value of any of these keys changes (or a key is
+ * removed).
+ *
+ * Returns: a #AgAccountWatch, which can then be used to remove this watch.
+ */
+AgAccountWatch
+ag_account_watch_dir (AgAccount *account, const gchar *key_prefix,
+                      AgAccountNotifyCb callback, gpointer user_data)
+{
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
+    g_warning ("%s not implemented", G_STRFUNC);
+    return NULL;
+}
+
+/**
+ * ag_account_remove_watch:
+ * @account: the #AgAccount.
+ * @watch: the watch to remove.
+ *
+ * Removes the notification callback identified by @watch.
+ */
+void
+ag_account_remove_watch (AgAccount *account, AgAccountWatch watch)
+{
+    g_return_if_fail (AG_IS_ACCOUNT (account));
+    g_warning ("%s not implemented", G_STRFUNC);
+}
+
+/**
  * AgAccountStoreCb:
  * @account: the #AgAccount.
  * @error: a #GError, or %NULL.
