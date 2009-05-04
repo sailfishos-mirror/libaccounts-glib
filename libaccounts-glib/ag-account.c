@@ -37,6 +37,7 @@ enum
 enum
 {
     ENABLED,
+    DISPLAY_NAME_CHANGED,
     LAST_SIGNAL
 };
 
@@ -93,6 +94,21 @@ ag_account_class_init (AgAccountClass *klass)
         account_marshal_VOID__STRING_BOOLEAN,
         G_TYPE_NONE,
         2, G_TYPE_STRING, G_TYPE_BOOLEAN);
+
+    /**
+     * AgAccount::display-name-changed:
+     * @account: the #AgAccount.
+     *
+     * Emitted when the account display name has changed.
+     */
+    signals[DISPLAY_NAME_CHANGED] = g_signal_new ("display-name-changed",
+        G_TYPE_FROM_CLASS (klass),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE,
+        0);
 }
 
 /**
@@ -156,6 +172,34 @@ ag_account_get_manager (AgAccount *account)
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
     g_warning ("%s not implemented", G_STRFUNC);
     return NULL;
+}
+
+/**
+ * ag_account_get_display_name:
+ * @account: the #AgAccount.
+ *
+ * Returns: the display name for @account.
+ */
+const gchar *
+ag_account_get_display_name (AgAccount *account)
+{
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
+    g_warning ("%s not implemented", G_STRFUNC);
+    return NULL;
+}
+
+/**
+ * ag_account_set_display_name:
+ * @account: the #AgAccount.
+ * @display_name: the display name to set.
+ *
+ * Changes the display name for @account to @display_name.
+ */
+void
+ag_account_set_display_name (AgAccount *account, const gchar *display_name)
+{
+    g_return_if_fail (AG_IS_ACCOUNT (account));
+    g_warning ("%s not implemented", G_STRFUNC);
 }
 
 /**
