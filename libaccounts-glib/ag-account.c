@@ -37,8 +37,6 @@ enum
 enum
 {
     ENABLED,
-    STATIC_CONF_CHANGED,
-    SETTING_CHANGED,
     LAST_SIGNAL
 };
 
@@ -95,46 +93,6 @@ ag_account_class_init (AgAccountClass *klass)
         account_marshal_VOID__STRING_BOOLEAN,
         G_TYPE_NONE,
         2, G_TYPE_STRING, G_TYPE_BOOLEAN);
-
-    /**
-     * AgAccount::static-conf-changed:
-     * @account: the #AgAccount.
-     * @service: the service whose configuration changed, or %NULL if the
-     * global configuration of the account changed.
-     *
-     * Emitted when the account static configuration changed. If @service is
-     * set, then the configuration for that service changed, otherwise the
-     * change was in the account global configuration.
-     */
-    signals[STATIC_CONF_CHANGED] = g_signal_new ("static-conf-changed",
-        G_TYPE_FROM_CLASS (klass),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL,
-        g_cclosure_marshal_VOID__STRING,
-        G_TYPE_NONE,
-        1, G_TYPE_STRING);
-
-    /**
-     * AgAccount::setting-changed:
-     * @account: the #AgAccount.
-     * @service: the service whose setting changed, or %NULL if it was a global
-     * setting on the account.
-     * @key: the name of the setting which changed.
-     * @value: a #GValue with the new value of the setting.
-     *
-     * Emitted when an account dynamic setting has changed. @service is
-     * set if the setting belongs to a specific service, and is %NULL if the
-     * setting is global for the account.
-     */
-    signals[SETTING_CHANGED] = g_signal_new ("setting-changed",
-        G_TYPE_FROM_CLASS (klass),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL, NULL,
-        g_cclosure_marshal_VOID__STRING,
-        G_TYPE_NONE,
-        3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_POINTER);
 }
 
 /**
