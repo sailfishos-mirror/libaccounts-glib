@@ -56,11 +56,11 @@ gboolean ag_account_supports_service (AgAccount *account,
 AgManager *ag_account_get_manager (AgAccount *account);
 
 /* Account configuration */
-void ag_account_conf_select_service (AgAccount *account,
-                                     const gchar *service);
+void ag_account_select_service (AgAccount *account,
+                                const gchar *service);
 
-gboolean ag_account_conf_get_enabled (AgAccount *account);
-void ag_account_conf_set_enabled (AgAccount *account, gboolean enabled);
+gboolean ag_account_get_enabled (AgAccount *account);
+void ag_account_set_enabled (AgAccount *account, gboolean enabled);
 
 typedef enum {
     AG_SETTING_SOURCE_NONE = 0,

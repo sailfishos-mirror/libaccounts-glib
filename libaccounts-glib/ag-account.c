@@ -167,7 +167,7 @@ ag_account_get_manager (AgAccount *account)
 }
 
 /**
- * ag_account_conf_select_service:
+ * ag_account_select_service:
  * @account: the #AgAccount.
  * @service: the name of the service.
  *
@@ -179,21 +179,21 @@ ag_account_get_manager (AgAccount *account)
  * care to make sure the desired service is always selected.
  */
 void
-ag_account_conf_select_service (AgAccount *account, const gchar *service)
+ag_account_select_service (AgAccount *account, const gchar *service)
 {
     g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
 }
 
 /**
- * ag_account_conf_get_enabled:
+ * ag_account_get_enabled:
  * @account: the #AgAccount.
  *
  * Returns: a #gboolean which tells whether the selected service for @account is
  * enabled.
  */
 gboolean
-ag_account_conf_get_enabled (AgAccount *account)
+ag_account_get_enabled (AgAccount *account)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
     g_warning ("%s not implemented", G_STRFUNC);
@@ -201,14 +201,14 @@ ag_account_conf_get_enabled (AgAccount *account)
 }
 
 /**
- * ag_account_conf_set_enabled:
+ * ag_account_set_enabled:
  * @account: the #AgAccount.
  * @enabled: whether @account should be enabled.
  *
  * Sets the "enabled" flag on the selected service for @account.
  */
 void
-ag_account_conf_set_enabled (AgAccount *account, gboolean enabled)
+ag_account_set_enabled (AgAccount *account, gboolean enabled)
 {
     g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
