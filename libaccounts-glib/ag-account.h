@@ -60,9 +60,8 @@ GList *ag_account_list_services_by_type (AgAccount *account,
 AgManager *ag_account_get_manager (AgAccount *account);
 
 /* Account configuration */
-void ag_account_select_service (AgAccount *account,
-                                const gchar *service);
-const gchar *ag_account_get_selected_service (AgAccount *account);
+void ag_account_select_service (AgAccount *account, AgService *service);
+AgService *ag_account_get_selected_service (AgAccount *account);
 
 gboolean ag_account_get_enabled (AgAccount *account);
 void ag_account_set_enabled (AgAccount *account, gboolean enabled);

@@ -203,7 +203,7 @@ ag_account_get_manager (AgAccount *account)
 /**
  * ag_account_select_service:
  * @account: the #AgAccount.
- * @service: the name of the service.
+ * @service: the #AgService to select.
  *
  * Selects the configuration of service @service: from now on, all the
  * subsequent calls on the #AgAccount configuration will act on the @service.
@@ -213,7 +213,7 @@ ag_account_get_manager (AgAccount *account)
  * care to make sure the desired service is always selected.
  */
 void
-ag_account_select_service (AgAccount *account, const gchar *service)
+ag_account_select_service (AgAccount *account, AgService *service)
 {
     g_return_if_fail (AG_IS_ACCOUNT (account));
     g_warning ("%s not implemented", G_STRFUNC);
@@ -223,9 +223,9 @@ ag_account_select_service (AgAccount *account, const gchar *service)
  * ag_account_get_selected_service:
  * @account: the #AgAccount.
  *
- * Returns: the name of the selected service.
+ * Returns: the selected service, or %NULL if no service is selected.
  */
-const gchar *
+AgService *
 ag_account_get_selected_service (AgAccount *account)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
