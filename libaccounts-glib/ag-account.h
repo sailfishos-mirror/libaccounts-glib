@@ -97,7 +97,7 @@ void ag_account_settings_iter_init (AgAccount *account,
                                     const gchar *key_prefix);
 gboolean ag_account_settings_iter_next (AgAccountSettingIter *iter,
                                         const gchar **key,
-                                        const GValue *value);
+                                        const GValue **value);
 
 typedef struct _AgAccountWatch *AgAccountWatch;
 

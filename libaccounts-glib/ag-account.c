@@ -26,6 +26,7 @@
  */
 
 #include "ag-account.h"
+#include "ag-marshal.h"
 
 enum
 {
@@ -61,7 +62,6 @@ static void
 ag_account_finalize (GObject *object)
 {
     AgAccount *account = AG_ACCOUNT (object);
-    AgAccountPrivate *priv = account->priv;
 
     g_free (account->name);
 
@@ -91,7 +91,7 @@ ag_account_class_init (AgAccountClass *klass)
         G_SIGNAL_RUN_LAST,
         0,
         NULL, NULL,
-        account_marshal_VOID__STRING_BOOLEAN,
+        ag_marshal_VOID__STRING_BOOLEAN,
         G_TYPE_NONE,
         2, G_TYPE_STRING, G_TYPE_BOOLEAN);
 

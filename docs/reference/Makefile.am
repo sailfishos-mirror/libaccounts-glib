@@ -38,12 +38,12 @@ FIXXREF_OPTIONS=
 # Used for dependencies. The docs will be rebuilt if any of these change.
 # e.g. HFILE_GLOB=$(top_srcdir)/gtk/*.h
 # e.g. CFILE_GLOB=$(top_srcdir)/gtk/*.c
-HFILE_GLOB=$(top_srcdir)/src/*.h
-CFILE_GLOB=$(top_srcdir)/src/*.c
+HFILE_GLOB=$(top_srcdir)/libaccounts-glib/*.h
+CFILE_GLOB=$(top_srcdir)/libaccounts-glib/*.c
 
 # Header files to ignore when scanning.
 # e.g. IGNORE_HFILES=gtkdebug.h gtkintl.h
-IGNORE_HFILES= account-marshal.h
+IGNORE_HFILES= ag-marshal.h
 
 # Images to copy into HTML directory.
 # e.g. HTML_IMAGES=$(top_srcdir)/gtk/stock-icons/stock_about_24.png
@@ -59,7 +59,7 @@ content_files=
 # e.g. INCLUDES=-I$(top_srcdir) -I$(top_builddir) $(GTK_DEBUG_FLAGS)
 # e.g. GTKDOC_LIBS=$(top_builddir)/gtk/$(gtktargetlib)
 INCLUDES=-I$(top_srcdir) $(LIBACCOUNTS_CFLAGS)
-GTKDOC_LIBS=$(top_builddir)/src/libaccounts-glib.la $(LIBACCOUNTS_LIBS)
+GTKDOC_LIBS=$(top_builddir)/libaccounts-glib/libaccounts-glib.la $(LIBACCOUNTS_LIBS)
 
 # This includes the standard gtk-doc make rules, copied by gtkdocize.
 include $(top_srcdir)/gtk-doc.make
