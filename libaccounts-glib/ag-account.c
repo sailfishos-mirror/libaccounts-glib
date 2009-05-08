@@ -273,7 +273,7 @@ ag_account_set_enabled (AgAccount *account, gboolean enabled)
  * Gets the value of the configuration setting @key: @value must be a
  * #GValue initialized to the type of the setting.
  *
- * Returns: one of #AgSettingSource: %AG_SETTING_SOURCE_NONE if the setting is
+ * Returns: one of <type>#AgSettingSource</type>: %AG_SETTING_SOURCE_NONE if the setting is
  * not present, %AG_SETTING_SOURCE_ACCOUNT if the setting comes from the
  * account configuration, or %AG_SETTING_SOURCE_PROFILE if the value comes as
  * predefined in the profile.
