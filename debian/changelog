@@ -1,6 +1,6 @@
-libaccounts-glib (0.0-1) unstable; urgency=low
+libaccounts-glib (0.1-1) unstable; urgency=low
 
-  * UNRELEASED
+  * First release
 
  -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 27 Apr 2009 11:46:24 +0300
 
