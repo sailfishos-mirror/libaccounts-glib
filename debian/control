@@ -1,7 +1,7 @@
 Source: libaccounts-glib
 Priority: optional
 Maintainer: Alberto Mardegan <alberto-mardegan@nokia.com>
-Build-Depends: debhelper (>= 4.1.0), cdbs, gtk-doc-tools
+Build-Depends: debhelper (>= 4.1.0), cdbs, gtk-doc-tools, libglib2.0-dev
 Standards-Version: 3.6.0
 
 Package: libaccounts-glib0
