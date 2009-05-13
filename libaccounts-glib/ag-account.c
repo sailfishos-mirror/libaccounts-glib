@@ -39,6 +39,7 @@ enum
 {
     ENABLED,
     DISPLAY_NAME_CHANGED,
+    DELETED,
     LAST_SIGNAL
 };
 
@@ -109,6 +110,21 @@ ag_account_class_init (AgAccountClass *klass)
         g_cclosure_marshal_VOID__VOID,
         G_TYPE_NONE,
         0);
+
+    /**
+     * AgAccount::deleted:
+     * @account: the #AgAccount.
+     *
+     * Emitted when the account has been deleted.
+     */
+    signals[DELETED] = g_signal_new ("deleted",
+        G_TYPE_FROM_CLASS (klass),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__VOID,
+        G_TYPE_NONE, 0);
+
 }
 
 /**
