@@ -175,6 +175,20 @@ ag_account_get_manager (AgAccount *account)
 }
 
 /**
+ * ag_account_get_provider_name:
+ * @account: the #AgAccount.
+ *
+ * Returns: the name of the provider of @account.
+ */
+const gchar *
+ag_account_get_provider_name (AgAccount *account)
+{
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
+    g_warning ("%s not implemented", G_STRFUNC);
+    return NULL;
+}
+
+/**
  * ag_account_get_display_name:
  * @account: the #AgAccount.
  *

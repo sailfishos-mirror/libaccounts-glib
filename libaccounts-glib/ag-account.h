@@ -59,6 +59,8 @@ GList *ag_account_list_services_by_type (AgAccount *account,
 
 AgManager *ag_account_get_manager (AgAccount *account);
 
+const gchar *ag_account_get_provider_name (AgAccount *account);
+
 const gchar *ag_account_get_display_name (AgAccount *account);
 void ag_account_set_display_name (AgAccount *account,
                                   const gchar *display_name);
