@@ -26,6 +26,14 @@
 #include "ag-manager.h"
 
 
+enum
+{
+    ACCOUNT_CREATED,
+    LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
 G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
 
 static void
@@ -45,6 +53,25 @@ ag_manager_class_init (AgManagerClass *klass)
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
 
     object_class->finalize = ag_manager_finalize;
+
+    /**
+     * AgManager::account-created:
+     * @manager: the #AgManager.
+     * @account_name: the name of the account that has been created.
+     *
+     * Emitted when a new account has been created; note that the account must
+     * have been stored in the database: the signal is not emitted just in
+     * response to ag_manager_create_account().
+     */
+    signals[ACCOUNT_CREATED] = g_signal_new ("account-created",
+        G_TYPE_FROM_CLASS (klass),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__STRING,
+        G_TYPE_NONE,
+        1, G_TYPE_STRING);
+
 }
 
 /**
