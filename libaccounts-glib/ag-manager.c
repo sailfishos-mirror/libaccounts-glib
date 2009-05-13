@@ -126,6 +126,26 @@ ag_manager_get_account (AgManager *manager,
 }
 
 /**
+ * ag_manager_create_account:
+ * @manager: the #AgManager.
+ * @provider_name: name of the provider of the account.
+ *
+ * Create a new account. The account is not stored in the database until
+ * ag_account_store() has successfully returned; the @name field in the
+ * #AgAccount structure is also not meant to be valid till the account has ben
+ * stored.
+ *
+ * Returns: a new #AgAccount.
+ */
+AgAccount *
+ag_manager_create_account (AgManager *manager, const gchar *provider_name)
+{
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
+    g_warning ("%s not implemented", G_STRFUNC);
+    return NULL;
+}
+
+/**
  * ag_service_get_name:
  * @service: the #AgService.
  *
