@@ -15,7 +15,7 @@ configure
 /debian/stamp-*
 /debian/tmp/
 depcomp
-.libs
+.*
 *.o
 *.lo
 *.la
@@ -34,3 +34,4 @@ ltmain.sh
 missing
 stamp-h1
 *~
+patches
