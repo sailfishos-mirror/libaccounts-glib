@@ -295,6 +295,20 @@ ag_account_set_enabled (AgAccount *account, gboolean enabled)
 }
 
 /**
+ * ag_account_delete:
+ * @account: the #AgAccount.
+ *
+ * Deletes the account. Call ag_account_store() in order to record the change
+ * in the storage.
+ */
+void
+ag_account_delete (AgAccount *account)
+{
+    g_return_if_fail (AG_IS_ACCOUNT (account));
+    g_warning ("%s not implemented", G_STRFUNC);
+}
+
+/**
  * ag_account_get_value:
  * @account: the #AgAccount.
  * @key: the name of the setting to retrieve.
