@@ -46,6 +46,7 @@ enum
 static guint signals[LAST_SIGNAL] = { 0 };
 
 struct _AgAccountPrivate {
+    AgManager *manager;
 };
 
 G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
@@ -57,6 +58,40 @@ ag_account_init (AgAccount *account)
 {
     account->priv = G_TYPE_INSTANCE_GET_PRIVATE (account, AG_TYPE_ACCOUNT,
                                                  AgAccountPrivate);
+}
+
+static void
+ag_account_set_property (GObject *object, guint property_id,
+                         const GValue *value, GParamSpec *pspec)
+{
+    AgAccount *account = AG_ACCOUNT (object);
+    AgAccountPrivate *priv = account->priv;
+
+    switch (property_id)
+    {
+    case PROP_MANAGER:
+        g_assert (priv->manager == NULL);
+        priv->manager = g_value_dup_object (value);
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+ag_account_dispose (GObject *object)
+{
+    AgAccount *account = AG_ACCOUNT (object);
+    AgAccountPrivate *priv = account->priv;
+
+    if (priv->manager)
+    {
+        g_object_unref (priv->manager);
+        priv->manager = NULL;
+    }
+
+    G_OBJECT_CLASS (ag_account_parent_class)->dispose (object);
 }
 
 static void
@@ -74,8 +109,15 @@ ag_account_class_init (AgAccountClass *klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
 
+    object_class->set_property = ag_account_set_property;
+    object_class->dispose = ag_account_dispose;
     object_class->finalize = ag_account_finalize;
 
+    g_object_class_install_property
+        (object_class, PROP_MANAGER,
+         g_param_spec_object ("manager", "manager", "manager",
+                              AG_TYPE_MANAGER,
+                              G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
     /**
      * AgAccount::enabled:
