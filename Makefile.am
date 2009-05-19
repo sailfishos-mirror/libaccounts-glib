@@ -1,4 +1,4 @@
-SUBDIRS = libaccounts-glib docs
+SUBDIRS = libaccounts-glib docs tests
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libaccounts-glib.pc

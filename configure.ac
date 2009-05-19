@@ -12,6 +12,8 @@ PKG_CHECK_MODULES(
 AC_SUBST(LIBACCOUNTS_CFLAGS)
 AC_SUBST(LIBACCOUNTS_LIBS)
 
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
+
 AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
@@ -51,4 +53,5 @@ AC_OUTPUT([
 	libaccounts-glib.pc
 	docs/Makefile
 	docs/reference/Makefile
+	tests/Makefile
 ])
