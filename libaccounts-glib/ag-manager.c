@@ -25,6 +25,7 @@
 
 #include "ag-manager.h"
 
+#include <sqlite3.h>
 
 enum
 {
@@ -34,16 +35,119 @@ enum
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+struct _AgManagerPrivate {
+    sqlite3 *db;
+};
+
 G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
 
-static void
-ag_manager_init (AgManager *object)
+#define AG_MANAGER_PRIV(obj) (AG_MANAGER(obj)->priv)
+
+static gboolean
+open_db (AgManager *manager)
 {
+    AgManagerPrivate *priv = manager->priv;
+    const gchar *sql;
+    gchar *filename, *error;
+    int ret;
+
+    filename = g_build_filename (g_get_home_dir (), "accounts.db", NULL);
+    ret = sqlite3_open (filename, &priv->db);
+    g_free (filename);
+
+    if (ret != SQLITE_OK)
+    {
+        if (priv->db)
+        {
+            g_warning ("Error opening accounts DB: %s",
+                       sqlite3_errmsg (priv->db));
+            sqlite3_close (priv->db);
+            priv->db = NULL;
+        }
+        return FALSE;
+    }
+
+    /* TODO: busy handler */
+
+    sql = ""
+        "CREATE TABLE IF NOT EXISTS Accounts ("
+            "id INTEGER PRIMARY KEY,"
+            "name TEXT,"
+            "provider TEXT,"
+            "enabled INTEGER);"
+
+        "CREATE TABLE IF NOT EXISTS Services ("
+            "id INTEGER PRIMARY KEY,"
+            "name TEXT NOT NULL,"
+            "type TEXT," /* for performance reasons */
+            "enabled INTEGER);"
+
+        "CREATE TABLE IF NOT EXISTS Settings ("
+            "account INTEGER NOT NULL,"
+            "service INTEGER,"
+            "key TEXT NOT NULL,"
+            "value BLOB);"
+
+        "CREATE TRIGGER IF NOT EXISTS tg_delete_account "
+            "BEFORE DELETE ON Accounts FOR EACH ROW BEGIN "
+                "DELETE FROM Services WHERE id = OLD.id; "
+                "DELETE FROM Settings WHERE account = OLD.id; "
+            "END;";
+
+    error = NULL;
+    ret = sqlite3_exec (priv->db, sql, NULL, NULL, &error);
+    if (ret != SQLITE_OK)
+    {
+        g_warning ("Error initializing DB: %s", error);
+        sqlite3_free (error);
+        sqlite3_close (priv->db);
+        priv->db = NULL;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static void
+ag_manager_init (AgManager *manager)
+{
+    manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, AG_TYPE_MANAGER,
+                                                 AgManagerPrivate);
+}
+
+static GObject *
+ag_manager_constructor (GType type, guint n_params,
+                        GObjectConstructParam *params)
+{
+    GObjectClass *object_class = (GObjectClass *)ag_manager_parent_class;
+    GObject *object;
+
+    object = object_class->constructor (type, n_params, params);
+
+    g_return_val_if_fail (object != NULL, NULL);
+
+    if (G_UNLIKELY (!open_db (AG_MANAGER (object))))
+    {
+        g_object_unref (object);
+        return NULL;
+    }
+
+    return object;
 }
 
 static void
 ag_manager_finalize (GObject *object)
 {
+    AgManagerPrivate *priv = AG_MANAGER_PRIV (object);
+
+    if (priv->db)
+    {
+        if (sqlite3_close (priv->db) != SQLITE_OK)
+            g_warning ("Failed to close database: %s",
+                       sqlite3_errmsg (priv->db));
+        priv->db = NULL;
+    }
+
     G_OBJECT_CLASS (ag_manager_parent_class)->finalize (object);
 }
 
@@ -52,6 +156,9 @@ ag_manager_class_init (AgManagerClass *klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
 
+    g_type_class_add_private (object_class, sizeof (AgManagerPrivate));
+
+    object_class->constructor = ag_manager_constructor;
     object_class->finalize = ag_manager_finalize;
 
     /**

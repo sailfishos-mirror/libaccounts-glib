@@ -109,6 +109,8 @@ ag_account_class_init (AgAccountClass *klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
 
+    g_type_class_add_private (object_class, sizeof (AgAccountPrivate));
+
     object_class->set_property = ag_account_set_property;
     object_class->dispose = ag_account_dispose;
     object_class->finalize = ag_account_finalize;
