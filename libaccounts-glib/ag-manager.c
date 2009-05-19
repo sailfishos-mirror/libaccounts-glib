@@ -47,11 +47,14 @@ static gboolean
 open_db (AgManager *manager)
 {
     AgManagerPrivate *priv = manager->priv;
-    const gchar *sql;
+    const gchar *sql, *basedir;
     gchar *filename, *error;
     int ret;
 
-    filename = g_build_filename (g_get_home_dir (), "accounts.db", NULL);
+    basedir = g_getenv ("ACCOUNTS");
+    if (G_LIKELY (!basedir))
+        basedir = g_get_home_dir ();
+    filename = g_build_filename (basedir, "accounts.db", NULL);
     ret = sqlite3_open (filename, &priv->db);
     g_free (filename);
 
