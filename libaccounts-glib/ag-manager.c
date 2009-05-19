@@ -91,7 +91,7 @@ ag_manager_new ()
  *
  * Lists the accounts.
  *
- * Returns: a #GList of constant strings representing the account names. Must
+ * Returns: a #GList of #AgAccountId representing the accounts. Must
  * be free'd with ag_manager_list_free().
  */
 GList *
@@ -108,7 +108,7 @@ ag_manager_list (AgManager *manager)
  *
  * Lists the accounts supporting the given service type.
  *
- * Returns: a #GList of constant strings representing the account names. Must
+ * Returns: a #GList of #AgAccountId representing the accounts. Must
  * be free'd with ag_manager_list_free().
  */
 GList *
@@ -135,19 +135,19 @@ ag_manager_list_free (GList *list)
 /**
  * ag_manager_get_account:
  * @manager: the #AgManager.
- * @account_name: a string holding the account unique name.
+ * @account_id: the #AgAccountId of the account.
  *
  * Instantiates the object representing the account identified by
- * @account_name.
+ * @account_id.
  *
  * Returns: an #AgAccount, on which the client must call g_object_unref()
  * when it's done with it.
  */
 AgAccount *
-ag_manager_get_account (AgManager *manager,
-                        const gchar *account_name)
+ag_manager_get_account (AgManager *manager, AgAccountId account_id)
 {
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
+    g_return_val_if_fail (account_id != 0, NULL);
     g_warning ("%s not implemented", G_STRFUNC);
     return NULL;
 }

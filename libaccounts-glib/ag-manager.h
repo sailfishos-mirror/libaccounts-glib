@@ -35,6 +35,8 @@ typedef struct _AgManager AgManager;
 
 typedef struct _AgService AgService;
 
+typedef guint AgAccountId;
+
 #include <libaccounts-glib/ag-account.h>
 
 struct _AgManagerClass
@@ -60,7 +62,7 @@ GList *ag_manager_list_by_service_type (AgManager *manager,
 void ag_manager_list_free (GList *list);
 
 AgAccount *ag_manager_get_account (AgManager *manager,
-                                   const gchar *account_name);
+                                   AgAccountId account_id);
 
 /* Service APIs */
 const gchar *ag_service_get_name (AgService *service);
