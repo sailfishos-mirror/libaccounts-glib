@@ -1,3 +1,9 @@
+libaccounts-glib (0.2-2) unstable; urgency=low
+
+  * Add missing check dependency. 
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 20 May 2009 09:31:11 +0300
+
 libaccounts-glib (0.2-1) unstable; urgency=low
 
   * Add unit test framework.
