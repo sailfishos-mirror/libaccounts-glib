@@ -1,3 +1,13 @@
+libaccounts-glib (0.2-1) unstable; urgency=low
+
+  * Add unit test framework.
+
+  * Add create/delete signals and methods for accounts. 
+
+  * Use an integer as unique identifier for accounts.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 20 May 2009 08:29:50 +0300
+
 libaccounts-glib (0.1-2) unstable; urgency=low
 
   * Adding glib build-dependency. 
