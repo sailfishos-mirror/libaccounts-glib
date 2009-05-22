@@ -244,8 +244,7 @@ AgManager *
 ag_account_get_manager (AgAccount *account)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    return account->priv->manager;
 }
 
 /**
