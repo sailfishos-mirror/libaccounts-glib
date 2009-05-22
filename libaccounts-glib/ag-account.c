@@ -33,6 +33,7 @@ enum
     PROP_0,
 
     PROP_MANAGER,
+    PROP_PROVIDER,
 };
 
 enum
@@ -47,6 +48,8 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct _AgAccountPrivate {
     AgManager *manager;
+
+    gchar *provider_name;
 };
 
 G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
@@ -73,6 +76,10 @@ ag_account_set_property (GObject *object, guint property_id,
         g_assert (priv->manager == NULL);
         priv->manager = g_value_dup_object (value);
         break;
+    case PROP_PROVIDER:
+        g_assert (priv->provider_name == NULL);
+        priv->provider_name = g_value_dup_string (value);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
@@ -97,6 +104,10 @@ ag_account_dispose (GObject *object)
 static void
 ag_account_finalize (GObject *object)
 {
+    AgAccountPrivate *priv = AG_ACCOUNT_PRIV (object);
+
+    g_free (priv->provider_name);
+
     G_OBJECT_CLASS (ag_account_parent_class)->finalize (object);
 }
 
@@ -116,6 +127,13 @@ ag_account_class_init (AgAccountClass *klass)
          g_param_spec_object ("manager", "manager", "manager",
                               AG_TYPE_MANAGER,
                               G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
+    g_object_class_install_property
+        (object_class, PROP_PROVIDER,
+         g_param_spec_string ("provider", "provider", "provider",
+                              NULL,
+                              G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
+                              G_PARAM_STATIC_STRINGS));
 
     /**
      * AgAccount::enabled:
@@ -240,8 +258,7 @@ const gchar *
 ag_account_get_provider_name (AgAccount *account)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    return account->priv->provider_name;
 }
 
 /**

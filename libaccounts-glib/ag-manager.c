@@ -283,7 +283,7 @@ ag_manager_create_account (AgManager *manager, const gchar *provider_name)
 
     account = g_object_new (AG_TYPE_ACCOUNT,
                             "manager", manager,
-                            /* TODO: add provider property */
+                            "provider", provider_name,
                             NULL);
     return account;
 }
