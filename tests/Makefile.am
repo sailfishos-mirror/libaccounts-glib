@@ -5,7 +5,7 @@ INCLUDES=-I$(top_srcdir) $(LIBACCOUNTS_CFLAGS)
 bin_PROGRAMS = accounts-glib-testsuite
 
 accounts_glib_testsuite_SOURCES = check_ag.c
-accounts_glib_testsuite_CFLAGS = $(CHECK_FLAGS)
+accounts_glib_testsuite_CFLAGS = $(CHECK_FLAGS) -I$(top_srcdir)
 accounts_glib_testsuite_LDADD = \
 	$(CHECK_LIBS) \
 	$(LIBACCOUNTS_LIBS) \

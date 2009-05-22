@@ -36,6 +36,23 @@ START_TEST(test_init)
 }
 END_TEST
 
+START_TEST(test_object)
+{
+    AgManager *manager;
+    AgAccount *account;
+
+    g_type_init ();
+    manager = ag_manager_new ();
+
+    account = ag_manager_create_account (manager, NULL);
+    fail_unless (AG_IS_ACCOUNT (account),
+                 "Failed to create the AgAccount.");
+
+    g_object_unref (account);
+    g_object_unref (manager);
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -46,6 +63,11 @@ ag_suite(void)
     tcase_add_test (tc_core, test_init);
 
     suite_add_tcase (s, tc_core);
+
+    TCase * tc_create = tcase_create("Create");
+    tcase_add_test (tc_create, test_object);
+
+    suite_add_tcase (s, tc_create);
 
     return s;
 }
