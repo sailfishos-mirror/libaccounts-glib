@@ -43,7 +43,7 @@ struct _AgAccountClass
 struct _AgAccount
 {
     GObject parent_instance;
-    gchar *name;
+    AgAccountId id;
 
     /*< private >*/
     AgAccountPrivate *priv;

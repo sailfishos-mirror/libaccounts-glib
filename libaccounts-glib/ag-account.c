@@ -97,10 +97,6 @@ ag_account_dispose (GObject *object)
 static void
 ag_account_finalize (GObject *object)
 {
-    AgAccount *account = AG_ACCOUNT (object);
-
-    g_free (account->name);
-
     G_OBJECT_CLASS (ag_account_parent_class)->finalize (object);
 }
 

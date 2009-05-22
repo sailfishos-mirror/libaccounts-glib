@@ -268,8 +268,8 @@ ag_manager_get_account (AgManager *manager, AgAccountId account_id)
  * @provider_name: name of the provider of the account.
  *
  * Create a new account. The account is not stored in the database until
- * ag_account_store() has successfully returned; the @name field in the
- * #AgAccount structure is also not meant to be valid till the account has ben
+ * ag_account_store() has successfully returned; the @id field in the
+ * #AgAccount structure is also not meant to be valid till the account has been
  * stored.
  *
  * Returns: a new #AgAccount.
