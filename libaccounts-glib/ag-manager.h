@@ -63,6 +63,8 @@ void ag_manager_list_free (GList *list);
 
 AgAccount *ag_manager_get_account (AgManager *manager,
                                    AgAccountId account_id);
+AgAccount *ag_manager_create_account (AgManager *manager,
+                                      const gchar *provider_name);
 
 /* Service APIs */
 const gchar *ag_service_get_name (AgService *service);
