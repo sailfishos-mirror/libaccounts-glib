@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define PROVIDER    "dummyprovider"
 
 
 START_TEST(test_init)
@@ -53,6 +54,27 @@ START_TEST(test_object)
 }
 END_TEST
 
+START_TEST(test_provider)
+{
+    AgManager *manager;
+    AgAccount *account;
+    const gchar *provider_name;
+
+    g_type_init ();
+    manager = ag_manager_new ();
+
+    account = ag_manager_create_account (manager, PROVIDER);
+    fail_unless (AG_IS_ACCOUNT (account),
+                 "Failed to create the AgAccount.");
+
+    provider_name = ag_account_get_provider_name (account);
+    fail_if (strcmp (provider_name, PROVIDER) != 0);
+
+    g_object_unref (account);
+    g_object_unref (manager);
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -66,6 +88,7 @@ ag_suite(void)
 
     TCase * tc_create = tcase_create("Create");
     tcase_add_test (tc_create, test_object);
+    tcase_add_test (tc_create, test_provider);
 
     suite_add_tcase (s, tc_create);
 
