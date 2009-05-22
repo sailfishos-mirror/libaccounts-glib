@@ -277,9 +277,15 @@ ag_manager_get_account (AgManager *manager, AgAccountId account_id)
 AgAccount *
 ag_manager_create_account (AgManager *manager, const gchar *provider_name)
 {
+    AgAccount *account;
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+
+    account = g_object_new (AG_TYPE_ACCOUNT,
+                            "manager", manager,
+                            /* TODO: add provider property */
+                            NULL);
+    return account;
 }
 
 /**
