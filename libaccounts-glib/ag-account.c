@@ -52,6 +52,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
 struct _AgAccountPrivate {
     AgManager *manager;
 
+    /* selected service */
+    AgService *service;
+
     gchar *provider_name;
 };
 
@@ -320,8 +323,7 @@ AgService *
 ag_account_get_selected_service (AgAccount *account)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    return account->priv->service;
 }
 
 /**
