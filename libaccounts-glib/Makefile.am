@@ -14,13 +14,17 @@ CLEANFILES = $(BUILT_SOURCES)
 libaccounts_glib_la_SOURCES = \
 	ag-account.h \
 	ag-account.c \
+	ag-errors.h \
 	ag-manager.h \
 	ag-manager.c \
+	ag-util.h \
+	ag-util.c \
 	$(BUILT_SOURCES)
 
 libaccounts_glib_includedir = $(includedir)/libaccounts-glib
 libaccounts_glib_include_HEADERS = \
 	ag-account.h \
+	ag-errors.h \
 	ag-manager.h
 
 %-marshal.h: %-marshal.list Makefile
