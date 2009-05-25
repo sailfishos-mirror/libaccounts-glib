@@ -105,8 +105,8 @@ gboolean ag_account_settings_iter_next (AgAccountSettingIter *iter,
 
 typedef struct _AgAccountWatch *AgAccountWatch;
 
-typedef void (AgAccountNotifyCb) (AgAccount *account, const gchar *key,
-                                  gpointer user_data);
+typedef void (*AgAccountNotifyCb) (AgAccount *account, const gchar *key,
+                                   gpointer user_data);
 AgAccountWatch ag_account_watch_key (AgAccount *account,
                                      const gchar *key,
                                      AgAccountNotifyCb callback,
@@ -117,8 +117,8 @@ AgAccountWatch ag_account_watch_dir (AgAccount *account,
                                      gpointer user_data);
 void ag_account_remove_watch (AgAccount *account, AgAccountWatch watch);
 
-typedef void (AgAccountStoreCb) (AgAccount *account, const GError *error,
-                                 gpointer user_data);
+typedef void (*AgAccountStoreCb) (AgAccount *account, const GError *error,
+                                  gpointer user_data);
 void ag_account_store (AgAccount *account, AgAccountStoreCb callback,
                        gpointer user_data);
 
