@@ -19,9 +19,16 @@
 #define _AG_UTIL_H_
 
 #include <glib.h>
+#include <sqlite3.h>
 
 G_BEGIN_DECLS
 
+GString *_ag_string_append_printf (GString *string,
+                                   const gchar *format,
+                                   ...) G_GNUC_INTERNAL;
+gboolean _ag_db_exec (sqlite3 *db,
+                      GFunc cb, gpointer user_data,
+                      const gchar *sql) G_GNUC_INTERNAL;
 
 G_END_DECLS
 
