@@ -15,6 +15,7 @@ libaccounts_glib_la_SOURCES = \
 	ag-account.h \
 	ag-account.c \
 	ag-errors.h \
+	ag-internals.h \
 	ag-manager.h \
 	ag-manager.c \
 	ag-util.h \

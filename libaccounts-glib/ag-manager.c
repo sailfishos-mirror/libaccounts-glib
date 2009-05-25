@@ -25,6 +25,9 @@
 
 #include "ag-manager.h"
 
+#include "ag-errors.h"
+#include "ag-internals.h"
+#include <sched.h>
 #include <sqlite3.h>
 
 enum
@@ -37,11 +40,157 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 struct _AgManagerPrivate {
     sqlite3 *db;
+
+    sqlite3_stmt *begin_stmt;
+    sqlite3_stmt *commit_stmt;
+    sqlite3_stmt *rollback_stmt;
+
+    /* list of StoreCbData awaiting for exclusive locks */
+    GList *locks;
+
+    guint is_disposed : 1;
 };
+
+typedef struct {
+    AgManager *manager;
+    AgAccount *account;
+    gchar *sql;
+    guint id;
+    AgAccountStoreCb callback;
+    gpointer user_data;
+} StoreCbData;
 
 G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
 
 #define AG_MANAGER_PRIV(obj) (AG_MANAGER(obj)->priv)
+
+/*
+ * exec_transaction:
+ *
+ * Executes a transaction, assuming that the exclusive lock has been obtained.
+ * @stmt is finalized within this function.
+ */
+static void
+exec_transaction (AgManager *manager, AgAccount *account,
+                  const gchar *sql, AgAccountStoreCb callback,
+                  gpointer user_data)
+{
+    AgManagerPrivate *priv;
+    gchar *err_msg = NULL;
+    GError *error = NULL;
+    int ret;
+
+    g_debug ("%s called: %s", G_STRFUNC, sql);
+    g_return_if_fail (AG_IS_MANAGER (manager));
+    priv = manager->priv;
+    g_return_if_fail (AG_IS_ACCOUNT (account));
+    g_return_if_fail (sql != NULL);
+    g_return_if_fail (priv->db != NULL);
+
+    ret = sqlite3_exec (priv->db, sql, NULL, NULL, &err_msg);
+    if (G_UNLIKELY (ret != SQLITE_OK))
+    {
+        error = g_error_new_literal (AG_ERRORS, AG_ERROR_DB, err_msg);
+
+        sqlite3_step (priv->rollback_stmt);
+        sqlite3_reset (priv->rollback_stmt);
+        goto finish;
+    }
+
+    ret = sqlite3_step (priv->commit_stmt);
+    if (G_UNLIKELY (ret != SQLITE_DONE))
+    {
+        error = g_error_new_literal (AG_ERRORS, AG_ERROR_DB,
+                                     sqlite3_errmsg (priv->db));
+        goto finish;
+    }
+
+finish:
+    callback (account, error, user_data);
+    if (G_UNLIKELY (error))
+    {
+        g_error_free (error);
+        if (err_msg)
+            sqlite3_free (err_msg);
+    }
+}
+
+static void
+store_cb_data_free (StoreCbData *sd)
+{
+    if (sd->id)
+        g_source_remove (sd->id);
+    g_free (sd->sql);
+    g_slice_free (StoreCbData, sd);
+}
+
+static gboolean
+exec_transaction_idle (StoreCbData *sd)
+{
+    AgManager *manager = sd->manager;
+    AgManagerPrivate *priv;
+    int ret;
+
+    g_return_val_if_fail (AG_IS_MANAGER (manager), FALSE);
+    priv = manager->priv;
+
+    g_return_val_if_fail (priv->begin_stmt != NULL, FALSE);
+    ret = sqlite3_step (priv->begin_stmt);
+    if (ret == SQLITE_BUSY)
+    {
+        sched_yield ();
+        return TRUE; /* call this callback again */
+    }
+
+    g_object_ref (manager);
+    if (ret == SQLITE_DONE)
+    {
+        exec_transaction (manager, sd->account, sd->sql,
+                          sd->callback, sd->user_data);
+    }
+    else
+    {
+        if (sd->callback)
+        {
+            GError error = { AG_ERRORS, AG_ERROR_DB, "Generic error" };
+            sd->callback (sd->account, &error, sd->user_data);
+        }
+    }
+
+    priv->locks = g_list_remove (priv->locks, sd);
+    sd->id = 0;
+    store_cb_data_free (sd);
+    g_object_unref (manager);
+    return FALSE;
+}
+
+static gboolean
+prepare_transaction_statements (AgManagerPrivate *priv)
+{
+    int ret;
+
+    if (G_UNLIKELY (!priv->begin_stmt))
+    {
+        ret = sqlite3_prepare_v2 (priv->db, "BEGIN EXCLUSIVE;", -1,
+                                  &priv->begin_stmt, NULL);
+        if (ret != SQLITE_OK) return FALSE;
+    }
+
+    if (G_UNLIKELY (!priv->commit_stmt))
+    {
+        ret = sqlite3_prepare_v2 (priv->db, "COMMIT;", -1,
+                                  &priv->commit_stmt, NULL);
+        if (ret != SQLITE_OK) return FALSE;
+    }
+
+    if (G_UNLIKELY (!priv->rollback_stmt))
+    {
+        ret = sqlite3_prepare_v2 (priv->db, "ROLLBACK;", -1,
+                                  &priv->rollback_stmt, NULL);
+        if (ret != SQLITE_OK) return FALSE;
+    }
+    return TRUE;
+}
 
 static gboolean
 open_db (AgManager *manager)
@@ -139,9 +288,33 @@ ag_manager_constructor (GType type, guint n_params,
 }
 
 static void
+ag_manager_dispose (GObject *object)
+{
+    AgManagerPrivate *priv = AG_MANAGER_PRIV (object);
+
+    if (priv->is_disposed) return;
+    priv->is_disposed = TRUE;
+
+    while (priv->locks)
+    {
+        store_cb_data_free (priv->locks->data);
+        priv->locks = g_list_delete_link (priv->locks, priv->locks);
+    }
+
+    G_OBJECT_CLASS (ag_manager_parent_class)->finalize (object);
+}
+
+static void
 ag_manager_finalize (GObject *object)
 {
     AgManagerPrivate *priv = AG_MANAGER_PRIV (object);
+
+    if (priv->begin_stmt)
+        sqlite3_finalize (priv->begin_stmt);
+    if (priv->commit_stmt)
+        sqlite3_finalize (priv->commit_stmt);
+    if (priv->rollback_stmt)
+        sqlite3_finalize (priv->rollback_stmt);
 
     if (priv->db)
     {
@@ -162,6 +335,7 @@ ag_manager_class_init (AgManagerClass *klass)
     g_type_class_add_private (object_class, sizeof (AgManagerPrivate));
 
     object_class->constructor = ag_manager_constructor;
+    object_class->dispose = ag_manager_dispose;
     object_class->finalize = ag_manager_finalize;
 
     /**
@@ -328,5 +502,49 @@ ag_service_get_provider (AgService *service)
     g_return_val_if_fail (service != NULL, NULL);
     g_warning ("%s not implemented", G_STRFUNC);
     return NULL;
+}
+
+void
+_ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
+                              AgAccount *account,
+                              AgAccountStoreCb callback, gpointer user_data)
+{
+    AgManagerPrivate *priv = manager->priv;
+    int ret;
+
+    if (G_UNLIKELY (!prepare_transaction_statements (priv)))
+        goto db_error;
+
+    ret = sqlite3_step (priv->begin_stmt);
+    if (ret == SQLITE_BUSY)
+    {
+        if (callback)
+        {
+            StoreCbData *sd;
+
+            sd = g_slice_new (StoreCbData);
+            sd->manager = manager;
+            sd->account = account;
+            sd->callback = callback;
+            sd->user_data = user_data;
+            sd->sql = g_strdup (sql);
+            sd->id = g_idle_add ((GSourceFunc)exec_transaction_idle, sd);
+            priv->locks = g_list_prepend (priv->locks, sd);
+        }
+        return;
+    }
+
+    if (ret != SQLITE_DONE)
+        goto db_error;
+
+    exec_transaction (manager, account, sql, callback, user_data);
+    return;
+
+db_error:
+    if (callback)
+    {
+        GError error = { AG_ERRORS, AG_ERROR_DB, "Generic error" };
+        callback (account, &error, user_data);
+    }
 }
 
