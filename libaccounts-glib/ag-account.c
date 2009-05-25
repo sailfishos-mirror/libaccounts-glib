@@ -26,7 +26,10 @@
  */
 
 #include "ag-account.h"
+
+#include "ag-internals.h"
 #include "ag-marshal.h"
+#include "ag-util.h"
 
 enum
 {
@@ -539,7 +542,29 @@ void
 ag_account_store (AgAccount *account, AgAccountStoreCb callback,
                   gpointer user_data)
 {
+    AgAccountPrivate *priv;
+    GString *sql;
+
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    g_warning ("%s not implemented", G_STRFUNC);
+    priv = account->priv;
+
+    sql = g_string_sized_new (512);
+    if (account->id == 0)
+    {
+        _ag_string_append_printf
+            (sql,
+             "INSERT INTO Accounts (name, provider, enabled) "
+             "VALUES (%Q, %Q, %d);",
+             NULL, /* TODO */
+             priv->provider_name,
+             0 /* TODO */);
+    }
+    else
+    {
+        /* TODO: update existing account */
+    }
+    _ag_manager_exec_transaction (priv->manager, sql->str, account, callback,
+                                  user_data);
+    g_string_free (sql, TRUE);
 }
 
