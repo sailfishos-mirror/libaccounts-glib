@@ -10,6 +10,7 @@
  */
 
 #include "libaccounts-glib/ag-account.h"
+#include "libaccounts-glib/ag-errors.h"
 
 #include <glib.h>
 #include <check.h>
@@ -25,8 +26,31 @@
 #define TEST_STRING "Hey dude!"
 
 static gchar *db_filename;
-static GMainLoop *main_loop;
+static GMainLoop *main_loop = NULL;
 gboolean lock_released = FALSE;
+static AgAccount *account = NULL;
+static AgManager *manager = NULL;
+
+static void
+end_test ()
+{
+    if (account)
+    {
+        g_object_unref (account);
+        account = NULL;
+    }
+    if (manager)
+    {
+        g_object_unref (manager);
+        manager = NULL;
+    }
+    if (main_loop)
+    {
+        g_main_loop_quit (main_loop);
+        g_main_loop_unref (main_loop);
+        main_loop = NULL;
+    }
+}
 
 START_TEST(test_init)
 {
@@ -178,6 +202,63 @@ START_TEST(test_store_locked)
 }
 END_TEST
 
+static void
+account_store_locked_unref_cb (AgAccount *account, const GError *error,
+                               gpointer user_data)
+{
+    const gchar *string = user_data;
+
+    g_debug ("%s called", G_STRFUNC);
+    fail_unless (error != NULL, "Account disposed but no error set!");
+    fail_unless (error->code == AG_ERROR_DISPOSED,
+                 "Got a different error code");
+    fail_unless (strcmp (string, TEST_STRING) == 0, "Got wrong string");
+}
+
+static void
+release_lock_unref (sqlite3 *db)
+{
+    g_debug ("releasing lock");
+    sqlite3_exec (db, "COMMIT;", NULL, NULL, NULL);
+
+    end_test ();
+}
+
+static gboolean
+unref_account (gpointer user_data)
+{
+    g_debug ("Unreferencing account %p", account);
+    fail_unless (AG_IS_ACCOUNT (account), "Account disposed?");
+    g_object_unref (account);
+    account = NULL;
+    return FALSE;
+}
+
+START_TEST(test_store_locked_unref)
+{
+    sqlite3 *db;
+
+    g_type_init ();
+    manager = ag_manager_new ();
+
+    account = ag_manager_create_account (manager, PROVIDER);
+
+    /* get an exclusive lock on the DB */
+    sqlite3_open (db_filename, &db);
+    sqlite3_exec (db, "BEGIN EXCLUSIVE", NULL, NULL, NULL);
+
+    main_loop = g_main_loop_new (NULL, FALSE);
+    ag_account_store (account, account_store_locked_unref_cb, TEST_STRING);
+    g_timeout_add (10, (GSourceFunc)unref_account, account);
+    g_timeout_add (20, (GSourceFunc)release_lock_unref, db);
+    if (main_loop)
+    {
+        g_debug ("Running loop");
+        g_main_loop_run (main_loop);
+    }
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -194,6 +275,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_provider);
     tcase_add_test (tc_create, test_store);
     tcase_add_test (tc_create, test_store_locked);
+    tcase_add_test (tc_create, test_store_locked_unref);
 
     suite_add_tcase (s, tc_create);
 

@@ -28,6 +28,7 @@ GQuark ag_errors_quark (void);
 
 typedef enum {
     AG_ERROR_DB,
+    AG_ERROR_DISPOSED,
 } AgError;
 
 G_END_DECLS
