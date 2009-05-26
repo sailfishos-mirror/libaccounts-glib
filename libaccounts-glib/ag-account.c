@@ -49,6 +49,16 @@ enum
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+struct _AgAccountChanges {
+    gboolean enabled;
+    gchar *display_name;
+
+    guint enabled_changed : 1;
+    guint display_name_changed : 1;
+
+    /* TODO: add GHashTable for other settings */
+};
+
 struct _AgAccountPrivate {
     AgManager *manager;
 
@@ -56,11 +66,32 @@ struct _AgAccountPrivate {
     AgService *service;
 
     gchar *provider_name;
+
+    AgAccountChanges *changes;
 };
 
 G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
 
 #define AG_ACCOUNT_PRIV(obj) (AG_ACCOUNT(obj)->priv)
+
+void
+_ag_account_changes_free (AgAccountChanges *changes)
+{
+    if (G_LIKELY (changes))
+    {
+        g_free (changes->display_name);
+        g_slice_free (AgAccountChanges, changes);
+    }
+}
+
+static AgAccountChanges *
+account_changes_get (AgAccountPrivate *priv)
+{
+    if (!priv->changes)
+        priv->changes = g_slice_new0 (AgAccountChanges);
+
+    return priv->changes;
+}
 
 static void
 ag_account_init (AgAccount *account)
@@ -113,6 +144,12 @@ ag_account_finalize (GObject *object)
     AgAccountPrivate *priv = AG_ACCOUNT_PRIV (object);
 
     g_free (priv->provider_name);
+
+    if (priv->changes)
+    {
+        g_debug ("Finalizing account with uncommitted changes!");
+        _ag_account_changes_free (priv->changes);
+    }
 
     G_OBJECT_CLASS (ag_account_parent_class)->finalize (object);
 }
@@ -545,10 +582,14 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
                   gpointer user_data)
 {
     AgAccountPrivate *priv;
+    AgAccountChanges *changes;
     GString *sql;
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
     priv = account->priv;
+
+    changes = priv->changes;
+    priv->changes = NULL;
 
     sql = g_string_sized_new (512);
     if (account->id == 0)
@@ -557,16 +598,16 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
             (sql,
              "INSERT INTO Accounts (name, provider, enabled) "
              "VALUES (%Q, %Q, %d);",
-             NULL, /* TODO */
+             changes ? changes->display_name : NULL,
              priv->provider_name,
-             0 /* TODO */);
+             changes ? changes->enabled : 0);
     }
     else
     {
         /* TODO: update existing account */
     }
-    _ag_manager_exec_transaction (priv->manager, sql->str, account, callback,
-                                  user_data);
+    _ag_manager_exec_transaction (priv->manager, sql->str, changes, account,
+                                  callback, user_data);
     g_string_free (sql, TRUE);
 }
 

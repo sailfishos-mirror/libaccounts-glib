@@ -20,7 +20,12 @@
 
 G_BEGIN_DECLS
 
+typedef struct _AgAccountChanges AgAccountChanges;
+
+void _ag_account_changes_free (AgAccountChanges *changes) G_GNUC_INTERNAL;
+
 void _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
+                                   AgAccountChanges *changes,
                                    AgAccount *account,
                                    AgAccountStoreCb callback,
                                    gpointer user_data) G_GNUC_INTERNAL;

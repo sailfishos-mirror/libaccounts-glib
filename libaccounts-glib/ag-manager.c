@@ -55,6 +55,7 @@ typedef struct {
     AgManager *manager;
     AgAccount *account;
     gchar *sql;
+    AgAccountChanges *changes;
     guint id;
     AgAccountStoreCb callback;
     gpointer user_data;
@@ -64,6 +65,30 @@ G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
 
 #define AG_MANAGER_PRIV(obj) (AG_MANAGER(obj)->priv)
 
+static void
+transaction_completed (AgManager *manager,
+                       AgAccount *account,
+                       AgAccountChanges *changes,
+                       AgAccountStoreCb callback,
+                       const GError *error,
+                       gpointer user_data)
+{
+    AgManagerPrivate *priv;
+
+    g_debug ("%s called", G_STRFUNC);
+    g_return_if_fail (AG_IS_MANAGER (manager));
+    priv = manager->priv;
+
+    if (callback)
+        callback (account, error, user_data);
+
+    if (!error)
+    {
+        /* TODO: emit D-Bus signal with the changes */
+    }
+    _ag_account_changes_free (changes);
+}
+
 /*
  * exec_transaction:
  *
@@ -72,8 +97,8 @@ G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
  */
 static void
 exec_transaction (AgManager *manager, AgAccount *account,
-                  const gchar *sql, AgAccountStoreCb callback,
-                  gpointer user_data)
+                  const gchar *sql, AgAccountChanges *changes,
+                  AgAccountStoreCb callback, gpointer user_data)
 {
     AgManagerPrivate *priv;
     gchar *err_msg = NULL;
@@ -106,7 +131,8 @@ exec_transaction (AgManager *manager, AgAccount *account,
     }
 
 finish:
-    callback (account, error, user_data);
+    transaction_completed (manager, account, changes,
+                           callback, error, user_data);
     if (G_UNLIKELY (error))
     {
         g_error_free (error);
@@ -145,16 +171,14 @@ exec_transaction_idle (StoreCbData *sd)
     g_object_ref (manager);
     if (ret == SQLITE_DONE)
     {
-        exec_transaction (manager, sd->account, sd->sql,
+        exec_transaction (manager, sd->account, sd->sql, sd->changes,
                           sd->callback, sd->user_data);
     }
     else
     {
-        if (sd->callback)
-        {
-            GError error = { AG_ERRORS, AG_ERROR_DB, "Generic error" };
-            sd->callback (sd->account, &error, sd->user_data);
-        }
+        GError error = { AG_ERRORS, AG_ERROR_DB, "Generic error" };
+        transaction_completed (manager, sd->account, sd->changes,
+                               sd->callback, &error, sd->user_data);
     }
 
     priv->locks = g_list_remove (priv->locks, sd);
@@ -506,10 +530,11 @@ ag_service_get_provider (AgService *service)
 
 void
 _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
-                              AgAccount *account,
+                              AgAccountChanges *changes, AgAccount *account,
                               AgAccountStoreCb callback, gpointer user_data)
 {
     AgManagerPrivate *priv = manager->priv;
+    GError error;
     int ret;
 
     if (G_UNLIKELY (!prepare_transaction_statements (priv)))
@@ -525,6 +550,7 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
             sd = g_slice_new (StoreCbData);
             sd->manager = manager;
             sd->account = account;
+            sd->changes = changes;
             sd->callback = callback;
             sd->user_data = user_data;
             sd->sql = g_strdup (sql);
@@ -537,14 +563,14 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
     if (ret != SQLITE_DONE)
         goto db_error;
 
-    exec_transaction (manager, account, sql, callback, user_data);
+    exec_transaction (manager, account, sql, changes, callback, user_data);
     return;
 
 db_error:
-    if (callback)
-    {
-        GError error = { AG_ERRORS, AG_ERROR_DB, "Generic error" };
-        callback (account, &error, user_data);
-    }
+    error.domain = AG_ERRORS;
+    error.code = AG_ERROR_DB;
+    error.message = "Generic error";
+    transaction_completed (manager, account, changes,
+                           callback, &error, user_data);
 }
 
