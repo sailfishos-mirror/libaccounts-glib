@@ -65,6 +65,8 @@ G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
 
 #define AG_MANAGER_PRIV(obj) (AG_MANAGER(obj)->priv)
 
+static void store_cb_data_free (StoreCbData *sd);
+
 static void
 transaction_completed (AgManager *manager,
                        AgAccount *account,
@@ -142,8 +144,28 @@ finish:
 }
 
 static void
+lost_weak_ref (gpointer data, GObject *dead)
+{
+    StoreCbData *sd = data;
+    AgManagerPrivate *priv;
+
+    GError error = { AG_ERRORS, AG_ERROR_DISPOSED, "Account disposed" };
+
+    g_assert ((GObject *)sd->account == dead);
+    transaction_completed (sd->manager, sd->account, sd->changes,
+                           sd->callback, &error, sd->user_data);
+
+    priv = AG_MANAGER_PRIV (sd->manager);
+    priv->locks = g_list_remove (priv->locks, sd);
+    sd->account = NULL; /* so that the weak reference is not removed */
+    store_cb_data_free (sd);
+}
+
+static void
 store_cb_data_free (StoreCbData *sd)
 {
+    if (sd->account)
+        g_object_weak_unref (G_OBJECT (sd->account), lost_weak_ref, sd);
     if (sd->id)
         g_source_remove (sd->id);
     g_free (sd->sql);
@@ -154,6 +176,7 @@ static gboolean
 exec_transaction_idle (StoreCbData *sd)
 {
     AgManager *manager = sd->manager;
+    AgAccount *account = sd->account;
     AgManagerPrivate *priv;
     int ret;
 
@@ -169,21 +192,23 @@ exec_transaction_idle (StoreCbData *sd)
     }
 
     g_object_ref (manager);
+    g_object_ref (account);
     if (ret == SQLITE_DONE)
     {
-        exec_transaction (manager, sd->account, sd->sql, sd->changes,
+        exec_transaction (manager, account, sd->sql, sd->changes,
                           sd->callback, sd->user_data);
     }
     else
     {
         GError error = { AG_ERRORS, AG_ERROR_DB, "Generic error" };
-        transaction_completed (manager, sd->account, sd->changes,
+        transaction_completed (manager, account, sd->changes,
                                sd->callback, &error, sd->user_data);
     }
 
     priv->locks = g_list_remove (priv->locks, sd);
     sd->id = 0;
     store_cb_data_free (sd);
+    g_object_unref (account);
     g_object_unref (manager);
     return FALSE;
 }
@@ -556,6 +581,7 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
             sd->sql = g_strdup (sql);
             sd->id = g_idle_add ((GSourceFunc)exec_transaction_idle, sd);
             priv->locks = g_list_prepend (priv->locks, sd);
+            g_object_weak_ref (G_OBJECT (account), lost_weak_ref, sd);
         }
         return;
     }
