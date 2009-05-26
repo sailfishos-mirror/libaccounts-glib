@@ -388,8 +388,22 @@ ag_account_get_enabled (AgAccount *account)
 void
 ag_account_set_enabled (AgAccount *account, gboolean enabled)
 {
+    AgAccountPrivate *priv;
+    AgAccountChanges *changes;
+
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    g_warning ("%s not implemented", G_STRFUNC);
+    priv = account->priv;
+    if (priv->service == NULL)
+    {
+        changes = account_changes_get (priv);
+
+        changes->enabled = (enabled != FALSE);
+        changes->enabled_changed = TRUE;
+    }
+    else
+    {
+        g_warning ("%s not implemented", G_STRFUNC);
+    }
 }
 
 /**
