@@ -13,6 +13,7 @@
 #include "libaccounts-glib/ag-errors.h"
 
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <check.h>
 #include <sqlite3.h>
 #include <stdlib.h>
@@ -290,6 +291,7 @@ int main(void)
 
     db_filename = g_build_filename (g_getenv ("ACCOUNTS"), "accounts.db",
                                     NULL);
+    g_unlink (db_filename);
 
     srunner_set_xml(sr, "/tmp/result.xml");
     srunner_run_all(sr, CK_NORMAL);
