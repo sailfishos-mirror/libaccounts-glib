@@ -55,23 +55,18 @@ end_test ()
 
 START_TEST(test_init)
 {
-    AgManager *manager;
-
     g_type_init ();
     manager = ag_manager_new ();
 
     fail_unless (AG_IS_MANAGER (manager),
                  "Failed to initialize the AgManager.");
 
-    g_object_unref(manager);
+    end_test ();
 }
 END_TEST
 
 START_TEST(test_object)
 {
-    AgManager *manager;
-    AgAccount *account;
-
     g_type_init ();
     manager = ag_manager_new ();
 
@@ -79,15 +74,12 @@ START_TEST(test_object)
     fail_unless (AG_IS_ACCOUNT (account),
                  "Failed to create the AgAccount.");
 
-    g_object_unref (account);
-    g_object_unref (manager);
+    end_test ();
 }
 END_TEST
 
 START_TEST(test_provider)
 {
-    AgManager *manager;
-    AgAccount *account;
     const gchar *provider_name;
 
     g_type_init ();
@@ -100,15 +92,13 @@ START_TEST(test_provider)
     provider_name = ag_account_get_provider_name (account);
     fail_if (strcmp (provider_name, PROVIDER) != 0);
 
-    g_object_unref (account);
-    g_object_unref (manager);
+    end_test ();
 }
 END_TEST
 
 void account_store_cb (AgAccount *account, const GError *error,
                        gpointer user_data)
 {
-    AgManager *manager;
     const gchar *string = user_data;
 
     fail_unless (AG_IS_ACCOUNT (account), "Account got disposed?");
@@ -116,20 +106,11 @@ void account_store_cb (AgAccount *account, const GError *error,
         fail("Got error: %s", error->message);
     fail_unless (strcmp (string, TEST_STRING) == 0, "Got wrong string");
 
-    manager = ag_account_get_manager (account);
-    g_object_unref (account);
-    g_object_unref (manager);
-
-    g_main_loop_quit (main_loop);
-    g_main_loop_unref (main_loop);
-    main_loop = NULL;
+    end_test ();
 }
 
 START_TEST(test_store)
 {
-    AgManager *manager;
-    AgAccount *account;
-
     g_type_init ();
     manager = ag_manager_new ();
 
@@ -142,13 +123,14 @@ START_TEST(test_store)
         g_debug ("Running loop");
         g_main_loop_run (main_loop);
     }
+    else
+        end_test ();
 }
 END_TEST
 
 void account_store_locked_cb (AgAccount *account, const GError *error,
                               gpointer user_data)
 {
-    AgManager *manager;
     const gchar *string = user_data;
 
     g_debug ("%s called", G_STRFUNC);
@@ -159,13 +141,7 @@ void account_store_locked_cb (AgAccount *account, const GError *error,
 
     fail_unless (lock_released, "Data stored while DB locked!");
 
-    manager = ag_account_get_manager (account);
-    g_object_unref (account);
-    g_object_unref (manager);
-
-    g_main_loop_quit (main_loop);
-    g_main_loop_unref (main_loop);
-    main_loop = NULL;
+    end_test ();
 }
 
 gboolean
@@ -179,8 +155,6 @@ release_lock (sqlite3 *db)
 
 START_TEST(test_store_locked)
 {
-    AgManager *manager;
-    AgAccount *account;
     sqlite3 *db;
 
     g_type_init ();
@@ -195,11 +169,9 @@ START_TEST(test_store_locked)
     main_loop = g_main_loop_new (NULL, FALSE);
     ag_account_store (account, account_store_locked_cb, TEST_STRING);
     g_timeout_add (100, (GSourceFunc)release_lock, db);
-    if (main_loop)
-    {
-        g_debug ("Running loop");
-        g_main_loop_run (main_loop);
-    }
+    fail_unless (main_loop != NULL, "Callback invoked too early");
+    g_debug ("Running loop");
+    g_main_loop_run (main_loop);
 }
 END_TEST
 
@@ -250,13 +222,11 @@ START_TEST(test_store_locked_unref)
 
     main_loop = g_main_loop_new (NULL, FALSE);
     ag_account_store (account, account_store_locked_unref_cb, TEST_STRING);
-    g_timeout_add (10, (GSourceFunc)unref_account, account);
+    g_timeout_add (10, (GSourceFunc)unref_account, NULL);
     g_timeout_add (20, (GSourceFunc)release_lock_unref, db);
-    if (main_loop)
-    {
-        g_debug ("Running loop");
-        g_main_loop_run (main_loop);
-    }
+    fail_unless (main_loop != NULL, "Callback invoked too early");
+    g_debug ("Running loop");
+    g_main_loop_run (main_loop);
 }
 END_TEST
 
