@@ -1,3 +1,9 @@
+libaccounts-glib (0.3-1) unstable; urgency=low
+
+  * Add basic functionality to write to the DB.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 27 May 2009 12:00:32 +0300
+
 libaccounts-glib (0.2-3) unstable; urgency=low
 
   * Add SGML docs index. 
