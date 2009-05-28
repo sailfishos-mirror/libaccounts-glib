@@ -529,61 +529,6 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
     return NULL;
 }
 
-/**
- * ag_service_get_name:
- * @service: the #AgService.
- *
- * Returns: the name of @service.
- */
-const gchar *
-ag_service_get_name (AgService *service)
-{
-    g_return_val_if_fail (service != NULL, NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
-}
-
-/**
- * ag_service_get_service_type:
- * @service: the #AgService.
- *
- * Returns: the type of @service.
- */
-const gchar *
-ag_service_get_service_type (AgService *service)
-{
-    g_return_val_if_fail (service != NULL, NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
-}
-
-/**
- * ag_service_get_provider:
- * @service: the #AgService.
- *
- * Returns: the name of the provider of @service.
- */
-const gchar *
-ag_service_get_provider (AgService *service)
-{
-    g_return_val_if_fail (service != NULL, NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
-}
-
-/**
- * ag_service_free:
- * @service: the #AgService.
- *
- * Used to free the #AgService structure.
- */
-void
-ag_service_free (AgService *service)
-{
-    g_return_if_fail (service != NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-}
-
 void
 _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
                               AgAccountChanges *changes, AgAccount *account,

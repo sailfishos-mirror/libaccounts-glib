@@ -18,6 +18,8 @@ libaccounts_glib_la_SOURCES = \
 	ag-internals.h \
 	ag-manager.h \
 	ag-manager.c \
+	ag-service.h \
+	ag-service.c \
 	ag-util.h \
 	ag-util.c \
 	$(BUILT_SOURCES)
