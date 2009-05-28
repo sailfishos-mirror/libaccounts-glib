@@ -512,6 +512,24 @@ ag_manager_create_account (AgManager *manager, const gchar *provider_name)
 }
 
 /**
+ * ag_manager_get_service:
+ * @manager: the #AgManager.
+ * @service_name: the name of the service.
+ *
+ * Loads the service identified by @service_name.
+ *
+ * Returns: an #AgService, which must be then free'd with ag_service_free().
+ */
+AgService *
+ag_manager_get_service (AgManager *manager, const gchar *service_name)
+{
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
+    g_return_val_if_fail (service_name != NULL, NULL);
+    g_warning ("Not implemented");
+    return NULL;
+}
+
+/**
  * ag_service_get_name:
  * @service: the #AgService.
  *
@@ -551,6 +569,19 @@ ag_service_get_provider (AgService *service)
     g_return_val_if_fail (service != NULL, NULL);
     g_warning ("%s not implemented", G_STRFUNC);
     return NULL;
+}
+
+/**
+ * ag_service_free:
+ * @service: the #AgService.
+ *
+ * Used to free the #AgService structure.
+ */
+void
+ag_service_free (AgService *service)
+{
+    g_return_if_fail (service != NULL);
+    g_warning ("%s not implemented", G_STRFUNC);
 }
 
 void
