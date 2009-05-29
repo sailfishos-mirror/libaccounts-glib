@@ -278,9 +278,9 @@ open_db (AgManager *manager)
 
         "CREATE TABLE IF NOT EXISTS Services ("
             "id INTEGER PRIMARY KEY,"
-            "name TEXT NOT NULL,"
-            "type TEXT," /* for performance reasons */
-            "enabled INTEGER);"
+            "name TEXT NOT NULL UNIQUE,"
+            "type TEXT);" /* for performance reasons */
+        "CREATE INDEX IF NOT EXISTS idx_service ON Services(name);"
 
         "CREATE TABLE IF NOT EXISTS Settings ("
             "account INTEGER NOT NULL,"
