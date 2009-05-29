@@ -19,6 +19,7 @@
 #define _AG_UTIL_H_
 
 #include <glib.h>
+#include <glib-object.h>
 #include <sqlite3.h>
 
 G_BEGIN_DECLS
@@ -29,6 +30,15 @@ GString *_ag_string_append_printf (GString *string,
 gboolean _ag_db_exec (sqlite3 *db,
                       GFunc cb, gpointer user_data,
                       const gchar *sql) G_GNUC_INTERNAL;
+
+G_GNUC_INTERNAL
+GValue *_ag_value_slice_dup (const GValue *value);
+
+G_GNUC_INTERNAL
+void _ag_value_slice_free (GValue *value);
+
+G_GNUC_INTERNAL
+const gchar *_ag_value_to_db (const GValue *value);
 
 G_END_DECLS
 
