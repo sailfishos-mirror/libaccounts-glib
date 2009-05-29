@@ -29,7 +29,10 @@
 
 #include "ag-internals.h"
 #include "ag-marshal.h"
+#include "ag-service.h"
 #include "ag-util.h"
+
+#define SERVICE_GLOBAL "global"
 
 enum
 {
@@ -49,6 +52,11 @@ enum
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
+typedef struct {
+    AgService *service;
+    GHashTable *settings;
+} AgServiceChanges;
+
 struct _AgAccountChanges {
     gboolean enabled;
     gchar *display_name;
@@ -56,7 +64,9 @@ struct _AgAccountChanges {
     guint enabled_changed : 1;
     guint display_name_changed : 1;
 
-    /* TODO: add GHashTable for other settings */
+    /* The keys of the table are service names, and the values are
+     * AgServiceChanges structures */
+    GHashTable *services;
 };
 
 struct _AgAccountPrivate {
@@ -74,12 +84,20 @@ G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
 
 #define AG_ACCOUNT_PRIV(obj) (AG_ACCOUNT(obj)->priv)
 
+static void
+ag_service_changes_free (AgServiceChanges *sc)
+{
+    g_hash_table_unref (sc->settings);
+    g_slice_free (AgServiceChanges, sc);
+}
+
 void
 _ag_account_changes_free (AgAccountChanges *changes)
 {
     if (G_LIKELY (changes))
     {
         g_free (changes->display_name);
+        g_hash_table_unref (changes->services);
         g_slice_free (AgAccountChanges, changes);
     }
 }
@@ -88,9 +106,40 @@ static AgAccountChanges *
 account_changes_get (AgAccountPrivate *priv)
 {
     if (!priv->changes)
+    {
         priv->changes = g_slice_new0 (AgAccountChanges);
+        priv->changes->services =
+            g_hash_table_new_full (g_str_hash, g_str_equal, NULL,
+                                   (GDestroyNotify)ag_service_changes_free);
+    }
 
     return priv->changes;
+}
+
+static void
+change_service_value (AgAccountPrivate *priv,
+                      const gchar *key, const GValue *value)
+{
+    AgAccountChanges *changes;
+    AgServiceChanges *sc;
+    gchar *service_name;
+
+    changes = account_changes_get (priv);
+
+    service_name = priv->service ? priv->service->name : SERVICE_GLOBAL;
+    sc = g_hash_table_lookup (changes->services, service_name);
+    if (!sc)
+    {
+        sc = g_slice_new (AgServiceChanges);
+        sc->service = priv->service;
+        sc->settings = g_hash_table_new_full
+            (g_str_hash, g_str_equal,
+             g_free, (GDestroyNotify)_ag_value_slice_free);
+        g_hash_table_insert (changes->services, service_name, sc);
+    }
+
+    g_hash_table_insert (sc->settings,
+                         g_strdup (key), _ag_value_slice_dup (value));
 }
 
 static void
@@ -347,7 +396,8 @@ void
 ag_account_select_service (AgAccount *account, AgService *service)
 {
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    g_warning ("%s not implemented", G_STRFUNC);
+
+    account->priv->service = service;
 }
 
 /**
@@ -402,7 +452,11 @@ ag_account_set_enabled (AgAccount *account, gboolean enabled)
     }
     else
     {
-        g_warning ("%s not implemented", G_STRFUNC);
+        GValue value = { 0 };
+
+        g_value_init (&value, G_TYPE_BOOLEAN);
+        g_value_set_boolean (&value, enabled);
+        change_service_value (priv, "enabled", &value);
     }
 }
 
@@ -456,8 +510,12 @@ void
 ag_account_set_value (AgAccount *account, const gchar *key,
                       const GValue *value)
 {
+    AgAccountPrivate *priv;
+
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    g_warning ("%s not implemented", G_STRFUNC);
+    priv = account->priv;
+
+    change_service_value (priv, key, value);
 }
 
 /**
