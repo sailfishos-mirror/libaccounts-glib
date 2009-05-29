@@ -45,6 +45,9 @@ struct _AgManagerPrivate {
     sqlite3_stmt *commit_stmt;
     sqlite3_stmt *rollback_stmt;
 
+    /* Cache for AgService */
+    GHashTable *services;
+
     /* list of StoreCbData awaiting for exclusive locks */
     GList *locks;
 
@@ -320,8 +323,15 @@ open_db (AgManager *manager)
 static void
 ag_manager_init (AgManager *manager)
 {
+    AgManagerPrivate *priv;
+
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, AG_TYPE_MANAGER,
                                                  AgManagerPrivate);
+    priv = manager->priv;
+
+    priv->services =
+        g_hash_table_new_full (g_str_hash, g_str_equal,
+                               NULL, (GDestroyNotify)ag_service_unref);
 }
 
 static GObject *
@@ -372,6 +382,9 @@ ag_manager_finalize (GObject *object)
         sqlite3_finalize (priv->commit_stmt);
     if (priv->rollback_stmt)
         sqlite3_finalize (priv->rollback_stmt);
+
+    if (priv->services)
+        g_hash_table_unref (priv->services);
 
     if (priv->db)
     {
@@ -526,15 +539,29 @@ ag_manager_create_account (AgManager *manager, const gchar *provider_name)
  *
  * Loads the service identified by @service_name.
  *
- * Returns: an #AgService, which must be then free'd with ag_service_free().
+ * Returns: an #AgService, which must be then free'd with ag_service_unref().
  */
 AgService *
 ag_manager_get_service (AgManager *manager, const gchar *service_name)
 {
+    AgManagerPrivate *priv;
+    AgService *service;
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_return_val_if_fail (service_name != NULL, NULL);
-    g_warning ("Not implemented");
-    return NULL;
+    priv = manager->priv;
+
+    service = g_hash_table_lookup (priv->services, service_name);
+    if (service)
+        return ag_service_ref (service);
+
+    /* TODO first, check if the service is in the DB */
+
+    /* The service is not in the DB: it must be loaded */
+    service = _ag_service_load_from_file (service_name);
+
+    g_hash_table_insert (priv->services, service->name, service);
+    return service;
 }
 
 void
