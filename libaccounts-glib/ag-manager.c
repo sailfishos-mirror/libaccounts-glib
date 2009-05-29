@@ -294,6 +294,8 @@ open_db (AgManager *manager)
             "service INTEGER,"
             "key TEXT NOT NULL,"
             "value BLOB);"
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_setting ON Settings "
+            "(account, service, key);"
 
         "CREATE TRIGGER IF NOT EXISTS tg_delete_account "
             "BEFORE DELETE ON Accounts FOR EACH ROW BEGIN "
