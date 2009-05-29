@@ -137,6 +137,13 @@ exec_transaction (AgManager *manager, AgAccount *account,
         goto finish;
     }
 
+    /* everything went well; if this was a new account, we must update the
+     * local data structure */
+    if (account->id == 0)
+        account->id = priv->last_account_id;
+
+    _ag_account_done_changes (account, changes);
+
 finish:
     transaction_completed (manager, account, changes,
                            callback, error, user_data);

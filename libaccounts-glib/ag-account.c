@@ -102,6 +102,19 @@ _ag_account_changes_free (AgAccountChanges *changes)
     }
 }
 
+/*
+ * _ag_account_done_changes:
+ *
+ * This function is called after a successful execution of a transaction, and
+ * must update the account data as with the contents of the AgAccountChanges
+ * structure.
+ */
+void
+_ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
+{
+    /* TODO */
+}
+
 static AgAccountChanges *
 account_changes_get (AgAccountPrivate *priv)
 {
