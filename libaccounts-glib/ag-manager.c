@@ -95,7 +95,6 @@ transaction_completed (AgManager *manager,
  * exec_transaction:
  *
  * Executes a transaction, assuming that the exclusive lock has been obtained.
- * @stmt is finalized within this function.
  */
 static void
 exec_transaction (AgManager *manager, AgAccount *account,
