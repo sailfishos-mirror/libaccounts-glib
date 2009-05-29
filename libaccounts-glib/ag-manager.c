@@ -212,7 +212,7 @@ exec_transaction_idle (StoreCbData *sd)
     return FALSE;
 }
 
-static gboolean
+static int
 prepare_transaction_statements (AgManagerPrivate *priv)
 {
     int ret;
@@ -221,23 +221,30 @@ prepare_transaction_statements (AgManagerPrivate *priv)
     {
         ret = sqlite3_prepare_v2 (priv->db, "BEGIN EXCLUSIVE;", -1,
                                   &priv->begin_stmt, NULL);
-        if (ret != SQLITE_OK) return FALSE;
+        if (ret != SQLITE_OK) return ret;
     }
+    else
+        sqlite3_reset (priv->begin_stmt);
 
     if (G_UNLIKELY (!priv->commit_stmt))
     {
         ret = sqlite3_prepare_v2 (priv->db, "COMMIT;", -1,
                                   &priv->commit_stmt, NULL);
-        if (ret != SQLITE_OK) return FALSE;
+        if (ret != SQLITE_OK) return ret;
     }
+    else
+        sqlite3_reset (priv->commit_stmt);
 
     if (G_UNLIKELY (!priv->rollback_stmt))
     {
         ret = sqlite3_prepare_v2 (priv->db, "ROLLBACK;", -1,
                                   &priv->rollback_stmt, NULL);
-        if (ret != SQLITE_OK) return FALSE;
+        if (ret != SQLITE_OK) return ret;
     }
-    return TRUE;
+    else
+        sqlite3_reset (priv->rollback_stmt);
+
+    return SQLITE_OK;
 }
 
 static gboolean
@@ -537,7 +544,8 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
     GError error;
     int ret;
 
-    if (G_UNLIKELY (!prepare_transaction_statements (priv)))
+    ret = prepare_transaction_statements (priv);
+    if (G_UNLIKELY (ret != SQLITE_OK))
         goto db_error;
 
     ret = sqlite3_step (priv->begin_stmt);
@@ -570,8 +578,10 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
 db_error:
     error.domain = AG_ERRORS;
     error.code = AG_ERROR_DB;
-    error.message = "Generic error";
+    error.message = g_strdup_printf ("Got error: %s (%d)",
+                                     sqlite3_errmsg (priv->db), ret);
     transaction_completed (manager, account, changes,
                            callback, &error, user_data);
+    g_free (error.message);
 }
 
