@@ -656,6 +656,7 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
     AgAccountPrivate *priv;
     AgAccountChanges *changes;
     GString *sql;
+    const gchar *account_id_str;
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
     priv = account->priv;
@@ -673,11 +674,85 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
              changes ? changes->display_name : NULL,
              priv->provider_name,
              changes ? changes->enabled : 0);
+
+        g_string_append (sql, "SELECT set_last_rowid_as_account_id();");
+        account_id_str = "account_id()";
     }
     else
     {
         /* TODO: update existing account */
     }
+
+    if (changes)
+    {
+        GHashTableIter i_services;
+        gpointer ht_key, ht_value;
+
+        g_hash_table_iter_init (&i_services, changes->services);
+        while (g_hash_table_iter_next (&i_services, &ht_key, &ht_value))
+        {
+            AgServiceChanges *sc = ht_value;
+            GHashTableIter i_settings;
+            const gchar *service_id_str;
+            gchar service_id_buffer[16];
+
+            if (sc->service)
+            {
+                if (sc->service->id == 0)
+                {
+                    /* the service is not in the DB: create the record now */
+                    _ag_string_append_printf (sql,
+                                              "INSERT INTO Services "
+                                              "(name, type) VALUES (%Q, %Q);",
+                                              sc->service->name,
+                                              sc->service->type);
+                    _ag_string_append_printf
+                        (sql, "SELECT set_last_rowid_as_service_id(%Q);",
+                         sc->service->name);
+                    service_id_str = "service_id()";
+                }
+                else
+                {
+                    g_snprintf (service_id_buffer, sizeof (service_id_buffer),
+                                "%d", sc->service->id);
+                    service_id_str = service_id_buffer;
+                }
+            }
+            else
+                service_id_str = "0";
+
+            g_hash_table_iter_init (&i_settings, sc->settings);
+            while (g_hash_table_iter_next (&i_settings, &ht_key, &ht_value))
+            {
+                const gchar *key = ht_key;
+                const GValue *value = ht_value;
+
+                if (value)
+                {
+                    const gchar *value_str;
+
+                    value_str = _ag_value_to_db (value);
+                    _ag_string_append_printf
+                        (sql,
+                         "INSERT OR REPLACE INTO Settings (account, service,"
+                                                          "key, value) "
+                         "VALUES (%s, %s, %Q, %Q);",
+                         account_id_str, service_id_str, key, value_str);
+                }
+                else if (account->id != 0)
+                {
+                    _ag_string_append_printf
+                        (sql,
+                         "DELETE FROM Settings WHERE "
+                         "account = %d AND "
+                         "service = %Q AND "
+                         "key = %Q;",
+                         account->id, service_id_str, key);
+                }
+            }
+        }
+    }
+
     _ag_manager_exec_transaction (priv->manager, sql->str, changes, account,
                                   callback, user_data);
     g_string_free (sql, TRUE);

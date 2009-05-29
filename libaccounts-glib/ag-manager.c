@@ -45,6 +45,9 @@ struct _AgManagerPrivate {
     sqlite3_stmt *commit_stmt;
     sqlite3_stmt *rollback_stmt;
 
+    sqlite3_int64 last_service_id;
+    sqlite3_int64 last_account_id;
+
     /* Cache for AgService */
     GHashTable *services;
 
@@ -250,6 +253,81 @@ prepare_transaction_statements (AgManagerPrivate *priv)
     return SQLITE_OK;
 }
 
+static void
+set_last_rowid_as_service_id (sqlite3_context *ctx,
+                              int argc, sqlite3_value **argv)
+{
+    AgManagerPrivate *priv;
+
+    g_debug ("%s called", G_STRFUNC);
+    priv = sqlite3_user_data (ctx);
+    priv->last_service_id = sqlite3_last_insert_rowid (priv->db);
+    if (argc == 1)
+    {
+        const guchar *service_name;
+        AgService *service;
+
+        service_name = sqlite3_value_text (argv[0]);
+
+        service = g_hash_table_lookup (priv->services, service_name);
+        if (G_LIKELY (service))
+        {
+            service->id = (gint)priv->last_service_id;
+        }
+        else
+            g_warning ("Service %s not loaded", service_name);
+    }
+
+    sqlite3_result_null (ctx);
+}
+
+static void
+set_last_rowid_as_account_id (sqlite3_context *ctx,
+                              int argc, sqlite3_value **argv)
+{
+    AgManagerPrivate *priv;
+
+    g_debug ("%s called", G_STRFUNC);
+    priv = sqlite3_user_data (ctx);
+    priv->last_account_id = sqlite3_last_insert_rowid (priv->db);
+    sqlite3_result_null (ctx);
+}
+
+static void
+get_service_id (sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    AgManagerPrivate *priv;
+
+    priv = sqlite3_user_data (ctx);
+    sqlite3_result_int64 (ctx, priv->last_service_id);
+}
+
+static void
+get_account_id (sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    AgManagerPrivate *priv;
+
+    priv = sqlite3_user_data (ctx);
+    sqlite3_result_int64 (ctx, priv->last_account_id);
+}
+
+static void
+create_functions (AgManagerPrivate *priv)
+{
+    sqlite3_create_function (priv->db, "set_last_rowid_as_service_id", 1,
+                             SQLITE_ANY, priv,
+                             set_last_rowid_as_service_id, NULL, NULL);
+    sqlite3_create_function (priv->db, "set_last_rowid_as_account_id", 0,
+                             SQLITE_ANY, priv,
+                             set_last_rowid_as_account_id, NULL, NULL);
+    sqlite3_create_function (priv->db, "service_id", 0,
+                             SQLITE_ANY, priv,
+                             get_service_id, NULL, NULL);
+    sqlite3_create_function (priv->db, "account_id", 0,
+                             SQLITE_ANY, priv,
+                             get_account_id, NULL, NULL);
+}
+
 static gboolean
 open_db (AgManager *manager)
 {
@@ -316,6 +394,8 @@ open_db (AgManager *manager)
         priv->db = NULL;
         return FALSE;
     }
+
+    create_functions (priv);
 
     return TRUE;
 }
