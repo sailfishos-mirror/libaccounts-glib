@@ -30,6 +30,7 @@ _ag_service_new (const gchar *name,
     g_return_val_if_fail (name != NULL, NULL);
 
     service = g_slice_new0 (AgService);
+    service->ref_count = 1;
     service->name = g_strdup (name);
     service->type = g_strdup (type);
     service->provider = g_strdup (provider);
@@ -89,18 +90,42 @@ ag_service_get_provider (AgService *service)
 }
 
 /**
- * ag_service_free:
+ * ag_service_ref:
  * @service: the #AgService.
  *
- * Used to free the #AgService structure.
+ * Adds a reference to @service.
+ *
+ * Returns: @service.
+ */
+AgService *
+ag_service_ref (AgService *service)
+{
+    g_return_val_if_fail (service != NULL, NULL);
+    g_return_val_if_fail (service->ref_count > 0, NULL);
+
+    service->ref_count++;
+    return service;
+}
+
+/**
+ * ag_service_unref:
+ * @service: the #AgService.
+ *
+ * Used to unreference the #AgService structure.
  */
 void
-ag_service_free (AgService *service)
+ag_service_unref (AgService *service)
 {
     g_return_if_fail (service != NULL);
-    g_free (service->name);
-    g_free (service->type);
-    g_free (service->provider);
-    g_slice_free (AgService, service);
+    g_return_if_fail (service->ref_count > 0);
+
+    service->ref_count--;
+    if (service->ref_count == 0)
+    {
+        g_free (service->name);
+        g_free (service->type);
+        g_free (service->provider);
+        g_slice_free (AgService, service);
+    }
 }
 

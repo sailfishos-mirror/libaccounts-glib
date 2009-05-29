@@ -27,7 +27,8 @@ typedef struct _AgService AgService;
 const gchar *ag_service_get_name (AgService *service);
 const gchar *ag_service_get_service_type (AgService *service);
 const gchar *ag_service_get_provider (AgService *service);
-void ag_service_free (AgService *service);
+AgService *ag_service_ref (AgService *service);
+void ag_service_unref (AgService *service);
 
 G_END_DECLS
 

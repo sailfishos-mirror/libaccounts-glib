@@ -33,6 +33,7 @@ void _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
                                    gpointer user_data) G_GNUC_INTERNAL;
 
 struct _AgService {
+    gint ref_count;
     gchar *name;
     gchar *type;
     gchar *provider;
