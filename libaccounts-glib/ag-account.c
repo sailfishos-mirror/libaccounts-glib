@@ -657,8 +657,29 @@ AgSettingSource
 ag_account_get_value (AgAccount *account, const gchar *key,
                       GValue *value)
 {
+    AgAccountPrivate *priv;
+    AgServiceSettings *ss;
+
     g_return_val_if_fail (AG_IS_ACCOUNT (account), AG_SETTING_SOURCE_NONE);
-    g_warning ("%s not implemented", G_STRFUNC);
+    priv = account->priv;
+
+    ss = get_service_settings (priv, priv->service, FALSE);
+    if (ss)
+    {
+        const GValue *val;
+
+        val = g_hash_table_lookup (ss->settings, key);
+        if (val)
+        {
+            if (G_VALUE_TYPE (val) == G_VALUE_TYPE (value))
+                g_value_copy (val, value);
+            else
+                g_value_transform (val, value);
+            return AG_SETTING_SOURCE_ACCOUNT;
+        }
+    }
+
+    g_warning ("%s: getting of default settings not implemented", G_STRFUNC);
     return AG_SETTING_SOURCE_NONE;
 }
 
