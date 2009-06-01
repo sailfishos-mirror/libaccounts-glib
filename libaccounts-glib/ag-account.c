@@ -38,6 +38,7 @@ enum
 {
     PROP_0,
 
+    PROP_ID,
     PROP_MANAGER,
     PROP_PROVIDER,
 };
@@ -78,6 +79,8 @@ struct _AgAccountPrivate {
     gchar *provider_name;
 
     AgAccountChanges *changes;
+
+    guint enabled : 1;
 };
 
 G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
@@ -162,6 +165,52 @@ ag_account_init (AgAccount *account)
                                                  AgAccountPrivate);
 }
 
+static gboolean
+got_account (sqlite3_stmt *stmt, AgAccountPrivate *priv)
+{
+    /* TODO: get display name */
+    priv->provider_name = g_strdup ((gchar *)sqlite3_column_text (stmt, 1));
+    priv->enabled = sqlite3_column_int (stmt, 2);
+    return TRUE;
+}
+
+static gboolean
+ag_account_load (AgAccount *account)
+{
+    AgAccountPrivate *priv = account->priv;
+    gchar sql[128];
+    gint rows;
+
+    g_snprintf (sql, sizeof (sql),
+                "SELECT name, provider, enabled "
+                "FROM Accounts WHERE id = %u", account->id);
+    rows = _ag_manager_exec_query (priv->manager,
+                                   (AgQueryCallback)got_account, priv, sql);
+    return rows == 1;
+}
+
+static GObject *
+ag_account_constructor (GType type, guint n_params,
+                        GObjectConstructParam *params)
+{
+    GObjectClass *object_class = (GObjectClass *)ag_account_parent_class;
+    GObject *object;
+    AgAccount *account;
+
+    object = object_class->constructor (type, n_params, params);
+    g_return_val_if_fail (object != NULL, NULL);
+
+    account = AG_ACCOUNT (object);
+    if (account->id && !ag_account_load (account))
+    {
+        g_warning ("Unable to load account %u", account->id);
+        g_object_unref (object);
+        return NULL;
+    }
+
+    return object;
+}
+
 static void
 ag_account_set_property (GObject *object, guint property_id,
                          const GValue *value, GParamSpec *pspec)
@@ -171,6 +220,10 @@ ag_account_set_property (GObject *object, guint property_id,
 
     switch (property_id)
     {
+    case PROP_ID:
+        g_assert (account->id == 0);
+        account->id = g_value_get_uint (value);
+        break;
     case PROP_MANAGER:
         g_assert (priv->manager == NULL);
         priv->manager = g_value_dup_object (value);
@@ -223,9 +276,17 @@ ag_account_class_init (AgAccountClass *klass)
 
     g_type_class_add_private (object_class, sizeof (AgAccountPrivate));
 
+    object_class->constructor = ag_account_constructor;
     object_class->set_property = ag_account_set_property;
     object_class->dispose = ag_account_dispose;
     object_class->finalize = ag_account_finalize;
+
+    g_object_class_install_property
+        (object_class, PROP_ID,
+         g_param_spec_uint ("id", "id", "id",
+                            0, G_MAXUINT, 0,
+                            G_PARAM_STATIC_STRINGS |
+                            G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
     g_object_class_install_property
         (object_class, PROP_MANAGER,

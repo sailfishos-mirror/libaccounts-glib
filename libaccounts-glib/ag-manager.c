@@ -591,8 +591,10 @@ ag_manager_get_account (AgManager *manager, AgAccountId account_id)
 {
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_return_val_if_fail (account_id != 0, NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    return g_object_new (AG_TYPE_ACCOUNT,
+                         "manager", manager,
+                         "id", account_id,
+                         NULL);
 }
 
 /**
