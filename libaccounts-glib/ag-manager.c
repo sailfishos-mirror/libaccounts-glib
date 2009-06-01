@@ -653,7 +653,7 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
     service = _ag_service_load_from_file (service_name);
 
     g_hash_table_insert (priv->services, service->name, service);
-    return service;
+    return ag_service_ref (service);
 }
 
 void
