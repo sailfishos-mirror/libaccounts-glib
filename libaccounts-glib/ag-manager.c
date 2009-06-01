@@ -704,23 +704,31 @@ db_error:
 }
 
 /* Executes an SQL statement, and optionally calls
- * the callback for every row of the result. Returns TRUE
- * if statement was successfully executed, FALSE on error. */
-gboolean
-_ag_db_exec (sqlite3 *db, GFunc cb, gpointer user_data, const gchar *sql)
+ * the callback for every row of the result.
+ * Returns the number of rows fetched.
+ */
+gint
+_ag_manager_exec_query (AgManager *manager,
+                        AgQueryCallback callback, gpointer user_data,
+                        const gchar *sql)
 {
+    sqlite3 *db;
     int ret;
     sqlite3_stmt *stmt;
     time_t try_until;
+    gint rows = 0;
 
-    g_return_val_if_fail (db != NULL, FALSE);
+    g_return_val_if_fail (AG_IS_MANAGER (manager), 0);
+    db = manager->priv->db;
+
+    g_return_val_if_fail (db != NULL, 0);
 
     ret = sqlite3_prepare_v2 (db, sql, -1, &stmt, NULL);
     if (ret != SQLITE_OK)
     {
         g_debug ("%s: can't compile SQL statement \"%s\": %s", G_STRFUNC, sql,
                  sqlite3_errmsg (db));
-        return FALSE;
+        return 0;
     }
 
     /* Set maximum time we're prepared to wait. Have to do it here also,
@@ -738,8 +746,10 @@ _ag_db_exec (sqlite3 *db, GFunc cb, gpointer user_data, const gchar *sql)
                 break;
 
             case SQLITE_ROW:
-                if (cb != NULL)
-                    cb ((gpointer) stmt, user_data);
+                if (callback == NULL || callback (stmt, user_data))
+                {
+                    rows++;
+                }
                 break;
 
             case SQLITE_BUSY:
@@ -756,12 +766,12 @@ _ag_db_exec (sqlite3 *db, GFunc cb, gpointer user_data, const gchar *sql)
                 g_debug ("%s: runtime error while executing \"%s\": %s",
                          G_STRFUNC, sql, sqlite3_errmsg (db));
                 sqlite3_finalize (stmt);
-                return FALSE;
+                return rows;
         }
     } while (ret != SQLITE_DONE);
 
     sqlite3_finalize (stmt);
 
-    return TRUE;
+    return rows;
 }
 

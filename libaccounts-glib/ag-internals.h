@@ -36,9 +36,12 @@ void _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
                                    AgAccountStoreCb callback,
                                    gpointer user_data) G_GNUC_INTERNAL;
 
-gboolean _ag_db_exec (sqlite3 *db,
-                      GFunc cb, gpointer user_data,
-                      const gchar *sql) G_GNUC_INTERNAL;
+typedef gboolean (*AgQueryCallback) (sqlite3_stmt *stmt, gpointer user_data);
+
+G_GNUC_INTERNAL
+gint _ag_manager_exec_query (AgManager *manager,
+                             AgQueryCallback callback, gpointer user_data,
+                             const gchar *sql);
 
 struct _AgService {
     gint ref_count;
