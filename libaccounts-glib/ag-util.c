@@ -18,6 +18,7 @@
 #include "ag-util.h"
 #include "ag-errors.h"
 
+#include <dbus/dbus.h>
 #include <sched.h>
 #include <stdio.h>
 
@@ -110,6 +111,95 @@ _ag_value_to_db (const GValue *value)
 
     g_warning ("%s: unsupported type ``%s''", G_STRFUNC, g_type_name (type));
     return NULL;
+}
+
+const gchar *
+_ag_type_from_g_type (GType type)
+{
+    if (type == G_TYPE_STRING)
+        return DBUS_TYPE_STRING_AS_STRING;
+    if (type == G_TYPE_INT ||
+        type == G_TYPE_CHAR)
+        return DBUS_TYPE_INT32_AS_STRING;
+    if (type == G_TYPE_UINT)
+        return DBUS_TYPE_UINT32_AS_STRING;
+    if (type == G_TYPE_BOOLEAN)
+        return DBUS_TYPE_BOOLEAN_AS_STRING;
+    if (type == G_TYPE_UCHAR)
+        return DBUS_TYPE_BYTE_AS_STRING;
+    if (type == G_TYPE_INT64)
+        return DBUS_TYPE_INT64_AS_STRING;
+    if (type == G_TYPE_UINT64)
+        return DBUS_TYPE_UINT64_AS_STRING;
+
+    g_warning ("%s: unsupported type ``%s''", G_STRFUNC, g_type_name (type));
+    return NULL;
+}
+
+GType
+_ag_type_to_g_type (const gchar *type_str)
+{
+    g_return_val_if_fail (type_str != NULL, G_TYPE_INVALID);
+
+    switch (type_str[0])
+    {
+    case DBUS_TYPE_STRING:
+        return G_TYPE_STRING;
+    case DBUS_TYPE_INT32:
+        return G_TYPE_INT;
+    case DBUS_TYPE_UINT32:
+        return G_TYPE_UINT;
+    case DBUS_TYPE_BOOLEAN:
+        return G_TYPE_BOOLEAN;
+    case DBUS_TYPE_BYTE:
+        return G_TYPE_UCHAR;
+    default:
+        g_warning ("%s: unsupported type ``%s''", G_STRFUNC, type_str);
+        return G_TYPE_INVALID;
+    }
+}
+
+GValue *
+_ag_value_from_db (sqlite3_stmt *stmt, gint col_type, gint col_value)
+{
+    GValue *value;
+    GType type;
+
+    type = _ag_type_to_g_type ((gchar *) sqlite3_column_text (stmt, col_type));
+    g_return_val_if_fail (type != G_TYPE_INVALID, NULL);
+
+    value = g_slice_new0 (GValue);
+    g_value_init (value, type);
+
+    switch (type)
+    {
+    case G_TYPE_STRING:
+        g_value_set_string (value,
+                            (gchar *)sqlite3_column_text (stmt, col_value));
+        break;
+    case G_TYPE_INT:
+        g_value_set_int (value, sqlite3_column_int (stmt, col_value));
+        break;
+    case G_TYPE_UINT:
+        g_value_set_uint (value, sqlite3_column_int64 (stmt, col_value));
+        break;
+    case G_TYPE_BOOLEAN:
+        g_value_set_boolean (value, sqlite3_column_int (stmt, col_value));
+        break;
+    case G_TYPE_INT64:
+        g_value_set_int64 (value, sqlite3_column_int64 (stmt, col_value));
+        break;
+    case G_TYPE_UINT64:
+        g_value_set_uint64 (value, sqlite3_column_int64 (stmt, col_value));
+        break;
+    default:
+        g_warning ("%s: unsupported type ``%s''", G_STRFUNC,
+                   g_type_name (type));
+        _ag_value_slice_free (value);
+        return NULL;
+    }
+
+    return value;
 }
 
 /**

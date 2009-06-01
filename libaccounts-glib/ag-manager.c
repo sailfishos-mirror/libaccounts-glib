@@ -383,6 +383,7 @@ open_db (AgManager *manager)
             "account INTEGER NOT NULL,"
             "service INTEGER,"
             "key TEXT NOT NULL,"
+            "type TEXT NOT NULL,"
             "value BLOB);"
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_setting ON Settings "
             "(account, service, key);"

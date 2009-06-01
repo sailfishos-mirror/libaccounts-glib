@@ -803,15 +803,17 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
 
                 if (value)
                 {
-                    const gchar *value_str;
+                    const gchar *value_str, *type_str;
 
                     value_str = _ag_value_to_db (value);
+                    type_str = _ag_type_from_g_type (G_VALUE_TYPE (value));
                     _ag_string_append_printf
                         (sql,
                          "INSERT OR REPLACE INTO Settings (account, service,"
-                                                          "key, value) "
-                         "VALUES (%s, %s, %Q, %Q);",
-                         account_id_str, service_id_str, key, value_str);
+                                                          "key, type, value) "
+                         "VALUES (%s, %s, %Q, %Q, %Q);",
+                         account_id_str, service_id_str, key,
+                         type_str, value_str);
                 }
                 else if (account->id != 0)
                 {

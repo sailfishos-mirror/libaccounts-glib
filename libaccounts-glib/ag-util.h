@@ -37,6 +37,15 @@ void _ag_value_slice_free (GValue *value);
 G_GNUC_INTERNAL
 const gchar *_ag_value_to_db (const GValue *value);
 
+G_GNUC_INTERNAL
+GValue *_ag_value_from_db (sqlite3_stmt *stmt, gint col_type, gint col_value);
+
+G_GNUC_INTERNAL
+const gchar *_ag_type_from_g_type (GType type);
+
+G_GNUC_INTERNAL
+GType _ag_type_to_g_type (const gchar *type_str);
+
 G_END_DECLS
 
 #endif /* _AG_UTIL_H_ */
