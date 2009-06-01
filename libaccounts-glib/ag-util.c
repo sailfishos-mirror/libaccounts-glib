@@ -21,8 +21,6 @@
 #include <sched.h>
 #include <stdio.h>
 
-#define MAX_SQLITE_BUSY_LOOP_TIME 2
-
 GString *
 _ag_string_append_printf (GString *string, const gchar *format, ...)
 {
@@ -40,68 +38,6 @@ _ag_string_append_printf (GString *string, const gchar *format, ...)
     }
 
     return string;
-}
-
-/* Executes an SQL statement, and optionally calls
- * the callback for every row of the result. Returns TRUE
- * if statement was successfully executed, FALSE on error. */
-gboolean
-_ag_db_exec (sqlite3 *db, GFunc cb, gpointer user_data, const gchar *sql)
-{
-    int ret;
-    sqlite3_stmt *stmt;
-    time_t try_until;
-
-    g_return_val_if_fail (db != NULL, FALSE);
-
-    ret = sqlite3_prepare_v2 (db, sql, -1, &stmt, NULL);
-    if (ret != SQLITE_OK)
-    {
-        g_debug ("%s: can't compile SQL statement \"%s\": %s", G_STRFUNC, sql,
-                 sqlite3_errmsg (db));
-        return FALSE;
-    }
-
-    /* Set maximum time we're prepared to wait. Have to do it here also,
-     *    * because SQLite doesn't guarantee running the busy handler. Thanks,
-     *       * SQLite. */
-    try_until = time (NULL) + MAX_SQLITE_BUSY_LOOP_TIME;
-
-    do
-    {
-        ret = sqlite3_step (stmt);
-
-        switch (ret)
-        {
-            case SQLITE_DONE:
-                break;
-
-            case SQLITE_ROW:
-                if (cb != NULL)
-                    cb ((gpointer) stmt, user_data);
-                break;
-
-            case SQLITE_BUSY:
-                if (time (NULL) < try_until)
-                {
-                    /* If timeout was specified and table is locked,
-                     * wait instead of executing default runtime
-                     * error action. Otherwise, fall through to it. */
-                    sched_yield ();
-                    break;
-                }
-
-            default:
-                g_debug ("%s: runtime error while executing \"%s\": %s",
-                         G_STRFUNC, sql, sqlite3_errmsg (db));
-                sqlite3_finalize (stmt);
-                return FALSE;
-        }
-    } while (ret != SQLITE_DONE);
-
-    sqlite3_finalize (stmt);
-
-    return TRUE;
 }
 
 GValue *
