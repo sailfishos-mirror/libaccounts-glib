@@ -11,6 +11,7 @@
 
 #include "libaccounts-glib/ag-account.h"
 #include "libaccounts-glib/ag-errors.h"
+#include "libaccounts-glib/ag-internals.h"
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -31,6 +32,8 @@ static GMainLoop *main_loop = NULL;
 gboolean lock_released = FALSE;
 static AgAccount *account = NULL;
 static AgManager *manager = NULL;
+static AgService *service = NULL;
+static gboolean data_stored = FALSE;
 
 static void
 end_test ()
@@ -45,12 +48,20 @@ end_test ()
         g_object_unref (manager);
         manager = NULL;
     }
+    if (service)
+    {
+        ag_service_unref (service);
+        service = NULL;
+    }
+
     if (main_loop)
     {
         g_main_loop_quit (main_loop);
         g_main_loop_unref (main_loop);
         main_loop = NULL;
     }
+
+    data_stored = FALSE;
 }
 
 START_TEST(test_init)
@@ -230,6 +241,146 @@ START_TEST(test_store_locked_unref)
 }
 END_TEST
 
+void account_store_now_cb (AgAccount *account, const GError *error,
+                           gpointer user_data)
+{
+    const gchar *string = user_data;
+
+    fail_unless (AG_IS_ACCOUNT (account), "Account got disposed?");
+    if (error)
+        fail("Got error: %s", error->message);
+    fail_unless (strcmp (string, TEST_STRING) == 0, "Got wrong string");
+
+    data_stored = TRUE;
+}
+
+START_TEST(test_service)
+{
+    GValue value = { 0 };
+    AgService *service2;
+    AgAccountId account_id;
+    const gchar *provider_name;
+    const gchar *description = "This is really a beautiful account";
+    const gchar *username = "me@myhome.com";
+    const gint interval = 30;
+    const gboolean check_automatically = TRUE;
+    AgSettingSource source;
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, PROVIDER);
+
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, description);
+    ag_account_set_value (account, "description", &value);
+    g_value_unset (&value);
+
+    service = ag_manager_get_service (manager, "MyService");
+    fail_unless (service != NULL);
+
+    ag_account_select_service (account, service);
+
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, username);
+    ag_account_set_value (account, "username", &value);
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_BOOLEAN);
+    g_value_set_boolean (&value, check_automatically);
+    ag_account_set_value (account, "check_automatically", &value);
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_INT);
+    g_value_set_int (&value, interval);
+    ag_account_set_value (account, "interval", &value);
+    g_value_unset (&value);
+
+    service2 = ag_manager_get_service (manager, "Washing");
+    ag_account_select_service (account, service2);
+
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, "Wednesday");
+    ag_account_set_value (account, "day", &value);
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_BOOLEAN);
+    g_value_set_boolean (&value, TRUE);
+    ag_account_set_value (account, "ForReal", &value);
+    g_value_unset (&value);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    g_debug ("Service id: %d", service->id);
+    g_debug ("Service2 id: %d", service2->id);
+    g_debug ("Account id: %d", account->id);
+    account_id = account->id;
+
+    ag_service_unref (service2);
+    g_object_unref (account);
+    g_object_unref (manager);
+
+    manager = ag_manager_new ();
+    account = ag_manager_get_account (manager, account_id);
+    fail_unless (AG_IS_ACCOUNT (account),
+                 "Couldn't load account %u", account_id);
+
+    provider_name = ag_account_get_provider_name (account);
+    fail_unless (strcmp (provider_name, PROVIDER) == 0,
+                 "Got provider %s, expecting %s", provider_name, PROVIDER);
+
+    /* check that the values are retained */
+
+    g_value_init (&value, G_TYPE_STRING);
+    source = ag_account_get_value (account, "description", &value);
+    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    fail_unless (strcmp(g_value_get_string (&value), description) == 0,
+                 "Wrong value");
+    g_value_unset (&value);
+
+    ag_account_select_service (account, service);
+
+    g_value_init (&value, G_TYPE_STRING);
+    source = ag_account_get_value (account, "username", &value);
+    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    fail_unless (strcmp(g_value_get_string (&value), username) == 0,
+                 "Wrong value");
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_BOOLEAN);
+    source = ag_account_get_value (account, "check_automatically", &value);
+    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    fail_unless (g_value_get_boolean (&value) == check_automatically,
+                 "Wrong value");
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_INT);
+    source = ag_account_get_value (account, "interval", &value);
+    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    fail_unless (g_value_get_int (&value) == interval, "Wrong value");
+    g_value_unset (&value);
+
+    /* check also value conversion */
+    g_value_init (&value, G_TYPE_CHAR);
+    source = ag_account_get_value (account, "interval", &value);
+    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    fail_unless (g_value_get_char (&value) == interval, "Wrong value");
+    g_value_unset (&value);
+
+    /* change a value */
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, "Friday");
+    ag_account_set_value (account, "day", &value);
+    g_value_unset (&value);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -247,6 +398,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_store);
     tcase_add_test (tc_create, test_store_locked);
     tcase_add_test (tc_create, test_store_locked_unref);
+    tcase_add_test (tc_create, test_service);
 
     suite_add_tcase (s, tc_create);
 
