@@ -589,8 +589,7 @@ gboolean
 ag_account_get_enabled (AgAccount *account)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return FALSE;
+    return account->priv->enabled;
 }
 
 /**
