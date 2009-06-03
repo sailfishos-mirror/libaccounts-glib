@@ -279,6 +279,8 @@ START_TEST(test_service)
     service = ag_manager_get_service (manager, "MyService");
     fail_unless (service != NULL);
 
+    ag_account_set_enabled (account, FALSE);
+
     ag_account_select_service (account, service);
 
     g_value_init (&value, G_TYPE_STRING);
@@ -331,6 +333,8 @@ START_TEST(test_service)
                  "Got provider %s, expecting %s", provider_name, PROVIDER);
 
     /* check that the values are retained */
+    fail_unless (ag_account_get_enabled (account) == FALSE,
+                 "Account enabled!");
 
     g_value_init (&value, G_TYPE_STRING);
     source = ag_account_get_value (account, "description", &value);
@@ -374,9 +378,15 @@ START_TEST(test_service)
     ag_account_set_value (account, "day", &value);
     g_value_unset (&value);
 
+    /* change global enabledness */
+    ag_account_select_service (account, NULL);
+    ag_account_set_enabled (account, TRUE);
+
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     fail_unless (data_stored, "Callback not invoked immediately");
 
+    fail_unless (ag_account_get_enabled (account) == TRUE,
+                 "Account still disabled!");
     end_test ();
 }
 END_TEST
