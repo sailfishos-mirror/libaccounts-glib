@@ -18,17 +18,39 @@
 #ifndef _AG_INTERNALS_H_
 #define _AG_INTERNALS_H_
 
+#include "ag-manager.h"
+
 G_BEGIN_DECLS
 
 typedef struct _AgAccountChanges AgAccountChanges;
 
 void _ag_account_changes_free (AgAccountChanges *changes) G_GNUC_INTERNAL;
 
+G_GNUC_INTERNAL
+void _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes);
+
 void _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
                                    AgAccountChanges *changes,
                                    AgAccount *account,
                                    AgAccountStoreCb callback,
                                    gpointer user_data) G_GNUC_INTERNAL;
+
+struct _AgService {
+    gint ref_count;
+    gchar *name;
+    gchar *type;
+    gchar *provider;
+    gint id;
+};
+
+G_GNUC_INTERNAL
+AgService *_ag_service_load_from_file (const gchar *service_name);
+
+G_GNUC_INTERNAL
+AgService *_ag_service_new (const gchar *name,
+                            const gchar *type,
+                            const gchar *provider,
+                            gint id);
 
 G_END_DECLS
 

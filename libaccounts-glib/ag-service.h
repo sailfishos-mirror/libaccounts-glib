@@ -15,31 +15,21 @@
  * disclosed to others without the prior written consent of Nokia.
  */
 
-#ifndef _AG_UTIL_H_
-#define _AG_UTIL_H_
+#ifndef _AG_SERVICE_H_
+#define _AG_SERVICE_H_
 
 #include <glib.h>
-#include <glib-object.h>
-#include <sqlite3.h>
 
 G_BEGIN_DECLS
 
-GString *_ag_string_append_printf (GString *string,
-                                   const gchar *format,
-                                   ...) G_GNUC_INTERNAL;
-gboolean _ag_db_exec (sqlite3 *db,
-                      GFunc cb, gpointer user_data,
-                      const gchar *sql) G_GNUC_INTERNAL;
+typedef struct _AgService AgService;
 
-G_GNUC_INTERNAL
-GValue *_ag_value_slice_dup (const GValue *value);
-
-G_GNUC_INTERNAL
-void _ag_value_slice_free (GValue *value);
-
-G_GNUC_INTERNAL
-const gchar *_ag_value_to_db (const GValue *value);
+const gchar *ag_service_get_name (AgService *service);
+const gchar *ag_service_get_service_type (AgService *service);
+const gchar *ag_service_get_provider (AgService *service);
+AgService *ag_service_ref (AgService *service);
+void ag_service_unref (AgService *service);
 
 G_END_DECLS
 
-#endif /* _AG_UTIL_H_ */
+#endif /* _AG_SERVICE_H_ */

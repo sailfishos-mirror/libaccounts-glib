@@ -19,6 +19,7 @@
 #include "ag-errors.h"
 
 #include <sched.h>
+#include <stdio.h>
 
 #define MAX_SQLITE_BUSY_LOOP_TIME 2
 
@@ -103,6 +104,77 @@ _ag_db_exec (sqlite3 *db, GFunc cb, gpointer user_data, const gchar *sql)
     return TRUE;
 }
 
+GValue *
+_ag_value_slice_dup (const GValue *value)
+{
+    GValue *copy;
+
+    if (!value) return NULL;
+    copy = g_slice_new0 (GValue);
+    g_value_init (copy, G_VALUE_TYPE (value));
+    g_value_copy (value, copy);
+    return copy;
+}
+
+void
+_ag_value_slice_free (GValue *value)
+{
+    g_value_unset (value);
+    g_slice_free (GValue, value);
+}
+
+const gchar *
+_ag_value_to_db (const GValue *value)
+{
+    static gchar buffer[32];
+    GType type;
+
+    g_return_val_if_fail (value != NULL, NULL);
+
+    type = G_VALUE_TYPE (value);
+
+    if (type == G_TYPE_STRING)
+        return g_value_get_string (value);
+
+    if (type == G_TYPE_UCHAR ||
+        type == G_TYPE_UINT ||
+        type == G_TYPE_UINT64 ||
+        type == G_TYPE_FLAGS)
+    {
+        guint64 n;
+
+        if (type == G_TYPE_UCHAR) n = g_value_get_uchar (value);
+        else if (type == G_TYPE_UINT) n = g_value_get_uint (value);
+        else if (type == G_TYPE_UINT64) n = g_value_get_uint64 (value);
+        else if (type == G_TYPE_FLAGS) n = g_value_get_flags (value);
+        else g_assert_not_reached ();
+
+        snprintf (buffer, sizeof (buffer), "%llu", n);
+        return buffer;
+    }
+
+    if (type == G_TYPE_CHAR ||
+        type == G_TYPE_INT ||
+        type == G_TYPE_INT64 ||
+        type == G_TYPE_ENUM ||
+        type == G_TYPE_BOOLEAN)
+    {
+        gint64 n;
+
+        if (type == G_TYPE_CHAR) n = g_value_get_char (value);
+        else if (type == G_TYPE_INT) n = g_value_get_int (value);
+        else if (type == G_TYPE_INT64) n = g_value_get_int64 (value);
+        else if (type == G_TYPE_ENUM) n = g_value_get_enum (value);
+        else if (type == G_TYPE_BOOLEAN) n = g_value_get_boolean (value);
+        else g_assert_not_reached ();
+
+        snprintf (buffer, sizeof (buffer), "%lld", n);
+        return buffer;
+    }
+
+    g_warning ("%s: unsupported type ``%s''", G_STRFUNC, g_type_name (type));
+    return NULL;
+}
 
 /**
  * ag_errors_quark:

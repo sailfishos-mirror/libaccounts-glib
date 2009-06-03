@@ -45,6 +45,12 @@ struct _AgManagerPrivate {
     sqlite3_stmt *commit_stmt;
     sqlite3_stmt *rollback_stmt;
 
+    sqlite3_int64 last_service_id;
+    sqlite3_int64 last_account_id;
+
+    /* Cache for AgService */
+    GHashTable *services;
+
     /* list of StoreCbData awaiting for exclusive locks */
     GList *locks;
 
@@ -95,7 +101,6 @@ transaction_completed (AgManager *manager,
  * exec_transaction:
  *
  * Executes a transaction, assuming that the exclusive lock has been obtained.
- * @stmt is finalized within this function.
  */
 static void
 exec_transaction (AgManager *manager, AgAccount *account,
@@ -131,6 +136,13 @@ exec_transaction (AgManager *manager, AgAccount *account,
                                      sqlite3_errmsg (priv->db));
         goto finish;
     }
+
+    /* everything went well; if this was a new account, we must update the
+     * local data structure */
+    if (account->id == 0)
+        account->id = priv->last_account_id;
+
+    _ag_account_done_changes (account, changes);
 
 finish:
     transaction_completed (manager, account, changes,
@@ -213,7 +225,7 @@ exec_transaction_idle (StoreCbData *sd)
     return FALSE;
 }
 
-static gboolean
+static int
 prepare_transaction_statements (AgManagerPrivate *priv)
 {
     int ret;
@@ -222,23 +234,105 @@ prepare_transaction_statements (AgManagerPrivate *priv)
     {
         ret = sqlite3_prepare_v2 (priv->db, "BEGIN EXCLUSIVE;", -1,
                                   &priv->begin_stmt, NULL);
-        if (ret != SQLITE_OK) return FALSE;
+        if (ret != SQLITE_OK) return ret;
     }
+    else
+        sqlite3_reset (priv->begin_stmt);
 
     if (G_UNLIKELY (!priv->commit_stmt))
     {
         ret = sqlite3_prepare_v2 (priv->db, "COMMIT;", -1,
                                   &priv->commit_stmt, NULL);
-        if (ret != SQLITE_OK) return FALSE;
+        if (ret != SQLITE_OK) return ret;
     }
+    else
+        sqlite3_reset (priv->commit_stmt);
 
     if (G_UNLIKELY (!priv->rollback_stmt))
     {
         ret = sqlite3_prepare_v2 (priv->db, "ROLLBACK;", -1,
                                   &priv->rollback_stmt, NULL);
-        if (ret != SQLITE_OK) return FALSE;
+        if (ret != SQLITE_OK) return ret;
     }
-    return TRUE;
+    else
+        sqlite3_reset (priv->rollback_stmt);
+
+    return SQLITE_OK;
+}
+
+static void
+set_last_rowid_as_service_id (sqlite3_context *ctx,
+                              int argc, sqlite3_value **argv)
+{
+    AgManagerPrivate *priv;
+
+    g_debug ("%s called", G_STRFUNC);
+    priv = sqlite3_user_data (ctx);
+    priv->last_service_id = sqlite3_last_insert_rowid (priv->db);
+    if (argc == 1)
+    {
+        const guchar *service_name;
+        AgService *service;
+
+        service_name = sqlite3_value_text (argv[0]);
+
+        service = g_hash_table_lookup (priv->services, service_name);
+        if (G_LIKELY (service))
+        {
+            service->id = (gint)priv->last_service_id;
+        }
+        else
+            g_warning ("Service %s not loaded", service_name);
+    }
+
+    sqlite3_result_null (ctx);
+}
+
+static void
+set_last_rowid_as_account_id (sqlite3_context *ctx,
+                              int argc, sqlite3_value **argv)
+{
+    AgManagerPrivate *priv;
+
+    g_debug ("%s called", G_STRFUNC);
+    priv = sqlite3_user_data (ctx);
+    priv->last_account_id = sqlite3_last_insert_rowid (priv->db);
+    sqlite3_result_null (ctx);
+}
+
+static void
+get_service_id (sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    AgManagerPrivate *priv;
+
+    priv = sqlite3_user_data (ctx);
+    sqlite3_result_int64 (ctx, priv->last_service_id);
+}
+
+static void
+get_account_id (sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    AgManagerPrivate *priv;
+
+    priv = sqlite3_user_data (ctx);
+    sqlite3_result_int64 (ctx, priv->last_account_id);
+}
+
+static void
+create_functions (AgManagerPrivate *priv)
+{
+    sqlite3_create_function (priv->db, "set_last_rowid_as_service_id", 1,
+                             SQLITE_ANY, priv,
+                             set_last_rowid_as_service_id, NULL, NULL);
+    sqlite3_create_function (priv->db, "set_last_rowid_as_account_id", 0,
+                             SQLITE_ANY, priv,
+                             set_last_rowid_as_account_id, NULL, NULL);
+    sqlite3_create_function (priv->db, "service_id", 0,
+                             SQLITE_ANY, priv,
+                             get_service_id, NULL, NULL);
+    sqlite3_create_function (priv->db, "account_id", 0,
+                             SQLITE_ANY, priv,
+                             get_account_id, NULL, NULL);
 }
 
 static gboolean
@@ -279,15 +373,17 @@ open_db (AgManager *manager)
 
         "CREATE TABLE IF NOT EXISTS Services ("
             "id INTEGER PRIMARY KEY,"
-            "name TEXT NOT NULL,"
-            "type TEXT," /* for performance reasons */
-            "enabled INTEGER);"
+            "name TEXT NOT NULL UNIQUE,"
+            "type TEXT);" /* for performance reasons */
+        "CREATE INDEX IF NOT EXISTS idx_service ON Services(name);"
 
         "CREATE TABLE IF NOT EXISTS Settings ("
             "account INTEGER NOT NULL,"
             "service INTEGER,"
             "key TEXT NOT NULL,"
             "value BLOB);"
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_setting ON Settings "
+            "(account, service, key);"
 
         "CREATE TRIGGER IF NOT EXISTS tg_delete_account "
             "BEFORE DELETE ON Accounts FOR EACH ROW BEGIN "
@@ -306,14 +402,23 @@ open_db (AgManager *manager)
         return FALSE;
     }
 
+    create_functions (priv);
+
     return TRUE;
 }
 
 static void
 ag_manager_init (AgManager *manager)
 {
+    AgManagerPrivate *priv;
+
     manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, AG_TYPE_MANAGER,
                                                  AgManagerPrivate);
+    priv = manager->priv;
+
+    priv->services =
+        g_hash_table_new_full (g_str_hash, g_str_equal,
+                               NULL, (GDestroyNotify)ag_service_unref);
 }
 
 static GObject *
@@ -364,6 +469,9 @@ ag_manager_finalize (GObject *object)
         sqlite3_finalize (priv->commit_stmt);
     if (priv->rollback_stmt)
         sqlite3_finalize (priv->rollback_stmt);
+
+    if (priv->services)
+        g_hash_table_unref (priv->services);
 
     if (priv->db)
     {
@@ -512,45 +620,35 @@ ag_manager_create_account (AgManager *manager, const gchar *provider_name)
 }
 
 /**
- * ag_service_get_name:
- * @service: the #AgService.
+ * ag_manager_get_service:
+ * @manager: the #AgManager.
+ * @service_name: the name of the service.
  *
- * Returns: the name of @service.
+ * Loads the service identified by @service_name.
+ *
+ * Returns: an #AgService, which must be then free'd with ag_service_unref().
  */
-const gchar *
-ag_service_get_name (AgService *service)
+AgService *
+ag_manager_get_service (AgManager *manager, const gchar *service_name)
 {
-    g_return_val_if_fail (service != NULL, NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
-}
+    AgManagerPrivate *priv;
+    AgService *service;
 
-/**
- * ag_service_get_service_type:
- * @service: the #AgService.
- *
- * Returns: the type of @service.
- */
-const gchar *
-ag_service_get_service_type (AgService *service)
-{
-    g_return_val_if_fail (service != NULL, NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
-}
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
+    g_return_val_if_fail (service_name != NULL, NULL);
+    priv = manager->priv;
 
-/**
- * ag_service_get_provider:
- * @service: the #AgService.
- *
- * Returns: the name of the provider of @service.
- */
-const gchar *
-ag_service_get_provider (AgService *service)
-{
-    g_return_val_if_fail (service != NULL, NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    service = g_hash_table_lookup (priv->services, service_name);
+    if (service)
+        return ag_service_ref (service);
+
+    /* TODO first, check if the service is in the DB */
+
+    /* The service is not in the DB: it must be loaded */
+    service = _ag_service_load_from_file (service_name);
+
+    g_hash_table_insert (priv->services, service->name, service);
+    return service;
 }
 
 void
@@ -562,7 +660,8 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
     GError error;
     int ret;
 
-    if (G_UNLIKELY (!prepare_transaction_statements (priv)))
+    ret = prepare_transaction_statements (priv);
+    if (G_UNLIKELY (ret != SQLITE_OK))
         goto db_error;
 
     ret = sqlite3_step (priv->begin_stmt);
@@ -595,8 +694,10 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
 db_error:
     error.domain = AG_ERRORS;
     error.code = AG_ERROR_DB;
-    error.message = "Generic error";
+    error.message = g_strdup_printf ("Got error: %s (%d)",
+                                     sqlite3_errmsg (priv->db), ret);
     transaction_completed (manager, account, changes,
                            callback, &error, user_data);
+    g_free (error.message);
 }
 
