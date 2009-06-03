@@ -38,6 +38,7 @@ enum
 {
     PROP_0,
 
+    PROP_ID,
     PROP_MANAGER,
     PROP_PROVIDER,
 };
@@ -52,10 +53,12 @@ enum
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-typedef struct {
+typedef struct _AgServiceSettings AgServiceChanges;
+
+typedef struct _AgServiceSettings {
     AgService *service;
     GHashTable *settings;
-} AgServiceChanges;
+} AgServiceSettings;
 
 struct _AgAccountChanges {
     gboolean enabled;
@@ -77,12 +80,74 @@ struct _AgAccountPrivate {
 
     gchar *provider_name;
 
+    /* cached settings: keys are service names, values are AgServiceSettings
+     * structures.
+     * It may be that not all services are loaded in this hash table. But if a
+     * service is present, then all of its settings are.
+     */
+    GHashTable *services;
+
     AgAccountChanges *changes;
+
+    guint enabled : 1;
 };
 
 G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
 
 #define AG_ACCOUNT_PRIV(obj) (AG_ACCOUNT(obj)->priv)
+
+static gboolean
+got_account_setting (sqlite3_stmt *stmt, GHashTable *settings)
+{
+    gchar *key;
+    GValue *value;
+
+    key = g_strdup ((gchar *)sqlite3_column_text (stmt, 0));
+    g_return_val_if_fail (key != NULL, FALSE);
+
+    value = _ag_value_from_db (stmt, 1, 2);
+
+    g_hash_table_insert (settings, key, value);
+    return TRUE;
+}
+
+static void
+ag_service_settings_free (AgServiceSettings *ss)
+{
+    if (ss->service)
+        ag_service_unref (ss->service);
+    g_hash_table_unref (ss->settings);
+    g_slice_free (AgServiceSettings, ss);
+}
+
+static AgServiceSettings *
+get_service_settings (AgAccountPrivate *priv, AgService *service,
+                      gboolean create)
+{
+    AgServiceSettings *ss;
+    const gchar *service_name;
+
+    if (G_UNLIKELY (!priv->services))
+    {
+        priv->services = g_hash_table_new_full
+            (g_str_hash, g_str_equal,
+             NULL, (GDestroyNotify) ag_service_settings_free);
+    }
+
+    service_name = service ? service->name : SERVICE_GLOBAL;
+    ss = g_hash_table_lookup (priv->services, service_name);
+    if (!ss && create)
+    {
+        ss = g_slice_new (AgServiceSettings);
+        ss->service = service ? ag_service_ref (service) : NULL;
+        ss->settings = g_hash_table_new_full
+            (g_str_hash, g_str_equal,
+             g_free, (GDestroyNotify)_ag_value_slice_free);
+        g_hash_table_insert (priv->services, (gchar *)service_name, ss);
+    }
+
+    return ss;
+}
 
 static void
 ag_service_changes_free (AgServiceChanges *sc)
@@ -162,6 +227,55 @@ ag_account_init (AgAccount *account)
                                                  AgAccountPrivate);
 }
 
+static gboolean
+got_account (sqlite3_stmt *stmt, AgAccountPrivate *priv)
+{
+    /* TODO: get display name */
+    priv->provider_name = g_strdup ((gchar *)sqlite3_column_text (stmt, 1));
+    priv->enabled = sqlite3_column_int (stmt, 2);
+    return TRUE;
+}
+
+static gboolean
+ag_account_load (AgAccount *account)
+{
+    AgAccountPrivate *priv = account->priv;
+    gchar sql[128];
+    gint rows;
+
+    g_snprintf (sql, sizeof (sql),
+                "SELECT name, provider, enabled "
+                "FROM Accounts WHERE id = %u", account->id);
+    rows = _ag_manager_exec_query (priv->manager,
+                                   (AgQueryCallback)got_account, priv, sql);
+
+    ag_account_select_service (account, NULL);
+
+    return rows == 1;
+}
+
+static GObject *
+ag_account_constructor (GType type, guint n_params,
+                        GObjectConstructParam *params)
+{
+    GObjectClass *object_class = (GObjectClass *)ag_account_parent_class;
+    GObject *object;
+    AgAccount *account;
+
+    object = object_class->constructor (type, n_params, params);
+    g_return_val_if_fail (AG_IS_ACCOUNT (object), NULL);
+
+    account = AG_ACCOUNT (object);
+    if (account->id && !ag_account_load (account))
+    {
+        g_warning ("Unable to load account %u", account->id);
+        g_object_unref (object);
+        return NULL;
+    }
+
+    return object;
+}
+
 static void
 ag_account_set_property (GObject *object, guint property_id,
                          const GValue *value, GParamSpec *pspec)
@@ -171,6 +285,10 @@ ag_account_set_property (GObject *object, guint property_id,
 
     switch (property_id)
     {
+    case PROP_ID:
+        g_assert (account->id == 0);
+        account->id = g_value_get_uint (value);
+        break;
     case PROP_MANAGER:
         g_assert (priv->manager == NULL);
         priv->manager = g_value_dup_object (value);
@@ -207,6 +325,9 @@ ag_account_finalize (GObject *object)
 
     g_free (priv->provider_name);
 
+    if (priv->services)
+        g_hash_table_unref (priv->services);
+
     if (priv->changes)
     {
         g_debug ("Finalizing account with uncommitted changes!");
@@ -223,9 +344,17 @@ ag_account_class_init (AgAccountClass *klass)
 
     g_type_class_add_private (object_class, sizeof (AgAccountPrivate));
 
+    object_class->constructor = ag_account_constructor;
     object_class->set_property = ag_account_set_property;
     object_class->dispose = ag_account_dispose;
     object_class->finalize = ag_account_finalize;
+
+    g_object_class_install_property
+        (object_class, PROP_ID,
+         g_param_spec_uint ("id", "id", "id",
+                            0, G_MAXUINT, 0,
+                            G_PARAM_STATIC_STRINGS |
+                            G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
     g_object_class_install_property
         (object_class, PROP_MANAGER,
@@ -408,9 +537,32 @@ ag_account_set_display_name (AgAccount *account, const gchar *display_name)
 void
 ag_account_select_service (AgAccount *account, AgService *service)
 {
-    g_return_if_fail (AG_IS_ACCOUNT (account));
+    AgAccountPrivate *priv;
 
-    account->priv->service = service;
+    g_return_if_fail (AG_IS_ACCOUNT (account));
+    priv = account->priv;
+
+    priv->service = service;
+
+    if ((service == NULL || service->id != 0) && account->id != 0 &&
+        !get_service_settings (priv, service, FALSE))
+    {
+        AgServiceSettings *ss;
+        guint service_id;
+        gchar sql[128];
+
+        /* the settings for this service are not yet loaded: do it now */
+        ss = get_service_settings (priv, service, TRUE);
+
+        service_id = (service != NULL) ? service->id : 0;
+        g_snprintf (sql, sizeof (sql),
+                    "SELECT key, type, value FROM Settings "
+                    "WHERE account = %u AND service = %u",
+                    account->id, service_id);
+        _ag_manager_exec_query (priv->manager,
+                                (AgQueryCallback)got_account_setting,
+                                ss->settings, sql);
+    }
 }
 
 /**
@@ -505,8 +657,29 @@ AgSettingSource
 ag_account_get_value (AgAccount *account, const gchar *key,
                       GValue *value)
 {
+    AgAccountPrivate *priv;
+    AgServiceSettings *ss;
+
     g_return_val_if_fail (AG_IS_ACCOUNT (account), AG_SETTING_SOURCE_NONE);
-    g_warning ("%s not implemented", G_STRFUNC);
+    priv = account->priv;
+
+    ss = get_service_settings (priv, priv->service, FALSE);
+    if (ss)
+    {
+        const GValue *val;
+
+        val = g_hash_table_lookup (ss->settings, key);
+        if (val)
+        {
+            if (G_VALUE_TYPE (val) == G_VALUE_TYPE (value))
+                g_value_copy (val, value);
+            else
+                g_value_transform (val, value);
+            return AG_SETTING_SOURCE_ACCOUNT;
+        }
+    }
+
+    g_warning ("%s: getting of default settings not implemented", G_STRFUNC);
     return AG_SETTING_SOURCE_NONE;
 }
 
@@ -742,15 +915,17 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
 
                 if (value)
                 {
-                    const gchar *value_str;
+                    const gchar *value_str, *type_str;
 
                     value_str = _ag_value_to_db (value);
+                    type_str = _ag_type_from_g_type (G_VALUE_TYPE (value));
                     _ag_string_append_printf
                         (sql,
                          "INSERT OR REPLACE INTO Settings (account, service,"
-                                                          "key, value) "
-                         "VALUES (%s, %s, %Q, %Q);",
-                         account_id_str, service_id_str, key, value_str);
+                                                          "key, type, value) "
+                         "VALUES (%s, %s, %Q, %Q, %Q);",
+                         account_id_str, service_id_str, key,
+                         type_str, value_str);
                 }
                 else if (account->id != 0)
                 {

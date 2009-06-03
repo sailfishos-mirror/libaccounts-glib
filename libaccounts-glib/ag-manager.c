@@ -30,6 +30,8 @@
 #include <sched.h>
 #include <sqlite3.h>
 
+#define MAX_SQLITE_BUSY_LOOP_TIME 2
+
 enum
 {
     ACCOUNT_CREATED,
@@ -381,6 +383,7 @@ open_db (AgManager *manager)
             "account INTEGER NOT NULL,"
             "service INTEGER,"
             "key TEXT NOT NULL,"
+            "type TEXT NOT NULL,"
             "value BLOB);"
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_setting ON Settings "
             "(account, service, key);"
@@ -589,8 +592,10 @@ ag_manager_get_account (AgManager *manager, AgAccountId account_id)
 {
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_return_val_if_fail (account_id != 0, NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    return g_object_new (AG_TYPE_ACCOUNT,
+                         "manager", manager,
+                         "id", account_id,
+                         NULL);
 }
 
 /**
@@ -648,7 +653,7 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
     service = _ag_service_load_from_file (service_name);
 
     g_hash_table_insert (priv->services, service->name, service);
-    return service;
+    return ag_service_ref (service);
 }
 
 void
@@ -699,5 +704,77 @@ db_error:
     transaction_completed (manager, account, changes,
                            callback, &error, user_data);
     g_free (error.message);
+}
+
+/* Executes an SQL statement, and optionally calls
+ * the callback for every row of the result.
+ * Returns the number of rows fetched.
+ */
+gint
+_ag_manager_exec_query (AgManager *manager,
+                        AgQueryCallback callback, gpointer user_data,
+                        const gchar *sql)
+{
+    sqlite3 *db;
+    int ret;
+    sqlite3_stmt *stmt;
+    time_t try_until;
+    gint rows = 0;
+
+    g_return_val_if_fail (AG_IS_MANAGER (manager), 0);
+    db = manager->priv->db;
+
+    g_return_val_if_fail (db != NULL, 0);
+
+    ret = sqlite3_prepare_v2 (db, sql, -1, &stmt, NULL);
+    if (ret != SQLITE_OK)
+    {
+        g_debug ("%s: can't compile SQL statement \"%s\": %s", G_STRFUNC, sql,
+                 sqlite3_errmsg (db));
+        return 0;
+    }
+
+    /* Set maximum time we're prepared to wait. Have to do it here also,
+     *    * because SQLite doesn't guarantee running the busy handler. Thanks,
+     *       * SQLite. */
+    try_until = time (NULL) + MAX_SQLITE_BUSY_LOOP_TIME;
+
+    do
+    {
+        ret = sqlite3_step (stmt);
+
+        switch (ret)
+        {
+            case SQLITE_DONE:
+                break;
+
+            case SQLITE_ROW:
+                if (callback == NULL || callback (stmt, user_data))
+                {
+                    rows++;
+                }
+                break;
+
+            case SQLITE_BUSY:
+                if (time (NULL) < try_until)
+                {
+                    /* If timeout was specified and table is locked,
+                     * wait instead of executing default runtime
+                     * error action. Otherwise, fall through to it. */
+                    sched_yield ();
+                    break;
+                }
+
+            default:
+                g_debug ("%s: runtime error while executing \"%s\": %s",
+                         G_STRFUNC, sql, sqlite3_errmsg (db));
+                sqlite3_finalize (stmt);
+                return rows;
+        }
+    } while (ret != SQLITE_DONE);
+
+    sqlite3_finalize (stmt);
+
+    return rows;
 }
 

@@ -7,6 +7,7 @@ AM_CONFIG_HEADER(config.h)
 
 PKG_CHECK_MODULES(
 	LIBACCOUNTS,
+	dbus-1
 	glib-2.0
 	gobject-2.0
 	sqlite3);

@@ -19,6 +19,7 @@
 #define _AG_INTERNALS_H_
 
 #include "ag-manager.h"
+#include <sqlite3.h>
 
 G_BEGIN_DECLS
 
@@ -34,6 +35,13 @@ void _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
                                    AgAccount *account,
                                    AgAccountStoreCb callback,
                                    gpointer user_data) G_GNUC_INTERNAL;
+
+typedef gboolean (*AgQueryCallback) (sqlite3_stmt *stmt, gpointer user_data);
+
+G_GNUC_INTERNAL
+gint _ag_manager_exec_query (AgManager *manager,
+                             AgQueryCallback callback, gpointer user_data,
+                             const gchar *sql);
 
 struct _AgService {
     gint ref_count;

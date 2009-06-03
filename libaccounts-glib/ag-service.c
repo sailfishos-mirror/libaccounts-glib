@@ -103,6 +103,8 @@ ag_service_ref (AgService *service)
     g_return_val_if_fail (service != NULL, NULL);
     g_return_val_if_fail (service->ref_count > 0, NULL);
 
+    g_debug ("Referencing service %s (%d)",
+             service->name, service->ref_count);
     service->ref_count++;
     return service;
 }
@@ -119,6 +121,8 @@ ag_service_unref (AgService *service)
     g_return_if_fail (service != NULL);
     g_return_if_fail (service->ref_count > 0);
 
+    g_debug ("Unreferencing service %s (%d)",
+             service->name, service->ref_count);
     service->ref_count--;
     if (service->ref_count == 0)
     {

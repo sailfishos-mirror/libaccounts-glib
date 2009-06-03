@@ -27,9 +27,6 @@ G_BEGIN_DECLS
 GString *_ag_string_append_printf (GString *string,
                                    const gchar *format,
                                    ...) G_GNUC_INTERNAL;
-gboolean _ag_db_exec (sqlite3 *db,
-                      GFunc cb, gpointer user_data,
-                      const gchar *sql) G_GNUC_INTERNAL;
 
 G_GNUC_INTERNAL
 GValue *_ag_value_slice_dup (const GValue *value);
@@ -39,6 +36,15 @@ void _ag_value_slice_free (GValue *value);
 
 G_GNUC_INTERNAL
 const gchar *_ag_value_to_db (const GValue *value);
+
+G_GNUC_INTERNAL
+GValue *_ag_value_from_db (sqlite3_stmt *stmt, gint col_type, gint col_value);
+
+G_GNUC_INTERNAL
+const gchar *_ag_type_from_g_type (GType type);
+
+G_GNUC_INTERNAL
+GType _ag_type_to_g_type (const gchar *type_str);
 
 G_END_DECLS
 
