@@ -396,6 +396,44 @@ START_TEST(test_service)
 }
 END_TEST
 
+static void
+set_boolean_variable (gboolean *flag)
+{
+    *flag = TRUE;
+}
+
+START_TEST(test_signals)
+{
+    const gchar *display_name = "My lovely account";
+    gboolean enabled_called = FALSE;
+    gboolean display_name_called = FALSE;
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, PROVIDER);
+
+    g_signal_connect_swapped (account, "enabled",
+                              G_CALLBACK (set_boolean_variable),
+                              &enabled_called);
+    g_signal_connect_swapped (account, "display-name-changed",
+                              G_CALLBACK (set_boolean_variable),
+                              &display_name_called);
+
+    ag_account_set_enabled (account, TRUE);
+    ag_account_set_display_name (account, display_name);
+
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    fail_unless (enabled_called, "Enabled signal not emitted!");
+    fail_unless (display_name_called, "DisplayName signal not emitted!");
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -414,6 +452,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_store_locked);
     tcase_add_test (tc_create, test_store_locked_unref);
     tcase_add_test (tc_create, test_service);
+    tcase_add_test (tc_create, test_signals);
 
     suite_add_tcase (s, tc_create);
 
