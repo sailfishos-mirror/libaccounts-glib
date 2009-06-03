@@ -864,9 +864,25 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
         g_string_append (sql, "SELECT set_last_rowid_as_account_id();");
         account_id_str = "account_id()";
     }
-    else
+    else if (changes &&
+             (changes->display_name_changed || changes->enabled_changed))
     {
-        /* TODO: update existing account */
+        gboolean comma = FALSE;
+        g_string_append (sql, "UPDATE Accounts SET ");
+        if (changes->display_name_changed)
+        {
+            _ag_string_append_printf
+                (sql, "name = %Q", changes->display_name);
+            comma = TRUE;
+        }
+
+        if (changes->enabled_changed)
+        {
+            _ag_string_append_printf
+                (sql, "%cenabled = %d", comma ? ',' : ' ', changes->enabled);
+        }
+
+        _ag_string_append_printf (sql, " WHERE id = %d;", account->id);
     }
 
     if (changes)
