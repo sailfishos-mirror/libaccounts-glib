@@ -116,24 +116,28 @@ _ag_value_to_db (const GValue *value)
 const gchar *
 _ag_type_from_g_type (GType type)
 {
-    if (type == G_TYPE_STRING)
+    switch (type)
+    {
+    case G_TYPE_STRING:
         return DBUS_TYPE_STRING_AS_STRING;
-    if (type == G_TYPE_INT ||
-        type == G_TYPE_CHAR)
+    case G_TYPE_INT:
+    case G_TYPE_CHAR:
         return DBUS_TYPE_INT32_AS_STRING;
-    if (type == G_TYPE_UINT)
+    case G_TYPE_UINT:
         return DBUS_TYPE_UINT32_AS_STRING;
-    if (type == G_TYPE_BOOLEAN)
+    case G_TYPE_BOOLEAN:
         return DBUS_TYPE_BOOLEAN_AS_STRING;
-    if (type == G_TYPE_UCHAR)
+    case G_TYPE_UCHAR:
         return DBUS_TYPE_BYTE_AS_STRING;
-    if (type == G_TYPE_INT64)
+    case G_TYPE_INT64:
         return DBUS_TYPE_INT64_AS_STRING;
-    if (type == G_TYPE_UINT64)
+    case G_TYPE_UINT64:
         return DBUS_TYPE_UINT64_AS_STRING;
-
-    g_warning ("%s: unsupported type ``%s''", G_STRFUNC, g_type_name (type));
-    return NULL;
+    default:
+        g_warning ("%s: unsupported type ``%s''", G_STRFUNC,
+                   g_type_name (type));
+        return NULL;
+    }
 }
 
 GType
