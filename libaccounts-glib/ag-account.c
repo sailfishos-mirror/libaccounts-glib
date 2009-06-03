@@ -178,7 +178,26 @@ _ag_account_changes_free (AgAccountChanges *changes)
 void
 _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
 {
-    /* TODO */
+    AgAccountPrivate *priv = account->priv;
+
+    if (!changes) return;
+
+    if (changes->enabled_changed)
+    {
+        priv->enabled = changes->enabled;
+        /* TODO: emit signal */
+    }
+
+    if (changes->display_name_changed)
+    {
+        g_free (priv->display_name);
+        priv->display_name = changes->display_name;
+        changes->display_name = NULL; /* we don't want it to be freed,
+                                         since we stole it */
+        /* TODO: emit signal */
+    }
+
+    /* TODO: update settings */
 }
 
 static AgAccountChanges *
