@@ -263,7 +263,7 @@ ag_account_constructor (GType type, guint n_params,
     AgAccount *account;
 
     object = object_class->constructor (type, n_params, params);
-    g_return_val_if_fail (object != NULL, NULL);
+    g_return_val_if_fail (AG_IS_ACCOUNT (object), NULL);
 
     account = AG_ACCOUNT (object);
     if (account->id && !ag_account_load (account))
