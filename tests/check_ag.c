@@ -264,6 +264,7 @@ START_TEST(test_service)
     const gchar *username = "me@myhome.com";
     const gint interval = 30;
     const gboolean check_automatically = TRUE;
+    const gchar *display_name = "My test account";
     AgSettingSource source;
 
     g_type_init ();
@@ -280,6 +281,7 @@ START_TEST(test_service)
     fail_unless (service != NULL);
 
     ag_account_set_enabled (account, FALSE);
+    ag_account_set_display_name (account, display_name);
 
     ag_account_select_service (account, service);
 
@@ -335,6 +337,9 @@ START_TEST(test_service)
     /* check that the values are retained */
     fail_unless (ag_account_get_enabled (account) == FALSE,
                  "Account enabled!");
+    fail_unless (strcmp (ag_account_get_display_name (account),
+                         display_name) == 0,
+                 "Display name not retained!");
 
     g_value_init (&value, G_TYPE_STRING);
     source = ag_account_get_value (account, "description", &value);
