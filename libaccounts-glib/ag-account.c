@@ -79,6 +79,7 @@ struct _AgAccountPrivate {
     AgService *service;
 
     gchar *provider_name;
+    gchar *display_name;
 
     /* cached settings: keys are service names, values are AgServiceSettings
      * structures.
@@ -230,7 +231,9 @@ ag_account_init (AgAccount *account)
 static gboolean
 got_account (sqlite3_stmt *stmt, AgAccountPrivate *priv)
 {
-    /* TODO: get display name */
+    g_assert (priv->display_name == NULL);
+    g_assert (priv->provider_name == NULL);
+    priv->display_name = g_strdup ((gchar *)sqlite3_column_text (stmt, 0));
     priv->provider_name = g_strdup ((gchar *)sqlite3_column_text (stmt, 1));
     priv->enabled = sqlite3_column_int (stmt, 2);
     return TRUE;
@@ -324,6 +327,7 @@ ag_account_finalize (GObject *object)
     AgAccountPrivate *priv = AG_ACCOUNT_PRIV (object);
 
     g_free (priv->provider_name);
+    g_free (priv->display_name);
 
     if (priv->services)
         g_hash_table_unref (priv->services);
@@ -504,8 +508,7 @@ const gchar *
 ag_account_get_display_name (AgAccount *account)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    return account->priv->display_name;
 }
 
 /**
@@ -518,8 +521,15 @@ ag_account_get_display_name (AgAccount *account)
 void
 ag_account_set_display_name (AgAccount *account, const gchar *display_name)
 {
+    AgAccountPrivate *priv;
+    AgAccountChanges *changes;
+
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    g_warning ("%s not implemented", G_STRFUNC);
+    priv = account->priv;
+    changes = account_changes_get (priv);
+
+    changes->display_name = g_strdup (display_name);
+    changes->display_name_changed = TRUE;
 }
 
 /**
