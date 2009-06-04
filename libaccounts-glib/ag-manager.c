@@ -75,6 +75,16 @@ G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
 
 static void store_cb_data_free (StoreCbData *sd);
 
+static gboolean
+add_id_to_list (sqlite3_stmt *stmt, GList **plist)
+{
+    gint id;
+
+    id = sqlite3_column_int (stmt, 0);
+    *plist = g_list_prepend (*plist, GINT_TO_POINTER (id));
+    return TRUE;
+}
+
 static void
 transaction_completed (AgManager *manager,
                        AgAccount *account,
@@ -545,9 +555,14 @@ ag_manager_new ()
 GList *
 ag_manager_list (AgManager *manager)
 {
+    GList *list = NULL;
+    const gchar *sql;
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    sql = "SELECT id FROM Accounts;";
+    _ag_manager_exec_query (manager, (AgQueryCallback)add_id_to_list,
+                            &list, sql);
+    return list;
 }
 
 /**
@@ -563,9 +578,18 @@ GList *
 ag_manager_list_by_service_type (AgManager *manager,
                                  const gchar *service_type)
 {
+    GList *list = NULL;
+    char sql[512];
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    sqlite3_snprintf (sizeof (sql), sql,
+                      "SELECT DISTINCT account FROM Settings "
+                      "JOIN Services ON Settings.service = Services.id "
+                      "WHERE Services.type = %Q;",
+                      service_type);
+    _ag_manager_exec_query (manager, (AgQueryCallback)add_id_to_list,
+                            &list, sql);
+    return list;
 }
 
 /**
