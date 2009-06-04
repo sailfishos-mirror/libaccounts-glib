@@ -142,7 +142,11 @@ exec_transaction (AgManager *manager, AgAccount *account,
     /* everything went well; if this was a new account, we must update the
      * local data structure */
     if (account->id == 0)
+    {
         account->id = priv->last_account_id;
+
+        g_signal_emit (manager, signals[ACCOUNT_CREATED], 0, account->id);
+    }
 
     _ag_account_done_changes (account, changes);
 
