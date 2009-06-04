@@ -434,6 +434,63 @@ START_TEST(test_signals)
 }
 END_TEST
 
+START_TEST(test_list)
+{
+    const gchar *display_name = "New account";
+    const gchar *service_name = "New Service";
+    const gchar *service_type;
+    GList *list;
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, PROVIDER);
+
+    ag_account_set_enabled (account, TRUE);
+    ag_account_set_display_name (account, display_name);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    fail_unless (account->id != 0, "Account ID is still 0!");
+
+    list = ag_manager_list (manager);
+    fail_unless (list != NULL, "Empty list");
+    fail_unless (g_list_find (list, GUINT_TO_POINTER (account->id)) != NULL,
+                 "Created account not found in list");
+    g_list_free (list);
+
+    /* check that it doesn't support the service type provided by MyService */
+    service = ag_manager_get_service (manager, service_name);
+    service_type = ag_service_get_service_type (service);
+    fail_unless (service_type != NULL, "Service %s has no type", service_name);
+
+    list = ag_manager_list_by_service_type (manager, service_type);
+    fail_unless (g_list_find (list, GUINT_TO_POINTER (account->id)) == NULL,
+                 "New account supports %s service type, but shouldn't",
+                 service_type);
+    g_list_free (list);
+
+    /* Add the service to the account */
+    fail_unless (service != NULL);
+
+    ag_account_select_service (account, service);
+    ag_account_set_enabled (account, TRUE);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    /* check that the service is now there */
+    list = ag_manager_list_by_service_type (manager, service_type);
+    fail_unless (g_list_find (list, GUINT_TO_POINTER (account->id)) != NULL,
+                 "New account doesn't supports %s service type, but should",
+                 service_type);
+    g_list_free (list);
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -453,6 +510,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_store_locked_unref);
     tcase_add_test (tc_create, test_service);
     tcase_add_test (tc_create, test_signals);
+    tcase_add_test (tc_create, test_list);
 
     suite_add_tcase (s, tc_create);
 
