@@ -185,7 +185,8 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
     if (changes->enabled_changed)
     {
         priv->enabled = changes->enabled;
-        /* TODO: emit signal */
+        g_signal_emit (account, signals[ENABLED], 0,
+                       NULL, priv->enabled);
     }
 
     if (changes->display_name_changed)
@@ -194,7 +195,7 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
         priv->display_name = changes->display_name;
         changes->display_name = NULL; /* we don't want it to be freed,
                                          since we stole it */
-        /* TODO: emit signal */
+        g_signal_emit (account, signals[DISPLAY_NAME_CHANGED], 0);
     }
 
     /* TODO: update settings */
