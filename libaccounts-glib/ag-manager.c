@@ -501,7 +501,7 @@ ag_manager_class_init (AgManagerClass *klass)
     /**
      * AgManager::account-created:
      * @manager: the #AgManager.
-     * @account_name: the name of the account that has been created.
+     * @account_id: the #AgAccountId of the account that has been created.
      *
      * Emitted when a new account has been created; note that the account must
      * have been stored in the database: the signal is not emitted just in
@@ -512,9 +512,9 @@ ag_manager_class_init (AgManagerClass *klass)
         G_SIGNAL_RUN_LAST,
         0,
         NULL, NULL,
-        g_cclosure_marshal_VOID__STRING,
+        g_cclosure_marshal_VOID__UINT,
         G_TYPE_NONE,
-        1, G_TYPE_STRING);
+        1, G_TYPE_UINT);
 
 }
 
