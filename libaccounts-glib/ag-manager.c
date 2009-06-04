@@ -762,6 +762,8 @@ _ag_manager_exec_query (AgManager *manager,
         return 0;
     }
 
+    g_debug ("%s: about to run:\n%s", G_STRFUNC, sql);
+
     /* Set maximum time we're prepared to wait. Have to do it here also,
      *    * because SQLite doesn't guarantee running the busy handler. Thanks,
      *       * SQLite. */
