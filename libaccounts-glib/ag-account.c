@@ -871,6 +871,7 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
     AgAccountPrivate *priv;
     AgAccountChanges *changes;
     GString *sql;
+    gchar account_id_buffer[16];
     const gchar *account_id_str;
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
@@ -893,25 +894,33 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
         g_string_append (sql, "SELECT set_last_rowid_as_account_id();");
         account_id_str = "account_id()";
     }
-    else if (changes &&
-             (changes->display_name_changed || changes->enabled_changed))
+    else
     {
-        gboolean comma = FALSE;
-        g_string_append (sql, "UPDATE Accounts SET ");
-        if (changes->display_name_changed)
-        {
-            _ag_string_append_printf
-                (sql, "name = %Q", changes->display_name);
-            comma = TRUE;
-        }
+        g_snprintf (account_id_buffer, sizeof (account_id_buffer),
+                    "%u", account->id);
+        account_id_str = account_id_buffer;
 
-        if (changes->enabled_changed)
+        if (changes &&
+            (changes->display_name_changed || changes->enabled_changed))
         {
-            _ag_string_append_printf
-                (sql, "%cenabled = %d", comma ? ',' : ' ', changes->enabled);
-        }
+            gboolean comma = FALSE;
+            g_string_append (sql, "UPDATE Accounts SET ");
+            if (changes->display_name_changed)
+            {
+                _ag_string_append_printf
+                    (sql, "name = %Q", changes->display_name);
+                comma = TRUE;
+            }
 
-        _ag_string_append_printf (sql, " WHERE id = %d;", account->id);
+            if (changes->enabled_changed)
+            {
+                _ag_string_append_printf
+                    (sql, "%cenabled = %d",
+                     comma ? ',' : ' ', changes->enabled);
+            }
+
+            _ag_string_append_printf (sql, " WHERE id = %d;", account->id);
+        }
     }
 
     if (changes)
