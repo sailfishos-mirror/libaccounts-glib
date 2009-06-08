@@ -19,6 +19,50 @@
 
 #include "ag-internals.h"
 
+static gchar *
+find_service_file (const gchar *service_id)
+{
+    const gchar * const *dirs;
+    const gchar *dirname;
+    const gchar *env_dirname;
+    gchar *filename, *filepath;
+
+    filename = g_strdup_printf ("%s.service", service_id);
+    env_dirname = g_getenv ("AG_SERVICES");
+    if (env_dirname)
+    {
+        filepath = g_build_filename (env_dirname, filename, NULL);
+        if (g_file_test (filepath, G_FILE_TEST_IS_REGULAR))
+            goto found;
+        g_free (filepath);
+    }
+
+    dirname = g_get_user_data_dir ();
+    if (G_LIKELY (dirname))
+    {
+        filepath = g_build_filename (dirname, "accounts/services",
+                                              filename, NULL);
+        if (g_file_test (filepath, G_FILE_TEST_IS_REGULAR))
+            goto found;
+        g_free (filepath);
+    }
+
+    dirs = g_get_system_data_dirs ();
+    for (dirname = *dirs; dirname != NULL; dirs++, dirname = *dirs)
+    {
+        filepath = g_build_filename (dirname, "accounts/services",
+                                              filename, NULL);
+        if (g_file_test (filepath, G_FILE_TEST_IS_REGULAR))
+            goto found;
+        g_free (filepath);
+    }
+
+    filepath = NULL;
+found:
+    g_free (filename);
+    return filepath;
+}
+
 AgService *
 _ag_service_new (const gchar *name,
                  const gchar *type,
@@ -42,7 +86,12 @@ _ag_service_new (const gchar *name,
 AgService *
 _ag_service_load_from_file (const gchar *service_name)
 {
+    gchar *filepath;
+
     g_return_val_if_fail (service_name != NULL, NULL);
+
+    filepath = find_service_file (service_name);
+    if (G_UNLIKELY (!filepath)) return NULL;
 
     /* TODO: really load from file */
 
