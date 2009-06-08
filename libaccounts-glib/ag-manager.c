@@ -679,6 +679,7 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
 
     /* The service is not in the DB: it must be loaded */
     service = _ag_service_load_from_file (service_name);
+    if (G_UNLIKELY (!service)) return NULL;
 
     g_hash_table_insert (priv->services, service->name, service);
     return ag_service_ref (service);
