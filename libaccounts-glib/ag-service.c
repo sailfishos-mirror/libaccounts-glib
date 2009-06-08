@@ -113,6 +113,19 @@ ag_service_get_name (AgService *service)
 }
 
 /**
+ * ag_service_get_display_name:
+ * @service: the #AgService.
+ *
+ * Returns: the display name of @service.
+ */
+const gchar *
+ag_service_get_display_name (AgService *service)
+{
+    g_return_val_if_fail (service != NULL, NULL);
+    return service->display_name;
+}
+
+/**
  * ag_service_get_service_type:
  * @service: the #AgService.
  *

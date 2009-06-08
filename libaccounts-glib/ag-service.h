@@ -25,6 +25,7 @@ G_BEGIN_DECLS
 typedef struct _AgService AgService;
 
 const gchar *ag_service_get_name (AgService *service);
+const gchar *ag_service_get_display_name (AgService *service);
 const gchar *ag_service_get_service_type (AgService *service);
 const gchar *ag_service_get_provider (AgService *service);
 AgService *ag_service_ref (AgService *service);
