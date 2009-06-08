@@ -259,7 +259,7 @@ START_TEST(test_service)
     GValue value = { 0 };
     AgService *service2;
     AgAccountId account_id;
-    const gchar *provider_name;
+    const gchar *provider_name, *service_type, *service_name;
     const gchar *description = "This is really a beautiful account";
     const gchar *username = "me@myhome.com";
     const gint interval = 30;
@@ -277,8 +277,19 @@ START_TEST(test_service)
     ag_account_set_value (account, "description", &value);
     g_value_unset (&value);
 
+    service = ag_manager_get_service (manager, "MyUnexistingService");
+    fail_unless (service == NULL);
+
     service = ag_manager_get_service (manager, "MyService");
     fail_unless (service != NULL);
+
+    service_type = ag_service_get_service_type (service);
+    fail_unless (strcmp (service_type, "e-mail") == 0,
+                 "Wrong service type: %s", service_type);
+
+    service_name = ag_service_get_name (service);
+    fail_unless (strcmp (service_name, "My Service") == 0,
+                 "Wrong service name: %s", service_name);
 
     ag_account_set_enabled (account, FALSE);
     ag_account_set_display_name (account, display_name);
@@ -437,7 +448,7 @@ END_TEST
 START_TEST(test_list)
 {
     const gchar *display_name = "New account";
-    const gchar *service_name = "New Service";
+    const gchar *service_name = "OtherService";
     const gchar *service_type;
     GList *list;
 

@@ -11,6 +11,10 @@ accounts_glib_testsuite_LDADD = \
 	$(LIBACCOUNTS_LIBS) \
 	$(top_builddir)/libaccounts-glib/libaccounts-glib.la
 
-TESTS_ENVIRONMENT = ACCOUNTS=/tmp/
+TESTS_ENVIRONMENT = ACCOUNTS=/tmp/ AG_SERVICES=$(top_srcdir)/tests/
 TESTS = accounts-glib-testsuite
+
+EXTRA_DIST = \
+	MyService.service \
+	OtherService.service
 
