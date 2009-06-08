@@ -64,21 +64,12 @@ found:
 }
 
 AgService *
-_ag_service_new (const gchar *name,
-                 const gchar *type,
-                 const gchar *provider,
-                 gint id)
+_ag_service_new (void)
 {
     AgService *service;
 
-    g_return_val_if_fail (name != NULL, NULL);
-
     service = g_slice_new0 (AgService);
     service->ref_count = 1;
-    service->name = g_strdup (name);
-    service->type = g_strdup (type);
-    service->provider = g_strdup (provider);
-    service->id = id;
 
     return service;
 }

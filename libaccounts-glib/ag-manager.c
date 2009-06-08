@@ -76,6 +76,22 @@ G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
 static void store_cb_data_free (StoreCbData *sd);
 
 static gboolean
+got_service (sqlite3_stmt *stmt, AgService **p_service)
+{
+    AgService *service;
+
+    g_assert (p_service != NULL);
+
+    service = _ag_service_new ();
+    service->id = sqlite3_column_int (stmt, 0);
+    service->display_name = g_strdup ((gchar *)sqlite3_column_text (stmt, 1));
+    service->type = g_strdup ((gchar *)sqlite3_column_text (stmt, 2));
+
+    *p_service = service;
+    return TRUE;
+}
+
+static gboolean
 add_id_to_list (sqlite3_stmt *stmt, GList **plist)
 {
     gint id;
@@ -667,6 +683,9 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
 {
     AgManagerPrivate *priv;
     AgService *service;
+    gchar *sql;
+    gint rows;
+
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_return_val_if_fail (service_name != NULL, NULL);
@@ -676,10 +695,25 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
     if (service)
         return ag_service_ref (service);
 
-    /* TODO first, check if the service is in the DB */
+    /* First, check if the service is in the DB */
+    sql = sqlite3_mprintf ("SELECT id, display, type "
+                           "FROM Services WHERE name = %Q", service_name);
+    rows = _ag_manager_exec_query (manager, (AgQueryCallback)got_service,
+                                   &service, sql);
+    sqlite3_free (sql);
 
-    /* The service is not in the DB: it must be loaded */
-    service = _ag_service_load_from_file (service_name);
+    if (service)
+    {
+        /* the basic server data have been loaded from the DB; the service name
+         * is still missing, though */
+        service->name = g_strdup (service_name);
+    }
+    else
+    {
+        /* The service is not in the DB: it must be loaded */
+        service = _ag_service_load_from_file (service_name);
+    }
+
     if (G_UNLIKELY (!service)) return NULL;
 
     g_hash_table_insert (priv->services, service->name, service);

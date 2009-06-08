@@ -55,11 +55,8 @@ struct _AgService {
 G_GNUC_INTERNAL
 AgService *_ag_service_load_from_file (const gchar *service_name);
 
-G_GNUC_INTERNAL
-AgService *_ag_service_new (const gchar *name,
-                            const gchar *type,
-                            const gchar *provider,
-                            gint id);
+inline
+AgService *_ag_service_new (void);
 
 G_END_DECLS
 
