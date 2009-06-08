@@ -176,6 +176,7 @@ ag_service_unref (AgService *service)
     if (service->ref_count == 0)
     {
         g_free (service->name);
+        g_free (service->display_name);
         g_free (service->type);
         g_free (service->provider);
         g_slice_free (AgService, service);
