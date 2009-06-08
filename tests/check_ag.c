@@ -288,8 +288,12 @@ START_TEST(test_service)
                  "Wrong service type: %s", service_type);
 
     service_name = ag_service_get_name (service);
-    fail_unless (strcmp (service_name, "My Service") == 0,
+    fail_unless (strcmp (service_name, "MyService") == 0,
                  "Wrong service name: %s", service_name);
+
+    service_name = ag_service_get_display_name (service);
+    fail_unless (strcmp (service_name, "My Service") == 0,
+                 "Wrong service display name: %s", service_name);
 
     ag_account_set_enabled (account, FALSE);
     ag_account_set_display_name (account, display_name);
@@ -311,7 +315,7 @@ START_TEST(test_service)
     ag_account_set_value (account, "interval", &value);
     g_value_unset (&value);
 
-    service2 = ag_manager_get_service (manager, "Washing");
+    service2 = ag_manager_get_service (manager, "OtherService");
     ag_account_select_service (account, service2);
 
     g_value_init (&value, G_TYPE_STRING);

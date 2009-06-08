@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<service id="google-talk">
+<service id="MyService">
   <type>e-mail</type>
   <name>My Service</name>
   <icon>general_myservice</icon>
@@ -47,7 +47,7 @@
         <vcard_field>X-JABBER</vcard_field>
         <properties>
           <prop name="org.freedesktop.Telepathy.Channel.ChannelType" type="s">org.freedesktop.Telepathy.Channel.Type.Text</prop>
-        <properties>
+	</properties>
       </action>
       <action name="call">
         <name>addr_bd_cont_starter_im_service_call</name>
@@ -55,8 +55,9 @@
         <vcard_field>X-JABBER</vcard_field>
         <properties>
           <prop name="org.freedesktop.Telepathy.Channel.ChannelType" type="s">org.freedesktop.Telepathy.Channel.Type.StreamedMedia</prop>
-        <properties>
+        </properties>
       </action>
+    </actions>
 
   </type_data>
 </service>
