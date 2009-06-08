@@ -46,6 +46,9 @@ const gchar *_ag_type_from_g_type (GType type);
 G_GNUC_INTERNAL
 GType _ag_type_to_g_type (const gchar *type_str);
 
+G_GNUC_INTERNAL
+gboolean _ag_value_set_from_string (GValue *value, const gchar *string);
+
 G_END_DECLS
 
 #endif /* _AG_UTIL_H_ */

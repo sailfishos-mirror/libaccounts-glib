@@ -21,6 +21,8 @@
 #include <dbus/dbus.h>
 #include <sched.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 GString *
 _ag_string_append_printf (GString *string, const gchar *format, ...)
@@ -161,6 +163,64 @@ _ag_type_to_g_type (const gchar *type_str)
         g_warning ("%s: unsupported type ``%s''", G_STRFUNC, type_str);
         return G_TYPE_INVALID;
     }
+}
+
+gboolean
+_ag_value_set_from_string (GValue *value, const gchar *string)
+{
+    GType type;
+    char *endptr;
+
+    type = G_VALUE_TYPE (value);
+    g_return_val_if_fail (type != G_TYPE_INVALID, FALSE);
+
+    if (G_UNLIKELY (!string)) return FALSE;
+
+    switch (type)
+    {
+    case G_TYPE_STRING:
+        g_value_set_string (value, string);
+        break;
+    case G_TYPE_INT:
+        {
+            gint i;
+            i = strtol (string, &endptr, 0);
+            if (endptr && endptr[0] != '\0')
+                return FALSE;
+            g_value_set_int (value, i);
+        }
+        break;
+    case G_TYPE_UINT:
+        {
+            guint u;
+            u = strtoul (string, &endptr, 0);
+            if (endptr && endptr[0] != '\0')
+                return FALSE;
+            g_value_set_uint (value, u);
+        }
+        break;
+    case G_TYPE_BOOLEAN:
+        if (string[0] == '1' ||
+            strcmp (string, "true") == 0 ||
+            strcmp (string, "True") == 0)
+            g_value_set_boolean (value, TRUE);
+        else if (string[0] == '0' ||
+                 strcmp (string, "false") == 0 ||
+                 strcmp (string, "False") == 0)
+            g_value_set_boolean (value, FALSE);
+        else
+        {
+            g_warning ("%s: Invalid boolean value: %s", G_STRFUNC, string);
+            return FALSE;
+        }
+        break;
+    default:
+        g_warning ("%s: unsupported type ``%s''", G_STRFUNC,
+                   g_type_name (type));
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 GValue *
