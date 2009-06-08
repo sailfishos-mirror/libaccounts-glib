@@ -10,6 +10,7 @@ PKG_CHECK_MODULES(
 	dbus-1
 	glib-2.0
 	gobject-2.0
+	libxml-2.0
 	sqlite3);
 AC_SUBST(LIBACCOUNTS_CFLAGS)
 AC_SUBST(LIBACCOUNTS_LIBS)

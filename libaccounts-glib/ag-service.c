@@ -18,6 +18,242 @@
 #include "ag-service.h"
 
 #include "ag-internals.h"
+#include "ag-util.h"
+#include <libxml/xmlreader.h>
+#include <string.h>
+
+
+static gboolean
+get_element_data (xmlTextReaderPtr reader, const gchar **dest_ptr)
+{
+    if (dest_ptr) *dest_ptr = NULL;
+
+    if (xmlTextReaderIsEmptyElement (reader))
+        return TRUE;
+
+    if (xmlTextReaderRead (reader) != 1 ||
+        xmlTextReaderNodeType (reader) != XML_READER_TYPE_TEXT)
+        return FALSE;
+
+    if (dest_ptr)
+        *dest_ptr = (const gchar *)xmlTextReaderConstValue (reader);
+
+    return TRUE;
+}
+
+static gboolean
+close_element (xmlTextReaderPtr reader)
+{
+    if (xmlTextReaderRead (reader) != 1 ||
+        xmlTextReaderNodeType (reader) != XML_READER_TYPE_END_ELEMENT)
+        return FALSE;
+
+    return TRUE;
+}
+
+static gboolean
+dup_element_data (xmlTextReaderPtr reader, gchar **dest_ptr)
+{
+    const gchar *data;
+    gboolean ret;
+
+    ret = get_element_data (reader, &data);
+    if (dest_ptr)
+        *dest_ptr = g_strdup (data);
+
+    close_element (reader);
+    return ret;
+}
+
+static gboolean
+parse_param (xmlTextReaderPtr reader, GValue *value)
+{
+    const gchar *name, *str_value, *str_type;
+    gboolean ok;
+    GType type;
+
+    name = (const gchar *)xmlTextReaderGetAttribute (reader,
+                                                     (xmlChar *) "name");
+
+    str_type = (const gchar *)xmlTextReaderGetAttribute (reader,
+                                                         (xmlChar *) "type");
+    if (!str_type)
+        str_type = "s"; /* string */
+
+    ok = get_element_data (reader, &str_value);
+    if (G_UNLIKELY (!ok)) return FALSE;
+
+    g_debug ("Default param %s, value %s", name, str_value);
+    type = _ag_type_to_g_type (str_type);
+    if (G_UNLIKELY (type == G_TYPE_INVALID)) return FALSE;
+
+    g_value_init (value, type);
+
+    ok = _ag_value_set_from_string (value, str_value);
+    if (G_UNLIKELY (!ok)) return FALSE;
+
+    ok = close_element (reader);
+    if (G_UNLIKELY (!ok)) return FALSE;
+
+    return TRUE;
+}
+
+static gboolean
+parse_template_parameters (xmlTextReaderPtr reader, AgService *service)
+{
+    const gchar *name;
+    int ret, type;
+
+    ret = xmlTextReaderRead (reader);
+    while (ret == 1)
+    {
+        name = (const gchar *)xmlTextReaderConstName (reader);
+        if (G_UNLIKELY (!name)) return FALSE;
+
+        type = xmlTextReaderNodeType (reader);
+        if (type == XML_READER_TYPE_END_ELEMENT &&
+            strcmp (name, "parameters") == 0)
+            break;
+
+        if (type == XML_READER_TYPE_ELEMENT)
+        {
+            gboolean ok;
+
+            g_debug ("found name %s", name);
+            if (strcmp (name, "param") == 0)
+            {
+                GValue value = { 0 };
+
+                ok = parse_param (reader, &value);
+                /* TODO: store parameter somewhere */
+            }
+            else
+                ok = TRUE;
+
+            if (G_UNLIKELY (!ok)) return FALSE;
+        }
+
+        ret = xmlTextReaderNext (reader);
+    }
+    return TRUE;
+}
+
+static gboolean
+parse_template (xmlTextReaderPtr reader, AgService *service)
+{
+    const gchar *name;
+    int ret, type;
+    gboolean ok;
+
+    ret = xmlTextReaderRead (reader);
+    while (ret == 1)
+    {
+        name = (const gchar *)xmlTextReaderConstName (reader);
+        if (G_UNLIKELY (!name)) return FALSE;
+
+        type = xmlTextReaderNodeType (reader);
+        if (type == XML_READER_TYPE_END_ELEMENT &&
+            strcmp (name, "template") == 0)
+            break;
+
+        if (type == XML_READER_TYPE_ELEMENT)
+        {
+            g_debug ("found name %s", name);
+            if (strcmp (name, "parameters") == 0)
+            {
+                ok = parse_template_parameters (reader, service);
+                if (G_UNLIKELY (!ok)) return FALSE;
+            }
+        }
+
+        ret = xmlTextReaderNext (reader);
+    }
+    return TRUE;
+}
+
+static gboolean
+parse_preview (xmlTextReaderPtr reader, AgService *service)
+{
+    /* TODO: implement */
+    return TRUE;
+}
+
+static gboolean
+parse_service (xmlTextReaderPtr reader, AgService *service)
+{
+    const gchar *name;
+    int ret, type;
+
+    service->name = g_strdup
+        ((const gchar *)xmlTextReaderGetAttribute (reader, (xmlChar *) "id"));
+
+    ret = xmlTextReaderRead (reader);
+    while (ret == 1)
+    {
+        name = (const gchar *)xmlTextReaderConstName (reader);
+        if (G_UNLIKELY (!name)) return FALSE;
+
+        type = xmlTextReaderNodeType (reader);
+        if (type == XML_READER_TYPE_END_ELEMENT &&
+            strcmp (name, "service") == 0)
+            break;
+
+        if (type == XML_READER_TYPE_ELEMENT)
+        {
+            gboolean ok;
+
+            if (strcmp (name, "type") == 0)
+            {
+                ok = dup_element_data (reader, &service->type);
+            }
+            else if (strcmp (name, "name") == 0)
+            {
+                ok = dup_element_data (reader, &service->display_name);
+            }
+            else if (strcmp (name, "icon") == 0)
+            {
+                /* TODO: Store icon name somewhere */
+                ok = get_element_data (reader, NULL);
+            }
+            else if (strcmp (name, "template") == 0)
+            {
+                ok = parse_template (reader, service);
+            }
+            else if (strcmp (name, "preview") == 0)
+            {
+                ok = parse_preview (reader, service);
+            }
+            else
+                ok = TRUE;
+
+            if (G_UNLIKELY (!ok)) return FALSE;
+        }
+
+        ret = xmlTextReaderNext (reader);
+    }
+    return TRUE;
+}
+
+static gboolean
+read_service_file (xmlTextReaderPtr reader, AgService *service)
+{
+    const xmlChar *name;
+    int ret;
+
+    ret = xmlTextReaderRead (reader);
+    while (ret == 1)
+    {
+        name = xmlTextReaderConstName (reader);
+        if (G_LIKELY (name &&
+                      strcmp ((const gchar *)name, "service") == 0))
+        {
+            return parse_service (reader, service);
+        }
+
+        ret = xmlTextReaderNext (reader);
+    }
+    return FALSE;
+}
 
 static gchar *
 find_service_file (const gchar *service_id)
@@ -77,6 +313,8 @@ _ag_service_new (void)
 AgService *
 _ag_service_load_from_file (const gchar *service_name)
 {
+    xmlTextReaderPtr reader;
+    AgService *service;
     gchar *filepath;
 
     g_return_val_if_fail (service_name != NULL, NULL);
@@ -84,10 +322,22 @@ _ag_service_load_from_file (const gchar *service_name)
     filepath = find_service_file (service_name);
     if (G_UNLIKELY (!filepath)) return NULL;
 
-    /* TODO: really load from file */
+    /* TODO: cache the xmlReader */
+    reader = xmlReaderForFile (filepath, NULL, 0);
+    g_free (filepath);
 
-    /* for now, just create a fake service */
-    return _ag_service_new (service_name, "e-mail", "sso-team", 0);
+    if (G_UNLIKELY (reader == NULL))
+        return NULL;
+
+    service = _ag_service_new ();
+    if (!read_service_file (reader, service))
+    {
+        ag_service_unref (service);
+        service = NULL;
+    }
+
+    xmlFreeTextReader (reader);
+    return service;
 }
 
 /**
