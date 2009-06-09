@@ -323,33 +323,45 @@ _ag_service_new (void)
     return service;
 }
 
-AgService *
-_ag_service_load_from_file (const gchar *service_name)
+static gboolean
+_ag_service_load_from_file (AgService *service)
 {
     xmlTextReaderPtr reader;
-    AgService *service;
     gchar *filepath;
+    gboolean ret;
 
-    g_return_val_if_fail (service_name != NULL, NULL);
+    g_return_val_if_fail (service->name != NULL, FALSE);
 
-    filepath = find_service_file (service_name);
-    if (G_UNLIKELY (!filepath)) return NULL;
+    g_debug ("Loading service %s", service->name);
+    filepath = find_service_file (service->name);
+    if (G_UNLIKELY (!filepath)) return FALSE;
 
     /* TODO: cache the xmlReader */
     reader = xmlReaderForFile (filepath, NULL, 0);
     g_free (filepath);
 
     if (G_UNLIKELY (reader == NULL))
-        return NULL;
+        return FALSE;
+
+    ret = read_service_file (reader, service);
+
+    xmlFreeTextReader (reader);
+    return ret;
+}
+
+AgService *
+_ag_service_new_from_file (const gchar *service_name)
+{
+    AgService *service;
 
     service = _ag_service_new ();
-    if (!read_service_file (reader, service))
+    service->name = g_strdup (service_name);
+    if (!_ag_service_load_from_file (service))
     {
         ag_service_unref (service);
         service = NULL;
     }
 
-    xmlFreeTextReader (reader);
     return service;
 }
 
