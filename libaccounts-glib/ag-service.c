@@ -197,8 +197,12 @@ parse_service (xmlTextReaderPtr reader, AgService *service)
     const gchar *name;
     int ret, type;
 
-    service->name = g_strdup
-        ((const gchar *)xmlTextReaderGetAttribute (reader, (xmlChar *) "id"));
+    if (!service->name)
+    {
+        service->name = g_strdup
+            ((const gchar *)xmlTextReaderGetAttribute (reader,
+                                                       (xmlChar *) "id"));
+    }
 
     ret = xmlTextReaderRead (reader);
     while (ret == 1)
@@ -215,11 +219,11 @@ parse_service (xmlTextReaderPtr reader, AgService *service)
         {
             gboolean ok;
 
-            if (strcmp (name, "type") == 0)
+            if (strcmp (name, "type") == 0 && !service->type)
             {
                 ok = dup_element_data (reader, &service->type);
             }
-            else if (strcmp (name, "name") == 0)
+            else if (strcmp (name, "name") == 0 && !service->display_name)
             {
                 ok = dup_element_data (reader, &service->display_name);
             }
