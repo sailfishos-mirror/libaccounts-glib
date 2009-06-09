@@ -491,15 +491,6 @@ START_TEST(test_list)
     service_type = ag_service_get_service_type (service);
     fail_unless (service_type != NULL, "Service %s has no type", service_name);
 
-    /* test getting default setting from template */
-    g_value_init (&value, G_TYPE_INT);
-    source = ag_account_get_value (account, "parameters/port", &value);
-    fail_unless (source == AG_SETTING_SOURCE_PROFILE,
-                 "Cannot get port from profile");
-    fail_unless (g_value_get_int (&value) == 5223,
-                 "Wrong port number: %d", g_value_get_int (&value));
-    g_value_unset (&value);
-
     list = ag_manager_list_by_service_type (manager, service_type);
     fail_unless (g_list_find (list, GUINT_TO_POINTER (account->id)) == NULL,
                  "New account supports %s service type, but shouldn't",
@@ -511,6 +502,15 @@ START_TEST(test_list)
 
     ag_account_select_service (account, service);
     ag_account_set_enabled (account, TRUE);
+
+    /* test getting default setting from template */
+    g_value_init (&value, G_TYPE_INT);
+    source = ag_account_get_value (account, "parameters/port", &value);
+    fail_unless (source == AG_SETTING_SOURCE_PROFILE,
+                 "Cannot get port from profile");
+    fail_unless (g_value_get_int (&value) == 5223,
+                 "Wrong port number: %d", g_value_get_int (&value));
+    g_value_unset (&value);
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     fail_unless (data_stored, "Callback not invoked immediately");
