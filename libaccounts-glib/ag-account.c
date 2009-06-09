@@ -688,6 +688,8 @@ ag_account_get_value (AgAccount *account, const gchar *key,
 {
     AgAccountPrivate *priv;
     AgServiceSettings *ss;
+    AgSettingSource source;
+    const GValue *val = NULL;
 
     g_return_val_if_fail (AG_IS_ACCOUNT (account), AG_SETTING_SOURCE_NONE);
     priv = account->priv;
@@ -695,20 +697,25 @@ ag_account_get_value (AgAccount *account, const gchar *key,
     ss = get_service_settings (priv, priv->service, FALSE);
     if (ss)
     {
-        const GValue *val;
-
         val = g_hash_table_lookup (ss->settings, key);
-        if (val)
-        {
-            if (G_VALUE_TYPE (val) == G_VALUE_TYPE (value))
-                g_value_copy (val, value);
-            else
-                g_value_transform (val, value);
-            return AG_SETTING_SOURCE_ACCOUNT;
-        }
+        source = AG_SETTING_SOURCE_ACCOUNT;
     }
 
-    g_warning ("%s: getting of default settings not implemented", G_STRFUNC);
+    if (!val && priv->service)
+    {
+        val = _ag_service_get_default_setting (priv->service, key);
+        source = AG_SETTING_SOURCE_PROFILE;
+    }
+
+    if (val)
+    {
+        if (G_VALUE_TYPE (val) == G_VALUE_TYPE (value))
+            g_value_copy (val, value);
+        else
+            g_value_transform (val, value);
+        return source;
+    }
+
     return AG_SETTING_SOURCE_NONE;
 }
 
