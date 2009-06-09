@@ -68,12 +68,9 @@ dup_element_data (xmlTextReaderPtr reader, gchar **dest_ptr)
 static gboolean
 parse_param (xmlTextReaderPtr reader, GValue *value)
 {
-    const gchar *name, *str_value, *str_type;
+    const gchar *str_value, *str_type;
     gboolean ok;
     GType type;
-
-    name = (const gchar *)xmlTextReaderGetAttribute (reader,
-                                                     (xmlChar *) "name");
 
     str_type = (const gchar *)xmlTextReaderGetAttribute (reader,
                                                          (xmlChar *) "type");
@@ -83,7 +80,6 @@ parse_param (xmlTextReaderPtr reader, GValue *value)
     ok = get_element_data (reader, &str_value);
     if (G_UNLIKELY (!ok)) return FALSE;
 
-    g_debug ("Default param %s, value %s", name, str_value);
     type = _ag_type_to_g_type (str_type);
     if (G_UNLIKELY (type == G_TYPE_INVALID)) return FALSE;
 
