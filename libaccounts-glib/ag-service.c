@@ -381,7 +381,11 @@ _ag_service_get_default_setting (AgService *service, const gchar *key)
          * loading the record from the DB.
          * Now we must reload the service from its XML file.
          */
-        /* TODO: load service from disc */
+        if (!_ag_service_load_from_file (service))
+        {
+            g_warning ("Loading service %s file failed", service->name);
+            return NULL;
+        }
     }
 
     return g_hash_table_lookup (service->default_settings, key);
