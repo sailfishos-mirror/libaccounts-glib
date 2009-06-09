@@ -353,6 +353,24 @@ _ag_service_load_from_file (const gchar *service_name)
     return service;
 }
 
+const GValue *
+_ag_service_get_default_setting (AgService *service, const gchar *key)
+{
+    g_return_val_if_fail (service != NULL, NULL);
+    g_return_val_if_fail (key != NULL, NULL);
+
+    if (!service->default_settings)
+    {
+        /* This can happen if the service was created by the AccountManager by
+         * loading the record from the DB.
+         * Now we must reload the service from its XML file.
+         */
+        /* TODO: load service from disc */
+    }
+
+    return g_hash_table_lookup (service->default_settings, key);
+}
+
 /**
  * ag_service_get_name:
  * @service: the #AgService.
