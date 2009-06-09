@@ -99,7 +99,8 @@ parse_param (xmlTextReaderPtr reader, GValue *value)
 }
 
 static gboolean
-parse_template_parameters (xmlTextReaderPtr reader, AgService *service)
+parse_settings (xmlTextReaderPtr reader, const gchar *group,
+                GHashTable *settings)
 {
     const gchar *name;
     int ret, type;
@@ -111,8 +112,7 @@ parse_template_parameters (xmlTextReaderPtr reader, AgService *service)
         if (G_UNLIKELY (!name)) return FALSE;
 
         type = xmlTextReaderNodeType (reader);
-        if (type == XML_READER_TYPE_END_ELEMENT &&
-            strcmp (name, "parameters") == 0)
+        if (type == XML_READER_TYPE_END_ELEMENT)
             break;
 
         if (type == XML_READER_TYPE_ELEMENT)
@@ -120,15 +120,42 @@ parse_template_parameters (xmlTextReaderPtr reader, AgService *service)
             gboolean ok;
 
             g_debug ("found name %s", name);
-            if (strcmp (name, "param") == 0)
+            if (strcmp (name, "setting") == 0)
             {
-                GValue value = { 0 };
+                GValue value = { 0 }, *pval;
+                const gchar *key_name;
+                gchar *key;
+
+                key_name = (const gchar *)xmlTextReaderGetAttribute
+                    (reader, (xmlChar *)"name");
+                key = g_strdup_printf ("%s%s", group, key_name);
 
                 ok = parse_param (reader, &value);
-                /* TODO: store parameter somewhere */
+                if (ok)
+                {
+                    pval = g_slice_new0 (GValue);
+                    g_value_init (pval, G_VALUE_TYPE (&value));
+                    g_value_copy (&value, pval);
+
+                    g_hash_table_insert (settings, key, pval);
+                }
+                else
+                    g_free (key);
             }
             else
-                ok = TRUE;
+            {
+                /* it's a subgroup */
+                if (!xmlTextReaderIsEmptyElement (reader))
+                {
+                    gchar *subgroup;
+
+                    subgroup = g_strdup_printf ("%s%s/", group, name);
+                    ok = parse_settings (reader, subgroup, settings);
+                    g_free (subgroup);
+                }
+                else
+                    ok = TRUE;
+            }
 
             if (G_UNLIKELY (!ok)) return FALSE;
         }
@@ -141,33 +168,23 @@ parse_template_parameters (xmlTextReaderPtr reader, AgService *service)
 static gboolean
 parse_template (xmlTextReaderPtr reader, AgService *service)
 {
-    const gchar *name;
-    int ret, type;
+    GHashTable *settings;
     gboolean ok;
 
-    ret = xmlTextReaderRead (reader);
-    while (ret == 1)
+    g_return_val_if_fail (service->default_settings == NULL, FALSE);
+
+    settings =
+        g_hash_table_new_full (g_str_hash, g_str_equal,
+                               g_free, (GDestroyNotify)_ag_value_slice_free);
+
+    ok = parse_settings (reader, "", settings);
+    if (G_UNLIKELY (!ok))
     {
-        name = (const gchar *)xmlTextReaderConstName (reader);
-        if (G_UNLIKELY (!name)) return FALSE;
-
-        type = xmlTextReaderNodeType (reader);
-        if (type == XML_READER_TYPE_END_ELEMENT &&
-            strcmp (name, "template") == 0)
-            break;
-
-        if (type == XML_READER_TYPE_ELEMENT)
-        {
-            g_debug ("found name %s", name);
-            if (strcmp (name, "parameters") == 0)
-            {
-                ok = parse_template_parameters (reader, service);
-                if (G_UNLIKELY (!ok)) return FALSE;
-            }
-        }
-
-        ret = xmlTextReaderNext (reader);
+        g_hash_table_destroy (settings);
+        return FALSE;
     }
+
+    service->default_settings = settings;
     return TRUE;
 }
 
@@ -433,6 +450,8 @@ ag_service_unref (AgService *service)
         g_free (service->display_name);
         g_free (service->type);
         g_free (service->provider);
+        if (service->default_settings)
+            g_hash_table_unref (service->default_settings);
         g_slice_free (AgService, service);
     }
 }

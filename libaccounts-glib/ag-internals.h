@@ -50,6 +50,7 @@ struct _AgService {
     gchar *type;
     gchar *provider;
     gint id;
+    GHashTable *default_settings;
 };
 
 G_GNUC_INTERNAL
