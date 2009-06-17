@@ -544,11 +544,13 @@ START_TEST(test_settings_iter)
         "Suomi",
         NULL,
     };
+    const gchar *service_name = "OtherService";
     GValue value = { 0 };
     AgAccountSettingIter iter;
     const gchar *key;
     const GValue *val;
     gint i, n_values, n_read;
+    const gint new_port_value = 432412;
 
     g_type_init ();
 
@@ -628,6 +630,59 @@ START_TEST(test_settings_iter)
     }
 
     fail_unless (n_read == 3, "Not all settings were retrieved");
+
+    /* iterate template default settings */
+    service = ag_manager_get_service (manager, service_name);
+    ag_account_select_service (account, service);
+    n_read = 0;
+    ag_account_settings_iter_init (account, &iter, NULL);
+    while (ag_account_settings_iter_next (&iter, &key, &val))
+    {
+        g_debug ("Got key %s of type %s", key, G_VALUE_TYPE_NAME (val));
+
+        n_read++;
+    }
+    fail_unless (n_read == 4, "Not all settings were retrieved");
+
+    /* Add a setting that is also on the template, to check if it will
+     * override the one on the template */
+    g_value_init (&value, G_TYPE_INT);
+    g_value_set_int (&value, new_port_value);
+    ag_account_set_value (account, "parameters/port", &value);
+    g_value_unset (&value);
+
+    /* Add a setting */
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, "How's life?");
+    ag_account_set_value (account, "parameters/message", &value);
+    g_value_unset (&value);
+
+    /* save */
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    /* enumerate the parameters */
+    n_read = 0;
+    ag_account_settings_iter_init (account, &iter, "parameters/");
+    while (ag_account_settings_iter_next (&iter, &key, &val))
+    {
+        fail_unless (g_str_has_prefix (key, "parameters/"),
+                     "Got key %s, wrong prefix", key);
+        g_debug ("Got key %s of type %s", key, G_VALUE_TYPE_NAME (val));
+        if (strcmp (key, "parameters/port") == 0)
+        {
+            gint port;
+
+            port = g_value_get_int (val);
+            fail_unless (port == new_port_value,
+                         "Got value %d for key %s, expecting %d",
+                         port, key, new_port_value);
+        }
+
+        n_read++;
+    }
+
+    fail_unless (n_read == 5, "Not all settings were retrieved");
 
 
     end_test ();
