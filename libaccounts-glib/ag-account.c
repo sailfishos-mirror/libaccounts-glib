@@ -842,10 +842,13 @@ ag_account_settings_iter_next (AgAccountSettingIter *iter,
                                const gchar **key, const GValue **value)
 {
     RealIter *ri = (RealIter *)iter;
+    AgServiceSettings *ss;
+    AgAccountPrivate *priv;
 
     g_return_val_if_fail (iter != NULL, FALSE);
     g_return_val_if_fail (AG_IS_ACCOUNT (iter->account), FALSE);
     g_return_val_if_fail (key != NULL && value != NULL, FALSE);
+    priv = iter->account->priv;
 
     if (ri->stage == AG_ITER_STAGE_ACCOUNT)
     {
@@ -860,7 +863,34 @@ ag_account_settings_iter_next (AgAccountSettingIter *iter,
         ri->stage = AG_ITER_STAGE_UNSET;
     }
 
-    /* TODO: Account settings must be merged with template default settings */
+    if (!priv->service) return FALSE;
+
+    if (ri->stage == AG_ITER_STAGE_UNSET)
+    {
+        GHashTable *settings;
+
+        settings = _ag_service_load_default_settings (priv->service);
+        if (!settings) return FALSE;
+
+        g_hash_table_iter_init (&ri->iter, settings);
+        ri->stage = AG_ITER_STAGE_SERVICE;
+    }
+
+    ss = get_service_settings (priv, priv->service, FALSE);
+    while (g_hash_table_iter_next (&ri->iter,
+                                   (gpointer *)key, (gpointer *)value))
+    {
+        if (ri->key_prefix && !g_str_has_prefix (*key, ri->key_prefix))
+            continue;
+
+        /* if the setting is also on the account, it is overriden and we must
+         * not return it here */
+        if (ss && g_hash_table_lookup (ss->settings, *key) != NULL)
+            continue;
+
+        return TRUE;
+    }
+
     return FALSE;
 }
 
