@@ -168,6 +168,41 @@ _ag_account_changes_free (AgAccountChanges *changes)
     }
 }
 
+static void
+update_settings (AgAccount *account, GHashTable *services)
+{
+    AgAccountPrivate *priv = account->priv;
+    GHashTableIter iter;
+    AgServiceChanges *sc;
+    gchar *service_name;
+
+    g_hash_table_iter_init (&iter, services);
+    while (g_hash_table_iter_next (&iter,
+                                   (gpointer)&service_name, (gpointer)&sc))
+    {
+        AgServiceSettings *ss;
+        GHashTableIter si;
+        gchar *key;
+        GValue *value;
+
+        ss = get_service_settings (priv, sc->service, TRUE);
+        g_hash_table_iter_init (&si, sc->settings);
+        while (g_hash_table_iter_next (&si,
+                                       (gpointer)&key, (gpointer)&value))
+        {
+            /* TODO: check for installed watches and invoke them */
+
+            /* Move the key and value into the service settings (we can steal
+             * them from the hash table, as the AgServiceChanges structure is
+             * no longer needed after this */
+            g_hash_table_iter_steal (&si);
+
+            g_debug ("updating key %s for service %s", key, service_name);
+            g_hash_table_insert (ss->settings, key, value);
+        }
+    }
+}
+
 /*
  * _ag_account_done_changes:
  *
@@ -198,7 +233,8 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
         g_signal_emit (account, signals[DISPLAY_NAME_CHANGED], 0);
     }
 
-    /* TODO: update settings */
+    if (changes->services)
+        update_settings (account, changes->services);
 }
 
 static AgAccountChanges *
