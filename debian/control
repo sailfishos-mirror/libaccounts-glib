@@ -14,7 +14,7 @@ Description: Maemo Accounts library
 Package: libaccounts-glib0-dbg
 Architecture: any
 Section: libdevel
-Depends: libaccounts0 (= ${Source-Version})
+Depends: libaccounts-glib0 (= ${Source-Version})
 Description: OSSO Accounts library. Debug symbols
  A low-level library for managing accounts settings.
  .
@@ -23,7 +23,7 @@ Description: OSSO Accounts library. Debug symbols
 Package: libaccounts-glib-dev
 Architecture: any
 Section: libdevel
-Depends: libaccounts0 (= ${Source-Version})
+Depends: libaccounts-glib0 (= ${Source-Version})
 Description: Development files for the OSSO Accounts library
  A low-level library for managing accounts settings.
  .
