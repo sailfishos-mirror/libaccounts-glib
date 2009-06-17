@@ -526,6 +526,114 @@ START_TEST(test_list)
 }
 END_TEST
 
+START_TEST(test_settings_iter)
+{
+    const gchar *keys[] = {
+        "param/address",
+        "weight",
+        "param/city",
+        "age",
+        "param/country",
+        NULL,
+    };
+    const gchar *values[] = {
+        "Helsinginkatu",
+        "110",
+        "Helsinki",
+        "90",
+        "Suomi",
+        NULL,
+    };
+    GValue value = { 0 };
+    AgAccountSettingIter iter;
+    const gchar *key;
+    const GValue *val;
+    gint i, n_values, n_read;
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, PROVIDER);
+
+    ag_account_set_enabled (account, TRUE);
+
+    for (i = 0; keys[i] != NULL; i++)
+    {
+        g_value_init (&value, G_TYPE_STRING);
+        g_value_set_static_string (&value, values[i]);
+        ag_account_set_value (account, keys[i], &value);
+        g_value_unset (&value);
+    }
+    n_values = i;
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    fail_unless (account->id != 0, "Account ID is still 0!");
+
+    /* iterate the settings */
+    n_read = 0;
+    ag_account_settings_iter_init (account, &iter, NULL);
+    while (ag_account_settings_iter_next (&iter, &key, &val))
+    {
+        gboolean found = FALSE;
+        for (i = 0; keys[i] != NULL; i++)
+        {
+            if (strcmp (key, keys[i]) == 0)
+            {
+                const gchar *text;
+                found = TRUE;
+                text = g_value_get_string (val);
+                fail_unless (strcmp (values[i], text) == 0,
+                             "Got value %s for key %s, expecting %s",
+                             text, key, values[i]);
+                break;
+            }
+        }
+
+        fail_unless (found, "Unknown setting %s", key);
+
+        n_read++;
+    }
+
+    fail_unless (n_read == n_values,
+                 "Not all settings were retrieved (%d out of %d)",
+                 n_read, n_values);
+
+    /* iterate settings with prefix */
+    n_read = 0;
+    ag_account_settings_iter_init (account, &iter, "param/");
+    while (ag_account_settings_iter_next (&iter, &key, &val))
+    {
+        gboolean found = FALSE;
+        fail_unless (strncmp (key, "param/", 6) == 0,
+                     "Got key %s, wrong prefix", key);
+        for (i = 0; keys[i] != NULL; i++)
+        {
+            if (strcmp (key, keys[i]) == 0)
+            {
+                const gchar *text;
+                found = TRUE;
+                text = g_value_get_string (val);
+                fail_unless (strcmp (values[i], text) == 0,
+                             "Got value %s for key %s, expecting %s",
+                             text, key, values[i]);
+                break;
+            }
+        }
+
+        fail_unless (found, "Unknown setting %s", key);
+
+        n_read++;
+    }
+
+    fail_unless (n_read == 3, "Not all settings were retrieved");
+
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -546,6 +654,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_service);
     tcase_add_test (tc_create, test_signals);
     tcase_add_test (tc_create, test_list);
+    tcase_add_test (tc_create, test_settings_iter);
 
     suite_add_tcase (s, tc_create);
 
