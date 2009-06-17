@@ -90,6 +90,7 @@ typedef struct _AgAccountSettingIter AgAccountSettingIter;
 struct _AgAccountSettingIter {
     AgAccount *account;
     /*< private >*/
+    GHashTableIter iter1;
     gpointer ptr1;
     gpointer ptr2;
     gint idx1;
