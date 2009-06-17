@@ -93,6 +93,20 @@ struct _AgAccountPrivate {
     guint enabled : 1;
 };
 
+/* Same size and member types as AgAccountSettingIter */
+typedef struct {
+    AgAccount *account;
+    GHashTableIter iter;
+    const gchar *key_prefix;
+    gpointer ptr2;
+    gint stage;
+    gint idx2;
+} RealIter;
+
+#define AG_ITER_STAGE_UNSET     0
+#define AG_ITER_STAGE_ACCOUNT   1
+#define AG_ITER_STAGE_SERVICE   2
+
 G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
 
 #define AG_ACCOUNT_PRIV(obj) (AG_ACCOUNT(obj)->priv)
@@ -791,8 +805,24 @@ ag_account_settings_iter_init (AgAccount *account,
                                AgAccountSettingIter *iter,
                                const gchar *key_prefix)
 {
+    AgAccountPrivate *priv;
+    AgServiceSettings *ss;
+    RealIter *ri = (RealIter *)iter;
+
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    g_warning ("%s not implemented", G_STRFUNC);
+    g_return_if_fail (iter != NULL);
+    priv = account->priv;
+
+    ri->account = account;
+    ri->key_prefix = key_prefix;
+    ri->stage = AG_ITER_STAGE_UNSET;
+
+    ss = get_service_settings (priv, priv->service, FALSE);
+    if (ss)
+    {
+        g_hash_table_iter_init (&ri->iter, ss->settings);
+        ri->stage = AG_ITER_STAGE_ACCOUNT;
+    }
 }
 
 /**
@@ -811,9 +841,26 @@ gboolean
 ag_account_settings_iter_next (AgAccountSettingIter *iter,
                                const gchar **key, const GValue **value)
 {
+    RealIter *ri = (RealIter *)iter;
+
     g_return_val_if_fail (iter != NULL, FALSE);
     g_return_val_if_fail (AG_IS_ACCOUNT (iter->account), FALSE);
-    g_warning ("%s not implemented", G_STRFUNC);
+    g_return_val_if_fail (key != NULL && value != NULL, FALSE);
+
+    if (ri->stage == AG_ITER_STAGE_ACCOUNT)
+    {
+        while (g_hash_table_iter_next (&ri->iter,
+                                       (gpointer *)key, (gpointer *)value))
+        {
+            if (ri->key_prefix && !g_str_has_prefix (*key, ri->key_prefix))
+                continue;
+
+            return TRUE;
+        }
+        ri->stage = AG_ITER_STAGE_UNSET;
+    }
+
+    /* TODO: Account settings must be merged with template default settings */
     return FALSE;
 }
 
