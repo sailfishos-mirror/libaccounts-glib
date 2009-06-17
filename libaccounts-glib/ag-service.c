@@ -369,11 +369,10 @@ _ag_service_new_from_file (const gchar *service_name)
     return service;
 }
 
-const GValue *
-_ag_service_get_default_setting (AgService *service, const gchar *key)
+GHashTable *
+_ag_service_load_default_settings (AgService *service)
 {
     g_return_val_if_fail (service != NULL, NULL);
-    g_return_val_if_fail (key != NULL, NULL);
 
     if (!service->default_settings)
     {
@@ -388,7 +387,21 @@ _ag_service_get_default_setting (AgService *service, const gchar *key)
         }
     }
 
-    return g_hash_table_lookup (service->default_settings, key);
+    return service->default_settings;
+}
+
+const GValue *
+_ag_service_get_default_setting (AgService *service, const gchar *key)
+{
+    GHashTable *settings;
+
+    g_return_val_if_fail (key != NULL, NULL);
+
+    settings = _ag_service_load_default_settings (service);
+    if (G_UNLIKELY (!settings))
+        return NULL;
+
+    return g_hash_table_lookup (settings, key);
 }
 
 /**
