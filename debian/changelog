@@ -1,3 +1,9 @@
+libaccounts-glib (0.6-1) unstable; urgency=low
+
+  * Implement enumeration of settings.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Thu, 18 Jun 2009 16:20:48 +0300
+
 libaccounts-glib (0.5-2) unstable; urgency=low
 
   * Fix debian dependencies. 
