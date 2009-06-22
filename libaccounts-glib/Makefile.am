@@ -28,6 +28,7 @@ libaccounts_glib_includedir = $(includedir)/libaccounts-glib
 libaccounts_glib_include_HEADERS = \
 	ag-account.h \
 	ag-errors.h \
+	ag-service.h \
 	ag-manager.h
 
 %-marshal.h: %-marshal.list Makefile
