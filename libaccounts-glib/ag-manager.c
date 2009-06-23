@@ -827,9 +827,31 @@ ag_manager_list_services (AgManager *manager)
 GList *
 ag_manager_list_services_by_type (AgManager *manager, const gchar *service_type)
 {
+    GList *all_services, *list;
+    GList *services = NULL;
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_return_val_if_fail (service_type != NULL, NULL);
-    return NULL;
+
+    /* if we kept the DB Service table always up-to-date with all known
+     * services, then we could just run a query over it. But while we are not,
+     * it's simpler to implement the function by reusing the output from
+     * ag_manager_list_services(). */
+    all_services = ag_manager_list_services (manager);
+    for (list = all_services; list != NULL; list = list->next)
+    {
+        AgService *service = list->data;
+
+        if (service->type && strcmp (service->type, service_type) == 0)
+        {
+            services = g_list_prepend (services, service);
+        }
+        else
+            ag_service_unref (service);
+    }
+    g_list_free (all_services);
+
+    return services;
 }
 
 void
