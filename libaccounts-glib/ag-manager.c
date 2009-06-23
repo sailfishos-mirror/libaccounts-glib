@@ -720,6 +720,40 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
     return ag_service_ref (service);
 }
 
+/**
+ * ag_manager_list_services:
+ * @manager: the #AgManager.
+ *
+ * Gets a list of all the installed services.
+ *
+ * Returns: a list of #AgService, which must be then free'd with
+ * ag_manager_service_list_free().
+ */
+GList *
+ag_manager_list_services (AgManager *manager)
+{
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
+    return NULL;
+}
+
+/**
+ * ag_manager_list_services_by_type:
+ * @manager: the #AgManager.
+ * @service_type: the type of the service.
+ *
+ * Gets a list of all the installed services of type @service_type.
+ *
+ * Returns: a list of #AgService, which must be then free'd with
+ * ag_manager_service_list_free().
+ */
+GList *
+ag_manager_list_services_by_type (AgManager *manager, const gchar *service_type)
+{
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
+    g_return_val_if_fail (service_type != NULL, NULL);
+    return NULL;
+}
+
 void
 _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
                               AgAccountChanges *changes, AgAccount *account,
