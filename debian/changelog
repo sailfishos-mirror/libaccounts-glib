@@ -1,3 +1,9 @@
+libaccounts-glib (0.7-1) unstable; urgency=low
+
+  * Add APIs for listing services.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Tue, 23 Jun 2009 13:34:29 +0300
+
 libaccounts-glib (0.6-1) unstable; urgency=low
 
   * Implement enumeration of settings.
