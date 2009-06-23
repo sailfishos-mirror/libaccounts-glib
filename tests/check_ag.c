@@ -689,6 +689,52 @@ START_TEST(test_settings_iter)
 }
 END_TEST
 
+START_TEST(test_list_services)
+{
+    GList *services, *list;
+    gint n_services;
+    AgService *service;
+    const gchar *name;
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+
+    /* get all services */
+    services = ag_manager_list_services (manager);
+
+    n_services = g_list_length (services);
+    fail_unless (n_services == 2, "Got %d services, expecting 2", n_services);
+
+    for (list = services; list != NULL; list = list->next)
+    {
+        service = list->data;
+
+        name = ag_service_get_name (service);
+        g_debug ("Service name: %s", name);
+        fail_unless (strcmp (name, "MyService") == 0 ||
+                     strcmp (name, "OtherService") == 0,
+                     "Got unexpected service `%s'", name);
+    }
+    ag_manager_service_list_free (services);
+
+    /* get services by type */
+    services = ag_manager_list_services_by_type (manager, "sharing");
+
+    n_services = g_list_length (services);
+    fail_unless (n_services == 1, "Got %d services, expecting 1", n_services);
+
+    list = services;
+    service = list->data;
+    name = ag_service_get_name (service);
+    fail_unless (strcmp (name, "OtherService") == 0,
+                 "Got unexpected service `%s'", name);
+    ag_manager_service_list_free (services);
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -710,6 +756,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_signals);
     tcase_add_test (tc_create, test_list);
     tcase_add_test (tc_create, test_settings_iter);
+    tcase_add_test (tc_create, test_list_services);
 
     suite_add_tcase (s, tc_create);
 
