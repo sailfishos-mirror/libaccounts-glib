@@ -9,6 +9,7 @@
  * Shows how to initialize the framework.
  */
 
+#include "libaccounts-glib/ag-manager.h"
 #include "libaccounts-glib/ag-account.h"
 #include "libaccounts-glib/ag-errors.h"
 #include "libaccounts-glib/ag-internals.h"

@@ -25,6 +25,7 @@
  * account settings.
  */
 
+#include "ag-manager.h"
 #include "ag-account.h"
 
 #include "ag-internals.h"

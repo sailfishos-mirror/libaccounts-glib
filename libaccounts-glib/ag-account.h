@@ -33,7 +33,7 @@ typedef struct _AgAccountClass AgAccountClass;
 typedef struct _AgAccountPrivate AgAccountPrivate;
 typedef struct _AgAccount AgAccount;
 
-#include "ag-manager.h"
+#include <libaccounts-glib/ag-manager.h>
 
 struct _AgAccountClass
 {
