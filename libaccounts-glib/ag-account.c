@@ -27,6 +27,7 @@
 
 #include "ag-manager.h"
 #include "ag-account.h"
+#include "ag-errors.h"
 
 #include "ag-internals.h"
 #include "ag-marshal.h"
@@ -1013,6 +1014,18 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
     priv = account->priv;
+
+    if (G_UNLIKELY (priv->deleted))
+    {
+        GError error = { AG_ERRORS, AG_ERROR_DELETED, "Account is deleted" };
+
+        if (callback)
+            callback (account, &error, user_data);
+        else
+            g_warning ("Account %s (id = %d) has been deleted",
+                       priv->display_name, account->id);
+        return;
+    }
 
     changes = priv->changes;
     priv->changes = NULL;
