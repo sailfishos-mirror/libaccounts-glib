@@ -736,6 +736,59 @@ START_TEST(test_list_services)
 }
 END_TEST
 
+START_TEST(test_delete)
+{
+    AgAccountId id;
+    gboolean enabled_called, deleted_called;
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+
+    /* create an account */
+    account = ag_manager_create_account (manager, PROVIDER);
+    ag_account_set_enabled (account, TRUE);
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    fail_unless (account->id != 0, "Account ID is still 0!");
+    id = account->id;
+
+    /* monitor the account status */
+    g_signal_connect_swapped (account, "enabled",
+                              G_CALLBACK (set_boolean_variable),
+                              &enabled_called);
+    g_signal_connect_swapped (account, "deleted",
+                              G_CALLBACK (set_boolean_variable),
+                              &deleted_called);
+    enabled_called = deleted_called = FALSE;
+
+    /* delete it */
+    ag_account_delete (account);
+
+    /* until ag_account_store() is called, the signals should not have been
+     * emitted */
+    fail_unless (enabled_called == FALSE, "Accound disabled too early!");
+    fail_unless (deleted_called == FALSE, "Accound deleted too early!");
+
+    /* really delete the account */
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    /* check that the signals are emitted */
+    fail_unless (enabled_called, "Accound enabled signal not emitted");
+    fail_unless (deleted_called, "Accound deleted signal not emitted");
+
+    g_object_unref (account);
+
+    /* load the account again: this must fail */
+    account = ag_manager_get_account (manager, id);
+    fail_unless (account == NULL, "The account still exists");
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -758,6 +811,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_list);
     tcase_add_test (tc_create, test_settings_iter);
     tcase_add_test (tc_create, test_list_services);
+    tcase_add_test (tc_create, test_delete);
 
     suite_add_tcase (s, tc_create);
 
