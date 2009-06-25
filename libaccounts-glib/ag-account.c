@@ -64,6 +64,7 @@ typedef struct _AgServiceSettings {
 struct _AgAccountChanges {
     gboolean enabled;
     gchar *display_name;
+    gboolean deleted;
 
     guint enabled_changed : 1;
     guint display_name_changed : 1;
@@ -92,6 +93,7 @@ struct _AgAccountPrivate {
     AgAccountChanges *changes;
 
     guint enabled : 1;
+    guint deleted : 1;
 };
 
 /* Same size and member types as AgAccountSettingIter */
@@ -231,6 +233,16 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
     AgAccountPrivate *priv = account->priv;
 
     if (!changes) return;
+
+    if (changes->deleted)
+    {
+        priv->deleted = TRUE;
+
+        /* emit first the disabled signal */
+        g_signal_emit (account, signals[ENABLED], 0, NULL, FALSE);
+
+        g_signal_emit (account, signals[DELETED], 0);
+    }
 
     if (changes->enabled_changed)
     {
@@ -715,8 +727,12 @@ ag_account_set_enabled (AgAccount *account, gboolean enabled)
 void
 ag_account_delete (AgAccount *account)
 {
+    AgAccountChanges *changes;
+
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    g_warning ("%s not implemented", G_STRFUNC);
+
+    changes = account_changes_get (account->priv);
+    changes->deleted = TRUE;
 }
 
 /**
@@ -1002,7 +1018,18 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
     priv->changes = NULL;
 
     sql = g_string_sized_new (512);
-    if (account->id == 0)
+    if (changes && changes->deleted)
+    {
+        if (account->id != 0)
+        {
+            _ag_string_append_printf
+                (sql, "DELETE FROM Accounts WHERE id = %d;", account->id);
+            _ag_string_append_printf
+                (sql, "DELETE FROM Settings WHERE account = %d;", account->id);
+        }
+        account_id_str = NULL; /* make the compiler happy */
+    }
+    else if (account->id == 0)
     {
         _ag_string_append_printf
             (sql,
@@ -1044,7 +1071,7 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
         }
     }
 
-    if (changes)
+    if (changes && !changes->deleted)
     {
         GHashTableIter i_services;
         gpointer ht_key, ht_value;
