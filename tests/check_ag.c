@@ -717,7 +717,7 @@ START_TEST(test_list_services)
                      strcmp (name, "OtherService") == 0,
                      "Got unexpected service `%s'", name);
     }
-    ag_manager_service_list_free (services);
+    ag_service_list_free (services);
 
     /* get services by type */
     services = ag_manager_list_services_by_type (manager, "sharing");
@@ -730,7 +730,7 @@ START_TEST(test_list_services)
     name = ag_service_get_name (service);
     fail_unless (strcmp (name, "OtherService") == 0,
                  "Got unexpected service `%s'", name);
-    ag_manager_service_list_free (services);
+    ag_service_list_free (services);
 
     end_test ();
 }
