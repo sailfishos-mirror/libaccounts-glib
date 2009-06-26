@@ -70,11 +70,6 @@ AgService *ag_manager_get_service (AgManager *manager,
 GList *ag_manager_list_services (AgManager *manager);
 GList *ag_manager_list_services_by_type (AgManager *manager,
                                          const gchar *service_type);
-#define ag_manager_service_list_free(list) \
-G_STMT_START { \
-    g_list_foreach (list, (GFunc)ag_service_unref, NULL); \
-    g_list_free (list); \
-} G_STMT_END
 
 G_END_DECLS
 

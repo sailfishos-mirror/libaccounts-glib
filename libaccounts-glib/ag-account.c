@@ -527,7 +527,7 @@ ag_account_supports_service (AgAccount *account, const gchar *service_type)
  * @account: the #AgAccount.
  *
  * Returns: a #GList of #AgService items representing all the services
- * supported by this account. Must be free'd with g_list_free().
+ * supported by this account. Must be free'd with ag_service_list_free().
  */
 GList *
 ag_account_list_services (AgAccount *account)
@@ -545,7 +545,7 @@ ag_account_list_services (AgAccount *account)
  *
  * Returns: a #GList of #AgService items representing all the services
  * supported by this account which provide @service_type. Must be free'd with
- * g_list_free().
+ * ag_service_list_free().
  */
 GList *
 ag_account_list_services_by_type (AgAccount *account,

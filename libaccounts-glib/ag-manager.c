@@ -780,7 +780,7 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
  * Gets a list of all the installed services.
  *
  * Returns: a list of #AgService, which must be then free'd with
- * ag_manager_service_list_free().
+ * ag_service_list_free().
  */
 GList *
 ag_manager_list_services (AgManager *manager)
@@ -822,7 +822,7 @@ ag_manager_list_services (AgManager *manager)
  * Gets a list of all the installed services of type @service_type.
  *
  * Returns: a list of #AgService, which must be then free'd with
- * ag_manager_service_list_free().
+ * ag_service_list_free().
  */
 GList *
 ag_manager_list_services_by_type (AgManager *manager, const gchar *service_type)
