@@ -30,6 +30,7 @@ const gchar *ag_service_get_service_type (AgService *service);
 const gchar *ag_service_get_provider (AgService *service);
 AgService *ag_service_ref (AgService *service);
 void ag_service_unref (AgService *service);
+void ag_service_list_free (GList *list);
 
 G_END_DECLS
 
