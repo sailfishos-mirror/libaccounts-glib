@@ -243,6 +243,7 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
         g_signal_emit (account, signals[ENABLED], 0, NULL, FALSE);
 
         g_signal_emit (account, signals[DELETED], 0);
+        g_signal_emit_by_name (priv->manager, "account-deleted", account->id);
     }
 
     if (changes->enabled_changed)

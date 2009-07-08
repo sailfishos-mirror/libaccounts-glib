@@ -36,6 +36,7 @@
 enum
 {
     ACCOUNT_CREATED,
+    ACCOUNT_DELETED,
     LAST_SIGNAL
 };
 
@@ -600,6 +601,23 @@ ag_manager_class_init (AgManagerClass *klass)
         G_TYPE_NONE,
         1, G_TYPE_UINT);
 
+    /**
+     * AgManager::account-deleted:
+     * @manager: the #AgManager.
+     * @account_id: the #AgAccountId of the account that has been deleted.
+     *
+     * Emitted when an account has been deleted.
+     * This signal is redundant with AgAccount::deleted, but it's convenient to
+     * provide full change notification to #AgManager.
+     */
+    signals[ACCOUNT_DELETED] = g_signal_new ("account-deleted",
+        G_TYPE_FROM_CLASS (klass),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL, NULL,
+        g_cclosure_marshal_VOID__UINT,
+        G_TYPE_NONE,
+        1, G_TYPE_UINT);
 }
 
 /**
