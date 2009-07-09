@@ -1,3 +1,9 @@
+libaccounts-glib (0.9-1) unstable; urgency=low
+
+  * Add Manager:account-deleted signal.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Thu,  9 Jul 2009 16:08:10 +0300
+
 libaccounts-glib (0.8-1) unstable; urgency=low
 
   * API break: remove ag_manager_service_list() macro, and substitute it with
