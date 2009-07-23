@@ -34,6 +34,8 @@
 #include "ag-service.h"
 #include "ag-util.h"
 
+#include <string.h>
+
 #define SERVICE_GLOBAL "global"
 
 enum
@@ -93,8 +95,21 @@ struct _AgAccountPrivate {
 
     AgAccountChanges *changes;
 
+    /* Watches: it's a GHashTable whose keys are pointers to AgService
+     * elements, and values are GHashTables whose keys and values are
+     * AgAccountWatch-es. */
+    GHashTable *watches;
+
     guint enabled : 1;
     guint deleted : 1;
+};
+
+struct _AgAccountWatch {
+    AgService *service;
+    gchar *key;
+    gchar *prefix;
+    AgAccountNotifyCb callback;
+    gpointer user_data;
 };
 
 /* Same size and member types as AgAccountSettingIter */
@@ -114,6 +129,54 @@ typedef struct {
 G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
 
 #define AG_ACCOUNT_PRIV(obj) (AG_ACCOUNT(obj)->priv)
+
+static void
+ag_account_watch_free (AgAccountWatch watch)
+{
+    g_return_if_fail (watch != NULL);
+    g_free (watch->key);
+    g_free (watch->prefix);
+    g_slice_free (struct _AgAccountWatch, watch);
+}
+
+static AgAccountWatch
+ag_account_watch_int (AgAccount *account, gchar *key, gchar *prefix,
+                      AgAccountNotifyCb callback, gpointer user_data)
+{
+    AgAccountPrivate *priv = account->priv;
+    AgAccountWatch watch;
+    GHashTable *service_watches;
+
+    if (!priv->watches)
+    {
+        priv->watches =
+            g_hash_table_new_full (g_direct_hash, g_direct_equal,
+                                   (GDestroyNotify)ag_service_unref,
+                                   (GDestroyNotify)g_hash_table_destroy);
+    }
+
+    service_watches = g_hash_table_lookup (priv->watches, priv->service);
+    if (!service_watches)
+    {
+        service_watches =
+            g_hash_table_new_full (g_direct_hash, g_direct_equal,
+                                   NULL,
+                                   (GDestroyNotify)ag_account_watch_free);
+        g_hash_table_insert (priv->watches, ag_service_ref (priv->service),
+                             service_watches);
+    }
+
+    watch = g_slice_new (struct _AgAccountWatch);
+    watch->service = priv->service;
+    watch->key = key;
+    watch->prefix = prefix;
+    watch->callback = callback;
+    watch->user_data = user_data;
+
+    g_hash_table_insert (service_watches, watch, watch);
+
+    return watch;
+}
 
 static gboolean
 got_account_setting (sqlite3_stmt *stmt, GHashTable *settings)
@@ -186,6 +249,37 @@ _ag_account_changes_free (AgAccountChanges *changes)
     }
 }
 
+static GList *
+match_watch_with_key (AgAccount *account, GHashTable *watches,
+                      const gchar *key, GList *watch_list)
+{
+    GHashTableIter iter;
+    AgAccountWatch watch;
+
+    g_hash_table_iter_init (&iter, watches);
+    while (g_hash_table_iter_next (&iter, NULL, (gpointer)&watch))
+    {
+        if (watch->key)
+        {
+            if (strcmp (key, watch->key) == 0)
+            {
+                watch_list = g_list_prepend (watch_list, watch);
+            }
+        }
+        else /* match on the prefix */
+        {
+            if (g_str_has_prefix (key, watch->prefix))
+            {
+                /* before addind the watch to the list, make sure it's not
+                 * already there */
+                if (!g_list_find (watch_list, watch))
+                    watch_list = g_list_prepend (watch_list, watch);
+            }
+        }
+    }
+    return watch_list;
+}
+
 static void
 update_settings (AgAccount *account, GHashTable *services)
 {
@@ -193,6 +287,7 @@ update_settings (AgAccount *account, GHashTable *services)
     GHashTableIter iter;
     AgServiceChanges *sc;
     gchar *service_name;
+    GList *watch_list = NULL;
 
     g_hash_table_iter_init (&iter, services);
     while (g_hash_table_iter_next (&iter,
@@ -202,22 +297,41 @@ update_settings (AgAccount *account, GHashTable *services)
         GHashTableIter si;
         gchar *key;
         GValue *value;
+        GHashTable *watches = NULL;
+
+        /* get the watches associated to this service */
+        if (priv->watches)
+            watches = g_hash_table_lookup (priv->watches, sc->service);
 
         ss = get_service_settings (priv, sc->service, TRUE);
         g_hash_table_iter_init (&si, sc->settings);
         while (g_hash_table_iter_next (&si,
                                        (gpointer)&key, (gpointer)&value))
         {
-            /* TODO: check for installed watches and invoke them */
-
             /* Move the key and value into the service settings (we can steal
              * them from the hash table, as the AgServiceChanges structure is
              * no longer needed after this */
             g_hash_table_iter_steal (&si);
 
-            g_debug ("updating key %s for service %s", key, service_name);
-            g_hash_table_insert (ss->settings, key, value);
+            g_hash_table_replace (ss->settings, key, value);
+
+            /* check for installed watches to be invoked */
+            if (watches)
+                watch_list = match_watch_with_key (account, watches, key,
+                                                   watch_list);
         }
+    }
+
+    /* invoke all watches */
+    while (watch_list)
+    {
+        AgAccountWatch watch = watch_list->data;
+
+        if (watch->key)
+            watch->callback (account, watch->key, watch->user_data);
+        else
+            watch->callback (account, watch->prefix, watch->user_data);
+        watch_list = g_list_delete_link (watch_list, watch_list);
     }
 }
 
@@ -396,6 +510,12 @@ ag_account_dispose (GObject *object)
 {
     AgAccount *account = AG_ACCOUNT (object);
     AgAccountPrivate *priv = account->priv;
+
+    if (priv->watches)
+    {
+        g_hash_table_destroy (priv->watches);
+        priv->watches = NULL;
+    }
 
     if (priv->manager)
     {
@@ -943,8 +1063,11 @@ ag_account_watch_key (AgAccount *account, const gchar *key,
                       AgAccountNotifyCb callback, gpointer user_data)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    g_return_val_if_fail (key != NULL, NULL);
+    g_return_val_if_fail (callback != NULL, NULL);
+
+    return ag_account_watch_int (account, g_strdup (key), NULL,
+                                 callback, user_data);
 }
 
 /**
@@ -965,8 +1088,11 @@ ag_account_watch_dir (AgAccount *account, const gchar *key_prefix,
                       AgAccountNotifyCb callback, gpointer user_data)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    g_return_val_if_fail (key_prefix != NULL, NULL);
+    g_return_val_if_fail (callback != NULL, NULL);
+
+    return ag_account_watch_int (account, NULL, g_strdup (key_prefix),
+                                 callback, user_data);
 }
 
 /**
@@ -979,8 +1105,22 @@ ag_account_watch_dir (AgAccount *account, const gchar *key_prefix,
 void
 ag_account_remove_watch (AgAccount *account, AgAccountWatch watch)
 {
+    AgAccountPrivate *priv;
+    GHashTable *service_watches;
+
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    g_warning ("%s not implemented", G_STRFUNC);
+    g_return_if_fail (watch != NULL);
+    priv = account->priv;
+
+    if (G_LIKELY (priv->watches))
+    {
+        service_watches = g_hash_table_lookup (priv->watches, watch->service);
+        if (G_LIKELY (service_watches &&
+                      g_hash_table_remove (service_watches, watch)))
+            return; /* success */
+    }
+
+    g_warning ("Watch %p not found", watch);
 }
 
 /**
