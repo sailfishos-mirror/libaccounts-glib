@@ -789,6 +789,118 @@ START_TEST(test_delete)
 }
 END_TEST
 
+static void
+key_changed_cb (AgAccount *account, const gchar *key, gboolean *invoked)
+{
+    fail_unless (invoked != NULL);
+    fail_unless (*invoked == FALSE, "Callback invoked twice!");
+
+    fail_unless (key != NULL);
+    fail_unless (strcmp (key, "parameters/server") == 0 ||
+                 strcmp (key, "parameters/port") == 0,
+                 "Callback invoked for wrong key %s", key);
+    *invoked = TRUE;
+}
+
+static void
+dir_changed_cb (AgAccount *account, const gchar *key, gboolean *invoked)
+{
+    fail_unless (invoked != NULL);
+    fail_unless (*invoked == FALSE, "Callback invoked twice!");
+
+    fail_unless (key != NULL);
+    fail_unless (strcmp (key, "parameters/") == 0,
+                 "Callback invoked for wrong dir %s", key);
+    *invoked = TRUE;
+}
+
+START_TEST(test_watches)
+{
+    gboolean server_changed = FALSE;
+    gboolean port_changed = FALSE;
+    gboolean dir_changed = FALSE;
+    AgAccountWatch w_server, w_port, w_dir;
+    GValue value = { 0 };
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, PROVIDER);
+
+    service = ag_manager_get_service (manager, "MyService");
+    fail_unless (service != NULL);
+
+    ag_account_select_service (account, service);
+
+    /* install some watches */
+    w_server = ag_account_watch_key (account, "parameters/server",
+                                     (AgAccountNotifyCb)key_changed_cb,
+                                     &server_changed);
+    fail_unless (w_server != NULL);
+
+    w_port = ag_account_watch_key (account, "parameters/port",
+                                   (AgAccountNotifyCb)key_changed_cb,
+                                   &port_changed);
+    fail_unless (w_port != NULL);
+
+    w_dir = ag_account_watch_dir (account, "parameters/",
+                                  (AgAccountNotifyCb)dir_changed_cb,
+                                  &dir_changed);
+    fail_unless (w_port != NULL);
+
+    /* change the port */
+    g_value_init (&value, G_TYPE_INT);
+    g_value_set_int (&value, 22);
+    ag_account_set_value (account, "parameters/port", &value);
+    g_value_unset (&value);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    /* if we didn't change the server, make sure the callback is not
+     * invoked */
+    fail_unless (server_changed == FALSE, "Callback for 'server' invoked");
+
+    /* make sure the port callback was called */
+    fail_unless (port_changed == TRUE, "Callback for 'port' not invoked");
+
+    /* make sure the dir callback was called */
+    fail_unless (dir_changed == TRUE, "Callback for 'parameters/' not invoked");
+
+
+    /* remove the watch for the port */
+    ag_account_remove_watch (account, w_port);
+
+    /* change two settings */
+    g_value_init (&value, G_TYPE_INT);
+    g_value_set_int (&value, 25);
+    ag_account_set_value (account, "parameters/port", &value);
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, "warez.maemo.org");
+    ag_account_set_value (account, "parameters/server", &value);
+    g_value_unset (&value);
+
+    server_changed = FALSE;
+    port_changed = FALSE;
+    dir_changed = FALSE;
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    /* make sure the callback for the server is invoked */
+    fail_unless (server_changed == TRUE, "Callback for 'server' not invoked");
+
+    /* make sure the port callback was not called (we removed the watch) */
+    fail_unless (port_changed == FALSE, "Callback for 'port' invoked");
+
+    /* make sure the dir callback was called */
+    fail_unless (dir_changed == TRUE, "Callback for 'parameters/' not invoked");
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -812,6 +924,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_settings_iter);
     tcase_add_test (tc_create, test_list_services);
     tcase_add_test (tc_create, test_delete);
+    tcase_add_test (tc_create, test_watches);
 
     suite_add_tcase (s, tc_create);
 
