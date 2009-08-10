@@ -49,6 +49,8 @@ struct _AgService {
     gchar *display_name;
     gchar *type;
     gchar *provider;
+    gchar *file_data;
+    gsize type_data_offset;
     gint id;
     GHashTable *default_settings;
 };

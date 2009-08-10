@@ -240,6 +240,28 @@ parse_service (xmlTextReaderPtr reader, AgService *service)
             {
                 ok = parse_preview (reader, service);
             }
+            else if (strcmp (name, "type_data") == 0)
+            {
+                static const gchar *element = "<type_data";
+                gsize offset;
+
+                /* find the offset in the file where this element begins */
+                offset = xmlTextReaderByteConsumed(reader);
+                while (offset > 0)
+                {
+                    if (strncmp (service->file_data + offset, element,
+                                 sizeof (element)) == 0)
+                    {
+                        service->type_data_offset = offset;
+                        break;
+                    }
+                    offset--;
+                }
+
+                /* this element is placed after all the elements we are
+                 * interested in: we can stop the parsing now */
+                return TRUE;
+            }
             else
                 ok = TRUE;
 
@@ -333,6 +355,8 @@ _ag_service_load_from_file (AgService *service)
     xmlTextReaderPtr reader;
     gchar *filepath;
     gboolean ret;
+    GError *error = NULL;
+    gsize len;
 
     g_return_val_if_fail (service->name != NULL, FALSE);
 
@@ -340,10 +364,21 @@ _ag_service_load_from_file (AgService *service)
     filepath = find_service_file (service->name);
     if (G_UNLIKELY (!filepath)) return FALSE;
 
-    /* TODO: cache the xmlReader */
-    reader = xmlReaderForFile (filepath, NULL, 0);
+    g_file_get_contents (filepath, &service->file_data,
+                         &len, &error);
+    if (G_UNLIKELY (error))
+    {
+        g_warning ("Error reading %s: %s", filepath, error->message);
+        g_error_free (error);
+        g_free (filepath);
+        return FALSE;
+    }
+
     g_free (filepath);
 
+    /* TODO: cache the xmlReader */
+    reader = xmlReaderForMemory (service->file_data, len,
+                                 NULL, NULL, 0);
     if (G_UNLIKELY (reader == NULL))
         return FALSE;
 
@@ -497,6 +532,7 @@ ag_service_unref (AgService *service)
         g_free (service->display_name);
         g_free (service->type);
         g_free (service->provider);
+        g_free (service->file_data);
         if (service->default_settings)
             g_hash_table_unref (service->default_settings);
         g_slice_free (AgService, service);
