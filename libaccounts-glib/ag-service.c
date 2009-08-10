@@ -15,6 +15,17 @@
  * disclosed to others without the prior written consent of Nokia.
  */
 
+/**
+ * SECTION:ag-service
+ * @title: AgService
+ * @short_description: A representation of a service.
+ *
+ * The #AgService structure represents a service. The structure is not directly
+ * exposed to applications, but its fields are accessible via getter methods.
+ * The structure is reference counted. One must use ag_service_unref() when
+ * done with it.
+ */
+
 #include "ag-service.h"
 
 #include "ag-internals.h"
@@ -501,6 +512,11 @@ ag_service_get_provider (AgService *service)
  * or freed, and is guaranteed to be valid as long as @service is referenced.
  * If some error occurs, or if the &lt;type_data&gt; is absent, @contents is
  * set to %NULL.
+ *
+ * <note>
+ * Applications should not attempt parsing beyond the closing &lt;type_data&gt;
+ * element.
+ * </note>
  */
 void
 ag_service_get_file_contents (AgService *service,

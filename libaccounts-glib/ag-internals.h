@@ -44,6 +44,7 @@ gint _ag_manager_exec_query (AgManager *manager,
                              const gchar *sql);
 
 struct _AgService {
+    /*< private >*/
     gint ref_count;
     gchar *name;
     gchar *display_name;

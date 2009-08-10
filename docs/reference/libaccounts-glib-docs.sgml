@@ -14,5 +14,6 @@
     <title>libaccounts-glib</title>
     <xi:include href="xml/ag-account.xml"/>
     <xi:include href="xml/ag-manager.xml"/>
+    <xi:include href="xml/ag-service.xml"/>
   </chapter>
 </book>
