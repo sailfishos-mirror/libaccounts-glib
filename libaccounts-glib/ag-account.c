@@ -803,8 +803,28 @@ ag_account_get_selected_service (AgAccount *account)
 gboolean
 ag_account_get_enabled (AgAccount *account)
 {
+    AgAccountPrivate *priv;
+    gboolean ret = FALSE;
+    AgServiceSettings *ss;
+    GValue *val;
+
     g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
-    return account->priv->enabled;
+    priv = account->priv;
+
+    if (priv->service == NULL)
+    {
+        ret = priv->enabled;
+    }
+    else
+    {
+        ss = get_service_settings (priv, priv->service, FALSE);
+        if (ss)
+        {
+            val = g_hash_table_lookup (ss->settings, "enabled");
+            ret = g_value_get_boolean (val);
+        }
+    }
+    return ret;
 }
 
 /**
