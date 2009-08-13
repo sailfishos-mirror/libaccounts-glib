@@ -310,6 +310,9 @@ START_TEST(test_service)
                  "Wrong port number: %d", g_value_get_int (&value));
     g_value_unset (&value);
 
+    /* enable the service */
+    ag_account_set_enabled (account, TRUE);
+
     g_value_init (&value, G_TYPE_STRING);
     g_value_set_static_string (&value, username);
     ag_account_set_value (account, "username", &value);
@@ -374,6 +377,10 @@ START_TEST(test_service)
     g_value_unset (&value);
 
     ag_account_select_service (account, service);
+
+    /* we enabled the service before: check that it's still enabled */
+    fail_unless (ag_account_get_enabled (account) == TRUE,
+                 "Account service not enabled!");
 
     g_value_init (&value, G_TYPE_STRING);
     source = ag_account_get_value (account, "username", &value);
