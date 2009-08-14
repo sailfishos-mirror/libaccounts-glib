@@ -238,6 +238,10 @@ parse_service (xmlTextReaderPtr reader, AgService *service)
             {
                 ok = dup_element_data (reader, &service->display_name);
             }
+            else if (strcmp (name, "provider") == 0 && !service->provider)
+            {
+                ok = dup_element_data (reader, &service->provider);
+            }
             else if (strcmp (name, "icon") == 0)
             {
                 /* TODO: Store icon name somewhere */
