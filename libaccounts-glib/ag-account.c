@@ -653,9 +653,31 @@ ag_account_supports_service (AgAccount *account, const gchar *service_type)
 GList *
 ag_account_list_services (AgAccount *account)
 {
+    AgAccountPrivate *priv;
+    GList *all_services, *list;
+    GList *services = NULL;
+
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return NULL;
+    priv = account->priv;
+
+    if (!priv->provider_name)
+        return NULL;
+
+    all_services = ag_manager_list_services (priv->manager);
+    for (list = all_services; list != NULL; list = list->next)
+    {
+        AgService *service = list->data;
+
+        if (service->provider &&
+            strcmp (service->provider, priv->provider_name) == 0)
+        {
+            services = g_list_prepend (services, service);
+        }
+        else
+            ag_service_unref (service);
+    }
+    g_list_free (all_services);
+    return services;
 }
 
 /**
