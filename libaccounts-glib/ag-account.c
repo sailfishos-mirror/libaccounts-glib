@@ -1265,10 +1265,12 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
                     /* the service is not in the DB: create the record now */
                     _ag_string_append_printf
                         (sql,
-                         "INSERT INTO Services (name, display, type) "
-                         "VALUES (%Q, %Q, %Q);",
+                         "INSERT INTO Services "
+                         "(name, display, provider, type) "
+                         "VALUES (%Q, %Q, %Q, %Q);",
                          sc->service->name,
                          sc->service->display_name,
+                         sc->service->provider,
                          sc->service->type);
                     _ag_string_append_printf
                         (sql, "SELECT set_last_rowid_as_service_id(%Q);",

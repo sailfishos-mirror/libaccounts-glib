@@ -139,7 +139,8 @@ got_service (sqlite3_stmt *stmt, AgService **p_service)
     service = _ag_service_new ();
     service->id = sqlite3_column_int (stmt, 0);
     service->display_name = g_strdup ((gchar *)sqlite3_column_text (stmt, 1));
-    service->type = g_strdup ((gchar *)sqlite3_column_text (stmt, 2));
+    service->provider = g_strdup ((gchar *)sqlite3_column_text (stmt, 2));
+    service->type = g_strdup ((gchar *)sqlite3_column_text (stmt, 3));
 
     *p_service = service;
     return TRUE;
@@ -461,7 +462,9 @@ open_db (AgManager *manager)
             "id INTEGER PRIMARY KEY,"
             "name TEXT NOT NULL UNIQUE,"
             "display TEXT NOT NULL,"
-            "type TEXT);" /* for performance reasons */
+            /* following fields are included for performance reasons */
+            "provider TEXT,"
+            "type TEXT);"
         "CREATE INDEX IF NOT EXISTS idx_service ON Services(name);"
 
         "CREATE TABLE IF NOT EXISTS Settings ("
@@ -767,7 +770,7 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
         return ag_service_ref (service);
 
     /* First, check if the service is in the DB */
-    sql = sqlite3_mprintf ("SELECT id, display, type "
+    sql = sqlite3_mprintf ("SELECT id, display, provider, type "
                            "FROM Services WHERE name = %Q", service_name);
     rows = _ag_manager_exec_query (manager, (AgQueryCallback)got_service,
                                    &service, sql);
