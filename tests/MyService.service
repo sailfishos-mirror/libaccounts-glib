@@ -3,6 +3,7 @@
   <type>e-mail</type>
   <name>My Service</name>
   <icon>general_myservice</icon>
+  <provider>maemo</provider>
 
   <!-- default settings (account settings have precedence over these) -->
   <template>

@@ -428,6 +428,28 @@ START_TEST(test_service)
 }
 END_TEST
 
+START_TEST(test_account_services)
+{
+    GList *services;
+    AgService *service;
+
+    g_type_init ();
+    manager = ag_manager_new ();
+
+    account = ag_manager_create_account (manager, "maemo");
+    fail_unless (AG_IS_ACCOUNT (account),
+                 "Failed to create the AgAccount.");
+
+    services = ag_account_list_services (account);
+    fail_unless (g_list_length (services) == 1);
+
+    service = services->data;
+    fail_unless (strcmp (ag_service_get_name (service), "MyService") == 0);
+
+    end_test ();
+}
+END_TEST
+
 static void
 set_boolean_variable (gboolean *flag)
 {
@@ -926,6 +948,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_store_locked);
     tcase_add_test (tc_create, test_store_locked_unref);
     tcase_add_test (tc_create, test_service);
+    tcase_add_test (tc_create, test_account_services);
     tcase_add_test (tc_create, test_signals);
     tcase_add_test (tc_create, test_list);
     tcase_add_test (tc_create, test_settings_iter);
