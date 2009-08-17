@@ -446,6 +446,24 @@ START_TEST(test_account_services)
     service = services->data;
     fail_unless (strcmp (ag_service_get_name (service), "MyService") == 0);
 
+    ag_service_list_free (services);
+
+    /* check that MyService is returned as a service supporting e-mail for
+     * this account */
+    services = ag_account_list_services_by_type (account, "e-mail");
+    fail_unless (g_list_length (services) == 1);
+
+    service = services->data;
+    fail_unless (strcmp (ag_service_get_name (service), "MyService") == 0);
+
+    ag_service_list_free (services);
+
+    /* check that the account supports the "e-mail" type (it's the type of
+     * MyService */
+    fail_unless (ag_account_supports_service (account, "e-mail") == TRUE);
+    /* and doesn't support "sharing" */
+    fail_unless (ag_account_supports_service (account, "sharing") == FALSE);
+
     end_test ();
 }
 END_TEST
