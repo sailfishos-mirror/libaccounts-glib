@@ -638,9 +638,16 @@ ag_account_class_init (AgAccountClass *klass)
 gboolean
 ag_account_supports_service (AgAccount *account, const gchar *service_type)
 {
-    g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
-    g_warning ("%s not implemented", G_STRFUNC);
-    return FALSE;
+    GList *services;
+    gboolean ret = FALSE;
+
+    services = ag_account_list_services_by_type (account, service_type);
+    if (services)
+    {
+        ag_service_list_free (services);
+        ret = TRUE;
+    }
+    return ret;
 }
 
 /**
