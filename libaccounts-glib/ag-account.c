@@ -313,7 +313,10 @@ update_settings (AgAccount *account, GHashTable *services)
              * no longer needed after this */
             g_hash_table_iter_steal (&si);
 
-            g_hash_table_replace (ss->settings, key, value);
+            if (value)
+                g_hash_table_replace (ss->settings, key, value);
+            else
+                g_hash_table_remove (ss->settings, key);
 
             /* check for installed watches to be invoked */
             if (watches)
