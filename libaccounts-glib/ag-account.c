@@ -232,14 +232,17 @@ ag_account_changes_get_enabled (AgAccountChanges *changes, gboolean *enabled)
     AgServiceChanges *sc;
     const GValue *value;
 
-    sc = g_hash_table_lookup (changes->services, SERVICE_GLOBAL);
-    if (sc)
+    if (changes)
     {
-        value = g_hash_table_lookup (sc->settings, "enabled");
-        if (value)
+        sc = g_hash_table_lookup (changes->services, SERVICE_GLOBAL);
+        if (sc)
         {
-            *enabled = g_value_get_boolean (value);
-            return TRUE;
+            value = g_hash_table_lookup (sc->settings, "enabled");
+            if (value)
+            {
+                *enabled = g_value_get_boolean (value);
+                return TRUE;
+            }
         }
     }
     *enabled = FALSE;
@@ -253,14 +256,17 @@ ag_account_changes_get_display_name (AgAccountChanges *changes,
     AgServiceChanges *sc;
     const GValue *value;
 
-    sc = g_hash_table_lookup (changes->services, SERVICE_GLOBAL);
-    if (sc)
+    if (changes)
     {
-        value = g_hash_table_lookup (sc->settings, "name");
-        if (value)
+        sc = g_hash_table_lookup (changes->services, SERVICE_GLOBAL);
+        if (sc)
         {
-            *display_name = g_value_get_string (value);
-            return TRUE;
+            value = g_hash_table_lookup (sc->settings, "name");
+            if (value)
+            {
+                *display_name = g_value_get_string (value);
+                return TRUE;
+            }
         }
     }
     *display_name = NULL;
