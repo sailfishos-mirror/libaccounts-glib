@@ -343,6 +343,27 @@ update_settings (AgAccount *account, GHashTable *services)
         while (g_hash_table_iter_next (&si,
                                        (gpointer)&key, (gpointer)&value))
         {
+            /* some keys are special */
+            if (sc->service == NULL)
+            {
+                if (strcmp (key, "enabled") == 0)
+                {
+                    priv->enabled =
+                        value ? g_value_get_boolean (value) : FALSE;
+                    g_signal_emit (account, signals[ENABLED], 0,
+                                   NULL, priv->enabled);
+                    continue;
+                }
+                else if (strcmp (key, "name") == 0)
+                {
+                    g_free (priv->display_name);
+                    priv->display_name =
+                        value ? g_value_dup_string (value) : NULL;
+                    g_signal_emit (account, signals[DISPLAY_NAME_CHANGED], 0);
+                    continue;
+                }
+            }
+
             /* Move the key and value into the service settings (we can steal
              * them from the hash table, as the AgServiceChanges structure is
              * no longer needed after this */
@@ -357,25 +378,6 @@ update_settings (AgAccount *account, GHashTable *services)
             if (watches)
                 watch_list = match_watch_with_key (account, watches, key,
                                                    watch_list);
-
-            /* some keys are special */
-            if (sc->service == NULL)
-            {
-                if (strcmp (key, "enabled") == 0)
-                {
-                    priv->enabled =
-                        value ? g_value_get_boolean (value) : FALSE;
-                    g_signal_emit (account, signals[ENABLED], 0,
-                                   NULL, priv->enabled);
-                }
-                else if (strcmp (key, "name") == 0)
-                {
-                    g_free (priv->display_name);
-                    priv->display_name =
-                        value ? g_value_dup_string (value) : NULL;
-                    g_signal_emit (account, signals[DISPLAY_NAME_CHANGED], 0);
-                }
-            }
         }
     }
 
