@@ -65,10 +65,7 @@ typedef struct _AgServiceSettings {
 } AgServiceSettings;
 
 struct _AgAccountChanges {
-    gchar *display_name;
     gboolean deleted;
-
-    guint display_name_changed : 1;
 
     /* The keys of the table are service names, and the values are
      * AgServiceChanges structures */
@@ -249,6 +246,27 @@ ag_account_changes_get_enabled (AgAccountChanges *changes, gboolean *enabled)
     return FALSE;
 }
 
+static gboolean
+ag_account_changes_get_display_name (AgAccountChanges *changes,
+                                     const gchar **display_name)
+{
+    AgServiceChanges *sc;
+    const GValue *value;
+
+    sc = g_hash_table_lookup (changes->services, SERVICE_GLOBAL);
+    if (sc)
+    {
+        value = g_hash_table_lookup (sc->settings, "name");
+        if (value)
+        {
+            *display_name = g_value_get_string (value);
+            return TRUE;
+        }
+    }
+    *display_name = NULL;
+    return FALSE;
+}
+
 static void
 ag_service_changes_free (AgServiceChanges *sc)
 {
@@ -261,7 +279,6 @@ _ag_account_changes_free (AgAccountChanges *changes)
 {
     if (G_LIKELY (changes))
     {
-        g_free (changes->display_name);
         g_hash_table_unref (changes->services);
         g_slice_free (AgAccountChanges, changes);
     }
@@ -351,6 +368,13 @@ update_settings (AgAccount *account, GHashTable *services)
                     g_signal_emit (account, signals[ENABLED], 0,
                                    NULL, priv->enabled);
                 }
+                else if (strcmp (key, "name") == 0)
+                {
+                    g_free (priv->display_name);
+                    priv->display_name =
+                        value ? g_value_dup_string (value) : NULL;
+                    g_signal_emit (account, signals[DISPLAY_NAME_CHANGED], 0);
+                }
             }
         }
     }
@@ -391,15 +415,6 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
 
         g_signal_emit (account, signals[DELETED], 0);
         g_signal_emit_by_name (priv->manager, "account-deleted", account->id);
-    }
-
-    if (changes->display_name_changed)
-    {
-        g_free (priv->display_name);
-        priv->display_name = changes->display_name;
-        changes->display_name = NULL; /* we don't want it to be freed,
-                                         since we stole it */
-        g_signal_emit (account, signals[DISPLAY_NAME_CHANGED], 0);
     }
 
     if (changes->services)
@@ -805,15 +820,13 @@ ag_account_get_display_name (AgAccount *account)
 void
 ag_account_set_display_name (AgAccount *account, const gchar *display_name)
 {
-    AgAccountPrivate *priv;
-    AgAccountChanges *changes;
+    GValue value = { 0 };
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    priv = account->priv;
-    changes = account_changes_get (priv);
 
-    changes->display_name = g_strdup (display_name);
-    changes->display_name_changed = TRUE;
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, display_name);
+    change_service_value (account->priv, "name", &value);
 }
 
 /**
@@ -1272,13 +1285,15 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
     else if (account->id == 0)
     {
         gboolean enabled;
+        const gchar *display_name;
 
         ag_account_changes_get_enabled (changes, &enabled);
+        ag_account_changes_get_display_name (changes, &display_name);
         _ag_string_append_printf
             (sql,
              "INSERT INTO Accounts (name, provider, enabled) "
              "VALUES (%Q, %Q, %d);",
-             changes ? changes->display_name : NULL,
+             display_name,
              priv->provider_name,
              enabled);
 
@@ -1287,23 +1302,25 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
     }
     else
     {
-        gboolean enabled, enabled_changed;
+        gboolean enabled, enabled_changed, display_name_changed;
+        const gchar *display_name;
 
         g_snprintf (account_id_buffer, sizeof (account_id_buffer),
                     "%u", account->id);
         account_id_str = account_id_buffer;
 
         enabled_changed = ag_account_changes_get_enabled (changes, &enabled);
+        display_name_changed =
+            ag_account_changes_get_display_name (changes, &display_name);
 
-        if (changes &&
-            (changes->display_name_changed || enabled_changed))
+        if (display_name_changed || enabled_changed)
         {
             gboolean comma = FALSE;
             g_string_append (sql, "UPDATE Accounts SET ");
-            if (changes->display_name_changed)
+            if (display_name_changed)
             {
                 _ag_string_append_printf
-                    (sql, "name = %Q", changes->display_name);
+                    (sql, "name = %Q", display_name);
                 comma = TRUE;
             }
 
