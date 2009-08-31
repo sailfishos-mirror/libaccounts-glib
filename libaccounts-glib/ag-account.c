@@ -66,6 +66,7 @@ typedef struct _AgServiceSettings {
 
 struct _AgAccountChanges {
     gboolean deleted;
+    gboolean created;
 
     /* The keys of the table are service names, and the values are
      * AgServiceChanges structures */
@@ -232,17 +233,14 @@ ag_account_changes_get_enabled (AgAccountChanges *changes, gboolean *enabled)
     AgServiceChanges *sc;
     const GValue *value;
 
-    if (changes)
+    sc = g_hash_table_lookup (changes->services, SERVICE_GLOBAL);
+    if (sc)
     {
-        sc = g_hash_table_lookup (changes->services, SERVICE_GLOBAL);
-        if (sc)
+        value = g_hash_table_lookup (sc->settings, "enabled");
+        if (value)
         {
-            value = g_hash_table_lookup (sc->settings, "enabled");
-            if (value)
-            {
-                *enabled = g_value_get_boolean (value);
-                return TRUE;
-            }
+            *enabled = g_value_get_boolean (value);
+            return TRUE;
         }
     }
     *enabled = FALSE;
@@ -256,17 +254,14 @@ ag_account_changes_get_display_name (AgAccountChanges *changes,
     AgServiceChanges *sc;
     const GValue *value;
 
-    if (changes)
+    sc = g_hash_table_lookup (changes->services, SERVICE_GLOBAL);
+    if (sc)
     {
-        sc = g_hash_table_lookup (changes->services, SERVICE_GLOBAL);
-        if (sc)
+        value = g_hash_table_lookup (sc->settings, "name");
+        if (value)
         {
-            value = g_hash_table_lookup (sc->settings, "name");
-            if (value)
-            {
-                *display_name = g_value_get_string (value);
-                return TRUE;
-            }
+            *display_name = g_value_get_string (value);
+            return TRUE;
         }
     }
     *display_name = NULL;
@@ -412,7 +407,7 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
 {
     AgAccountPrivate *priv = account->priv;
 
-    if (!changes) return;
+    g_return_if_fail (changes != NULL);
 
     if (changes->deleted)
     {
@@ -423,6 +418,10 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
 
         g_signal_emit (account, signals[DELETED], 0);
         g_signal_emit_by_name (priv->manager, "account-deleted", account->id);
+    }
+    else if (changes->created)
+    {
+        g_signal_emit_by_name (priv->manager, "account-created", account->id);
     }
 
     if (changes->services)
@@ -547,6 +546,11 @@ ag_account_set_property (GObject *object, guint property_id,
     case PROP_PROVIDER:
         g_assert (priv->provider_name == NULL);
         priv->provider_name = g_value_dup_string (value);
+        /* if this property is given, it means we are creating a new account */
+        {
+            AgAccountChanges *changes = account_changes_get (priv);
+            changes->created = TRUE;
+        }
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -1278,8 +1282,16 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
     changes = priv->changes;
     priv->changes = NULL;
 
+    if (G_UNLIKELY (!changes))
+    {
+        /* Nothing to do: invoke the callback immediately */
+        if (callback)
+            callback (account, NULL, user_data);
+        return;
+    }
+
     sql = g_string_sized_new (512);
-    if (changes && changes->deleted)
+    if (changes->deleted)
     {
         if (account->id != 0)
         {
@@ -1343,7 +1355,7 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
         }
     }
 
-    if (changes && !changes->deleted)
+    if (!changes->deleted)
     {
         GHashTableIter i_services;
         gpointer ht_key, ht_value;
