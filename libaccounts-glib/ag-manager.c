@@ -55,6 +55,9 @@ struct _AgManagerPrivate {
     /* Cache for AgService */
     GHashTable *services;
 
+    /* Weak references to loaded accounts */
+    GHashTable *accounts;
+
     /* list of StoreCbData awaiting for exclusive locks */
     GList *locks;
 
@@ -157,6 +160,32 @@ add_id_to_list (sqlite3_stmt *stmt, GList **plist)
 }
 
 static void
+account_weak_notify (gpointer userdata, GObject *dead_account)
+{
+    AgManagerPrivate *priv = AG_MANAGER_PRIV (userdata);
+    GHashTableIter iter;
+    GObject *account;
+
+    g_debug ("%s called for %p", G_STRFUNC, dead_account);
+    g_hash_table_iter_init (&iter, priv->accounts);
+    while (g_hash_table_iter_next (&iter, NULL, (gpointer)&account))
+    {
+        if (account == dead_account)
+        {
+            g_hash_table_iter_steal (&iter);
+            break;
+        }
+    }
+}
+
+static void
+account_weak_unref (GObject *account)
+{
+    g_object_weak_unref (account, account_weak_notify,
+                         ag_account_get_manager (AG_ACCOUNT (account)));
+}
+
+static void
 transaction_completed (AgManager *manager,
                        AgAccount *account,
                        AgAccountChanges *changes,
@@ -223,7 +252,14 @@ exec_transaction (AgManager *manager, AgAccount *account,
     /* everything went well; if this was a new account, we must update the
      * local data structure */
     if (account->id == 0)
+    {
         account->id = priv->last_account_id;
+
+        /* insert the account into our cache */
+        g_object_weak_ref (G_OBJECT (account), account_weak_notify, manager);
+        g_hash_table_insert (priv->accounts, GUINT_TO_POINTER (account->id),
+                             account);
+    }
 
     _ag_account_done_changes (account, changes);
 
@@ -506,6 +542,9 @@ ag_manager_init (AgManager *manager)
     priv->services =
         g_hash_table_new_full (g_str_hash, g_str_equal,
                                NULL, (GDestroyNotify)ag_service_unref);
+    priv->accounts =
+        g_hash_table_new_full (NULL, NULL,
+                               NULL, (GDestroyNotify)account_weak_unref);
 }
 
 static GObject *
@@ -559,6 +598,9 @@ ag_manager_finalize (GObject *object)
 
     if (priv->services)
         g_hash_table_unref (priv->services);
+
+    if (priv->accounts)
+        g_hash_table_unref (priv->accounts);
 
     if (priv->db)
     {
@@ -705,12 +747,30 @@ ag_manager_list_free (GList *list)
 AgAccount *
 ag_manager_get_account (AgManager *manager, AgAccountId account_id)
 {
+    AgManagerPrivate *priv;
+    AgAccount *account;
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_return_val_if_fail (account_id != 0, NULL);
-    return g_object_new (AG_TYPE_ACCOUNT,
-                         "manager", manager,
-                         "id", account_id,
-                         NULL);
+    priv = manager->priv;
+
+    account = g_hash_table_lookup (priv->accounts,
+                                   GUINT_TO_POINTER (account_id));
+    if (account)
+        return g_object_ref (account);
+
+    /* the account is not loaded; do it now */
+    account = g_object_new (AG_TYPE_ACCOUNT,
+                            "manager", manager,
+                            "id", account_id,
+                            NULL);
+    if (G_LIKELY (account))
+    {
+        g_object_weak_ref (G_OBJECT (account), account_weak_notify, manager);
+        g_hash_table_insert (priv->accounts, GUINT_TO_POINTER (account_id),
+                             account);
+    }
+    return account;
 }
 
 /**
