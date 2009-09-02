@@ -409,6 +409,9 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
 
     g_return_if_fail (changes != NULL);
 
+    if (changes->services)
+        update_settings (account, changes->services);
+
     if (changes->deleted)
     {
         priv->deleted = TRUE;
@@ -423,9 +426,6 @@ _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
     {
         g_signal_emit_by_name (priv->manager, "account-created", account->id);
     }
-
-    if (changes->services)
-        update_settings (account, changes->services);
 }
 
 static AgAccountChanges *
