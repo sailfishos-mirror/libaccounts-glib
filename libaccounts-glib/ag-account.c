@@ -126,6 +126,93 @@ G_DEFINE_TYPE (AgAccount, ag_account, G_TYPE_OBJECT);
 
 #define AG_ACCOUNT_PRIV(obj) (AG_ACCOUNT(obj)->priv)
 
+DBusMessage *
+_ag_account_build_signal (AgAccount *account, AgAccountChanges *changes,
+                          const struct timespec *ts)
+{
+    DBusMessage *msg;
+    DBusMessageIter iter, i_serv, dict, i_struct, i_list;
+    gboolean ret;
+    const gchar *provider_name;
+
+    msg = dbus_message_new_signal (AG_DBUS_PATH, AG_DBUS_IFACE,
+                                   AG_DBUS_SIG_CHANGED);
+    g_return_val_if_fail (msg != NULL, NULL);
+
+    provider_name = account->priv->provider_name;
+    if (!provider_name) provider_name = "";
+
+    ret = dbus_message_append_args (msg,
+                                    DBUS_TYPE_UINT32, &ts->tv_sec,
+                                    DBUS_TYPE_UINT32, &ts->tv_nsec,
+                                    DBUS_TYPE_UINT32, &account->id,
+                                    DBUS_TYPE_BOOLEAN, &changes->created,
+                                    DBUS_TYPE_BOOLEAN, &changes->deleted,
+                                    DBUS_TYPE_STRING, &provider_name,
+                                    DBUS_TYPE_INVALID);
+    if (G_UNLIKELY (!ret)) goto error;
+
+    /* Append the settings */
+    dbus_message_iter_init_append (msg, &iter);
+    dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY,
+                                      "(sa{sv}as)", &i_serv);
+    if (changes->services)
+    {
+        GHashTableIter iter;
+        AgServiceChanges *sc;
+        gchar *service_name;
+
+        g_hash_table_iter_init (&iter, changes->services);
+        while (g_hash_table_iter_next (&iter,
+                                       (gpointer)&service_name, (gpointer)&sc))
+        {
+            GSList *removed_keys = NULL;
+            GHashTableIter si;
+            gchar *key;
+            GValue *value;
+
+            dbus_message_iter_open_container (&i_serv, DBUS_TYPE_STRUCT,
+                                              NULL, &i_struct);
+            /* Append the service name */
+            dbus_message_iter_append_basic (&i_struct, DBUS_TYPE_STRING,
+                                            &service_name);
+            /* Append the dictionary of service settings */
+            dbus_message_iter_open_container (&i_struct, DBUS_TYPE_ARRAY,
+                                              "{sv}", &dict);
+
+            g_hash_table_iter_init (&si, sc->settings);
+            while (g_hash_table_iter_next (&si,
+                                           (gpointer)&key, (gpointer)&value))
+            {
+                if (value)
+                    _ag_iter_append_dict_entry (&dict, key, value);
+                else
+                    removed_keys = g_slist_prepend (removed_keys, key);
+            }
+            dbus_message_iter_close_container (&i_struct, &dict);
+
+            /* append the list of removed keys */
+            dbus_message_iter_open_container (&i_struct, DBUS_TYPE_ARRAY,
+                                              "s", &i_list);
+            while (removed_keys)
+            {
+                dbus_message_iter_append_basic (&i_list, DBUS_TYPE_STRING,
+                                                &removed_keys->data);
+                removed_keys = g_slist_delete_link (removed_keys, removed_keys);
+            }
+            dbus_message_iter_close_container (&i_struct, &i_list);
+            dbus_message_iter_close_container (&i_serv, &i_struct);
+        }
+    }
+    dbus_message_iter_close_container (&iter, &i_serv);
+
+    return msg;
+
+error:
+    dbus_message_unref (msg);
+    return NULL;
+}
+
 static void
 ag_account_watch_free (AgAccountWatch watch)
 {
@@ -516,11 +603,20 @@ ag_account_constructor (GType type, guint n_params,
     g_return_val_if_fail (AG_IS_ACCOUNT (object), NULL);
 
     account = AG_ACCOUNT (object);
-    if (account->id && !ag_account_load (account))
+    if (account->id)
     {
-        g_warning ("Unable to load account %u", account->id);
-        g_object_unref (object);
-        return NULL;
+        if (account->priv->changes && account->priv->changes->created)
+        {
+            /* this is a new account and we should not load it */
+            _ag_account_changes_free (account->priv->changes);
+            account->priv->changes = NULL;
+        }
+        else if (!ag_account_load (account))
+        {
+            g_warning ("Unable to load account %u", account->id);
+            g_object_unref (object);
+            return NULL;
+        }
     }
 
     return object;
@@ -680,6 +776,94 @@ ag_account_class_init (AgAccountClass *klass)
         g_cclosure_marshal_VOID__VOID,
         G_TYPE_NONE, 0);
 
+}
+
+AgAccountChanges *
+_ag_account_changes_from_dbus (DBusMessageIter *iter,
+                               gboolean created, gboolean deleted)
+{
+    AgAccountChanges *changes;
+    AgServiceChanges *sc;
+    DBusMessageIter i_serv, i_struct, i_dict, i_list;
+    gchar *service_name;
+
+    changes = g_slice_new0 (AgAccountChanges);
+    changes->created = created;
+    changes->deleted = deleted;
+    changes->services =
+        g_hash_table_new_full (g_str_hash, g_str_equal, NULL,
+                               (GDestroyNotify)ag_service_changes_free);
+
+    /* TODO: parse the settings */
+#define EXPECT_TYPE(i, t) \
+    if (G_UNLIKELY (dbus_message_iter_get_arg_type (i) != t)) \
+    { \
+        g_debug ("%s expected (%c), got (%c)", G_STRLOC, \
+                 t, dbus_message_iter_get_arg_type (i)); \
+        goto error; \
+    }
+
+    EXPECT_TYPE (iter, DBUS_TYPE_ARRAY);
+    dbus_message_iter_recurse (iter, &i_serv);
+
+    /* iterate the array of "sa{sv}as", each one holds one service */
+    while (dbus_message_iter_get_arg_type (&i_serv) != DBUS_TYPE_INVALID)
+    {
+        EXPECT_TYPE (&i_serv, DBUS_TYPE_STRUCT);
+        dbus_message_iter_recurse (&i_serv, &i_struct);
+
+        EXPECT_TYPE (&i_struct, DBUS_TYPE_STRING);
+        dbus_message_iter_get_basic (&i_struct, &service_name);
+        dbus_message_iter_next (&i_struct);
+
+        sc = g_slice_new (AgServiceChanges);
+        sc->service = NULL;
+        sc->settings = g_hash_table_new_full
+            (g_str_hash, g_str_equal,
+             g_free, (GDestroyNotify)_ag_value_slice_free);
+        g_hash_table_insert (changes->services, service_name, sc);
+
+        EXPECT_TYPE (&i_struct, DBUS_TYPE_ARRAY);
+        dbus_message_iter_recurse (&i_struct, &i_dict);
+
+        /* iterate the "a{sv}" of settings */
+        while (dbus_message_iter_get_arg_type (&i_dict) != DBUS_TYPE_INVALID)
+        {
+            const gchar *key;
+            GValue value = { 0 };
+
+            EXPECT_TYPE (&i_dict, DBUS_TYPE_DICT_ENTRY);
+            if (_ag_iter_get_dict_entry (&i_dict, &key, &value))
+            {
+                g_hash_table_insert (sc->settings, g_strdup (key),
+                                     _ag_value_slice_dup (&value));
+            }
+            dbus_message_iter_next (&i_dict);
+        }
+        dbus_message_iter_next (&i_struct);
+
+        EXPECT_TYPE (&i_struct, DBUS_TYPE_ARRAY);
+        dbus_message_iter_recurse (&i_struct, &i_list);
+
+        /* iterate the "as" of removed settings */
+        while (dbus_message_iter_get_arg_type (&i_list) != DBUS_TYPE_INVALID)
+        {
+            const gchar *key;
+            EXPECT_TYPE (&i_list, DBUS_TYPE_STRING);
+            dbus_message_iter_get_basic (&i_list, &key);
+            g_hash_table_insert (sc->settings, g_strdup (key), NULL);
+            dbus_message_iter_next (&i_list);
+        }
+
+        dbus_message_iter_next (&i_serv);
+    }
+
+#undef EXPECT_TYPE
+    return changes;
+
+error:
+    g_warning ("Wrong format of D-Bus message");
+    return NULL;
 }
 
 /**

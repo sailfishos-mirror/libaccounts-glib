@@ -2,7 +2,7 @@ lib_LTLIBRARIES = \
 	libaccounts-glib.la
 
 libaccounts_glib_la_CFLAGS = $(LIBACCOUNTS_CFLAGS) -Wall -Werror
-libaccounts_glib_la_LIBADD = $(LIBACCOUNTS_LIBS)
+libaccounts_glib_la_LIBADD = $(LIBACCOUNTS_LIBS) -lrt
 libaccounts_glib_la_LDFLAGS = -version-info 0:0:0
 
 BUILT_SOURCES = \

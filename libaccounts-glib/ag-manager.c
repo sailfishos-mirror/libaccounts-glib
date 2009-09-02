@@ -27,6 +27,7 @@
 
 #include "ag-errors.h"
 #include "ag-internals.h"
+#include <dbus/dbus-glib-lowlevel.h>
 #include <sched.h>
 #include <sqlite3.h>
 #include <string.h>
@@ -52,6 +53,8 @@ struct _AgManagerPrivate {
     sqlite3_int64 last_service_id;
     sqlite3_int64 last_account_id;
 
+    DBusConnection *dbus_conn;
+
     /* Cache for AgService */
     GHashTable *services;
 
@@ -60,6 +63,9 @@ struct _AgManagerPrivate {
 
     /* list of StoreCbData awaiting for exclusive locks */
     GList *locks;
+
+    /* list of EmittedSignalData for the signals emitted by this instance */
+    GList *emitted_signals;
 
     guint is_disposed : 1;
 };
@@ -74,11 +80,200 @@ typedef struct {
     gpointer user_data;
 } StoreCbData;
 
+typedef struct {
+    struct timespec ts;
+    gboolean must_process;
+} EmittedSignalData;
+
 G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
 
 #define AG_MANAGER_PRIV(obj) (AG_MANAGER(obj)->priv)
 
 static void store_cb_data_free (StoreCbData *sd);
+static void account_weak_notify (gpointer userdata, GObject *dead_account);
+
+static gboolean
+timed_unref_account (gpointer account)
+{
+    g_debug ("Releasing temporary reference on account %u",
+             AG_ACCOUNT (account)->id);
+    g_object_unref (account);
+    return FALSE;
+}
+
+static gboolean
+parse_message_header (DBusMessageIter *iter,
+                      struct timespec *ts, AgAccountId *id,
+                      gboolean *created, gboolean *deleted,
+                      const gchar **provider_name)
+{
+#define EXPECT_TYPE(t) \
+    if (G_UNLIKELY (dbus_message_iter_get_arg_type (iter) != t)) return FALSE
+
+    EXPECT_TYPE (DBUS_TYPE_UINT32);
+    dbus_message_iter_get_basic (iter, &ts->tv_sec);
+    dbus_message_iter_next (iter);
+
+    EXPECT_TYPE (DBUS_TYPE_UINT32);
+    dbus_message_iter_get_basic (iter, &ts->tv_nsec);
+    dbus_message_iter_next (iter);
+
+    EXPECT_TYPE (DBUS_TYPE_UINT32);
+    dbus_message_iter_get_basic (iter, id);
+    dbus_message_iter_next (iter);
+
+    EXPECT_TYPE (DBUS_TYPE_BOOLEAN);
+    dbus_message_iter_get_basic (iter, created);
+    dbus_message_iter_next (iter);
+
+    EXPECT_TYPE (DBUS_TYPE_BOOLEAN);
+    dbus_message_iter_get_basic (iter, deleted);
+    dbus_message_iter_next (iter);
+
+    EXPECT_TYPE (DBUS_TYPE_STRING);
+    dbus_message_iter_get_basic (iter, provider_name);
+    dbus_message_iter_next (iter);
+
+#undef EXPECT_TYPE
+    return TRUE;
+}
+
+static DBusHandlerResult
+dbus_filter_callback (DBusConnection *dbus_conn, DBusMessage *msg,
+                      void *user_data)
+{
+    AgManager *manager = AG_MANAGER (user_data);
+    AgManagerPrivate *priv = manager->priv;
+    const gchar *provider_name = NULL;
+    AgAccountId account_id = 0;
+    AgAccount *account;
+    AgAccountChanges *changes;
+    struct timespec ts;
+    gboolean deleted, created;
+    gboolean ret;
+    gboolean ours = FALSE;
+    DBusMessageIter iter;
+    GList *list;
+
+    if (!dbus_message_is_signal (msg, AG_DBUS_IFACE, AG_DBUS_SIG_CHANGED))
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+    dbus_message_iter_init (msg, &iter);
+    ret = parse_message_header (&iter, &ts, &account_id,
+                                &created, &deleted, &provider_name);
+    if (G_UNLIKELY (!ret))
+    {
+        g_warning ("%s: error in parsing signal arguments", G_STRFUNC);
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
+
+    for (list = priv->emitted_signals; list != NULL; list = list->next)
+    {
+        EmittedSignalData *esd = list->data;
+
+        if (esd->ts.tv_sec == ts.tv_sec &&
+            esd->ts.tv_nsec == ts.tv_nsec)
+        {
+            /* message is ours: we can ignore it, as the changes
+             * were already processed when the DB transaction succeeded. */
+            ours = TRUE;
+
+            g_debug ("Signal is ours, must_process = %d", esd->must_process);
+            g_slice_free (EmittedSignalData, esd);
+            priv->emitted_signals = g_list_delete_link (priv->emitted_signals,
+                                                        list);
+            if (!esd->must_process)
+                goto nothing_to_do;
+        }
+    }
+
+    /* we must mark our emitted signals for reprocessing, because the current
+     * signal might modify some of the fields that were previously modified by
+     * us.
+     * This ensures that changes coming from different account manager
+     * instances are processed in the right order. */
+    for (list = priv->emitted_signals; list != NULL; list = list->next)
+    {
+        EmittedSignalData *esd = list->data;
+        g_debug ("Marking pending signal for processing");
+        esd->must_process = TRUE;
+    }
+
+    /* check if the account is loaded */
+    account = g_hash_table_lookup (priv->accounts,
+                                   GUINT_TO_POINTER (account_id));
+    if (!account && !created && !deleted)
+        goto nothing_to_do;
+
+    if (ours && (deleted || created))
+        goto nothing_to_do;
+
+    if (!account)
+    {
+        /* because of the checks above, this can happen if this is an account
+         * created or deleted from another instance.
+         * We must emit the signals, and cache the newly created account for a
+         * while, because the application is likely to inspect it */
+        account = g_object_new (AG_TYPE_ACCOUNT,
+                                "manager", manager,
+                                "provider", provider_name,
+                                "id", account_id,
+                                NULL);
+        g_return_val_if_fail (AG_IS_ACCOUNT (account),
+                              DBUS_HANDLER_RESULT_NOT_YET_HANDLED);
+
+        g_object_weak_ref (G_OBJECT (account), account_weak_notify, manager);
+        g_hash_table_insert (priv->accounts, GUINT_TO_POINTER (account_id),
+                             account);
+        g_timeout_add_seconds (2, timed_unref_account, account);
+    }
+
+    changes = _ag_account_changes_from_dbus (&iter, created, deleted);
+    _ag_account_done_changes (account, changes);
+
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+nothing_to_do:
+    g_debug ("Nothing to do");
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+static void
+signal_account_changes (AgManager *manager, AgAccount *account,
+                        AgAccountChanges *changes)
+{
+    AgManagerPrivate *priv = manager->priv;
+    DBusMessage *msg;
+    gboolean ret;
+    EmittedSignalData eds;
+
+    clock_gettime(CLOCK_MONOTONIC, &eds.ts);
+
+    msg = _ag_account_build_signal (account, changes, &eds.ts);
+    if (G_UNLIKELY (!msg))
+    {
+        g_warning ("Creation of D-Bus signal failed");
+        return;
+    }
+
+    ret = dbus_connection_send (priv->dbus_conn, msg, NULL);
+    if (G_UNLIKELY (!ret))
+    {
+        g_warning ("Emission of DBus signal failed");
+        goto finish;
+    }
+
+    dbus_connection_flush (priv->dbus_conn);
+    g_debug ("Emitted signal, time: %lu-%lu", eds.ts.tv_sec, eds.ts.tv_nsec);
+
+    eds.must_process = FALSE;
+    priv->emitted_signals =
+        g_list_prepend (priv->emitted_signals,
+                        g_slice_dup (EmittedSignalData, &eds));
+
+finish:
+    dbus_message_unref (msg);
+}
 
 static gint
 cmp_service_name (AgService *service, const gchar *service_name)
@@ -260,6 +455,9 @@ exec_transaction (AgManager *manager, AgAccount *account,
         g_hash_table_insert (priv->accounts, GUINT_TO_POINTER (account->id),
                              account);
     }
+
+    /* emit DBus signals to notify other processes */
+    signal_account_changes (manager, account, changes);
 
     _ag_account_done_changes (account, changes);
 
@@ -530,6 +728,46 @@ open_db (AgManager *manager)
     return TRUE;
 }
 
+static gboolean
+setup_dbus (AgManager *manager)
+{
+    AgManagerPrivate *priv = manager->priv;
+    DBusError error;
+    gboolean ret;
+
+    dbus_error_init (&error);
+    priv->dbus_conn = dbus_bus_get (DBUS_BUS_SESSION, &error);
+    if (G_UNLIKELY (dbus_error_is_set (&error)))
+    {
+        g_warning ("Failed to get D-Bus connection (%s)", error.message);
+        dbus_error_free (&error);
+        return FALSE;
+    }
+
+    ret = dbus_connection_add_filter (priv->dbus_conn,
+                                      dbus_filter_callback,
+                                      manager, NULL);
+    if (G_UNLIKELY (!ret))
+    {
+        g_warning ("Failed to add dbus filter");
+        return FALSE;
+    }
+
+    dbus_error_init (&error);
+    dbus_bus_add_match (priv->dbus_conn,
+                        "type='signal',interface='" AG_DBUS_IFACE "'",
+                        &error);
+    if (G_UNLIKELY (dbus_error_is_set (&error)))
+    {
+        g_warning ("Failed to add dbus filter (%s)", error.message);
+        dbus_error_free (&error);
+        return FALSE;
+    }
+
+    dbus_connection_setup_with_g_main (priv->dbus_conn, NULL);
+    return TRUE;
+}
+
 static void
 ag_manager_init (AgManager *manager)
 {
@@ -552,13 +790,15 @@ ag_manager_constructor (GType type, guint n_params,
                         GObjectConstructParam *params)
 {
     GObjectClass *object_class = (GObjectClass *)ag_manager_parent_class;
+    AgManager *manager;
     GObject *object;
 
     object = object_class->constructor (type, n_params, params);
 
     g_return_val_if_fail (object != NULL, NULL);
 
-    if (G_UNLIKELY (!open_db (AG_MANAGER (object))))
+    manager = AG_MANAGER (object);
+    if (G_UNLIKELY (!open_db (manager) || !setup_dbus (manager)))
     {
         g_object_unref (object);
         return NULL;
@@ -588,6 +828,20 @@ static void
 ag_manager_finalize (GObject *object)
 {
     AgManagerPrivate *priv = AG_MANAGER_PRIV (object);
+
+    if (priv->dbus_conn)
+    {
+        dbus_connection_remove_filter (priv->dbus_conn, dbus_filter_callback,
+                                       object);
+        dbus_connection_unref (priv->dbus_conn);
+    }
+
+    while (priv->emitted_signals)
+    {
+        g_slice_free (EmittedSignalData, priv->emitted_signals->data);
+        priv->emitted_signals = g_list_delete_link (priv->emitted_signals,
+                                                    priv->emitted_signals);
+    }
 
     if (priv->begin_stmt)
         sqlite3_finalize (priv->begin_stmt);

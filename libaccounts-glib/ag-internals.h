@@ -19,9 +19,15 @@
 #define _AG_INTERNALS_H_
 
 #include "ag-manager.h"
+#include <dbus/dbus.h>
 #include <sqlite3.h>
+#include <time.h>
 
 G_BEGIN_DECLS
+
+#define AG_DBUS_PATH "/com/nokia/AccountsLib"
+#define AG_DBUS_IFACE "com.nokia.AccountsLib"
+#define AG_DBUS_SIG_CHANGED "AccountChanged"
 
 typedef struct _AgAccountChanges AgAccountChanges;
 
@@ -29,6 +35,15 @@ void _ag_account_changes_free (AgAccountChanges *changes) G_GNUC_INTERNAL;
 
 G_GNUC_INTERNAL
 void _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes);
+
+G_GNUC_INTERNAL
+DBusMessage *_ag_account_build_signal (AgAccount *account,
+                                       AgAccountChanges *changes,
+                                       const struct timespec *ts);
+G_GNUC_INTERNAL
+AgAccountChanges *_ag_account_changes_from_dbus (DBusMessageIter *iter,
+                                                 gboolean created,
+                                                 gboolean deleted);
 
 void _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
                                    AgAccountChanges *changes,
