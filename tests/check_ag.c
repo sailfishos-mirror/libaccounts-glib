@@ -35,6 +35,7 @@ static AgAccount *account = NULL;
 static AgManager *manager = NULL;
 static AgService *service = NULL;
 static gboolean data_stored = FALSE;
+static guint source_id = 0;
 
 static void
 end_test ()
@@ -948,6 +949,65 @@ START_TEST(test_watches)
 }
 END_TEST
 
+static void
+on_account_created (AgManager *manager, AgAccountId account_id,
+                    AgAccountId *id)
+{
+    g_debug ("%s called (%u)", G_STRFUNC, account_id);
+
+    *id = account_id;
+    g_main_loop_quit (main_loop);
+}
+
+static gboolean
+concurrency_test_failed (gpointer userdata)
+{
+    g_debug ("Timeout");
+    g_main_loop_quit (main_loop);
+    source_id = 0;
+    return FALSE;
+}
+
+START_TEST(test_concurrency)
+{
+    AgAccountId account_id;
+    const gchar *provider_name, *display_name;
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+
+    g_signal_connect (manager, "account-created",
+                      G_CALLBACK (on_account_created), &account_id);
+
+    account_id = 0;
+    system ("./test-process create myprovider MyAccountName");
+
+    main_loop = g_main_loop_new (NULL, FALSE);
+    source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
+    g_debug ("Running loop");
+    g_main_loop_run (main_loop);
+
+    fail_unless (source_id != 0, "Timeout happened");
+    g_source_remove (source_id);
+
+    fail_unless (account_id != 0, "Account ID still 0");
+
+    account = ag_manager_get_account (manager, account_id);
+    fail_unless (AG_IS_ACCOUNT (account), "Got invalid account");
+
+    provider_name = ag_account_get_provider_name (account);
+    fail_unless (g_strcmp0 (provider_name, "myprovider") == 0,
+                 "Wrong provider name '%s'", provider_name);
+
+    display_name = ag_account_get_display_name (account);
+    fail_unless (g_strcmp0 (display_name, "MyAccountName") == 0,
+                 "Wrong display name '%s'", display_name);
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -973,6 +1033,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_list_services);
     tcase_add_test (tc_create, test_delete);
     tcase_add_test (tc_create, test_watches);
+    tcase_add_test (tc_create, test_concurrency);
 
     suite_add_tcase (s, tc_create);
 
