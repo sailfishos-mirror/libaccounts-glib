@@ -18,6 +18,7 @@
 #ifndef _AG_UTIL_H_
 #define _AG_UTIL_H_
 
+#include <dbus/dbus.h>
 #include <glib.h>
 #include <glib-object.h>
 #include <sqlite3.h>
@@ -48,6 +49,10 @@ GType _ag_type_to_g_type (const gchar *type_str);
 
 G_GNUC_INTERNAL
 gboolean _ag_value_set_from_string (GValue *value, const gchar *string);
+
+G_GNUC_INTERNAL
+void _ag_iter_append_dict_entry (DBusMessageIter *iter, const gchar *key,
+                                 const GValue *value);
 
 G_END_DECLS
 

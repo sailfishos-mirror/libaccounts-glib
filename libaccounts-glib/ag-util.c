@@ -290,3 +290,98 @@ ag_errors_quark (void)
     return (GQuark) quark;
 }
 
+static void
+ag_value_append (DBusMessageIter *iter, const GValue *value)
+{
+    DBusMessageIter var;
+    gboolean basic_type = FALSE;
+    const void *val;
+    const gchar *val_str;
+    gint val_int;
+    gint64 val_int64;
+    guint val_uint;
+    guint64 val_uint64;
+    int dbus_type;
+    gchar dbus_type_as_string[2];
+
+
+    switch (G_VALUE_TYPE (value))
+    {
+    case G_TYPE_STRING:
+        dbus_type = DBUS_TYPE_STRING;
+        val_str = g_value_get_string (value);
+        val = &val_str;
+        basic_type = TRUE;
+        break;
+    case G_TYPE_INT:
+        dbus_type = DBUS_TYPE_INT32;
+        val_int = g_value_get_int (value);
+        val = &val_int;
+        basic_type = TRUE;
+        break;
+    case G_TYPE_CHAR:
+        dbus_type = DBUS_TYPE_INT32;
+        val_int = g_value_get_char (value);
+        val = &val_int;
+        basic_type = TRUE;
+        break;
+    case G_TYPE_UINT:
+        dbus_type = DBUS_TYPE_UINT32;
+        val_uint = g_value_get_uint (value);
+        val = &val_uint;
+        basic_type = TRUE;
+        break;
+    case G_TYPE_BOOLEAN:
+        dbus_type = DBUS_TYPE_BOOLEAN;
+        val_int = g_value_get_boolean (value);
+        val = &val_int;
+        basic_type = TRUE;
+        break;
+    case G_TYPE_UCHAR:
+        dbus_type = DBUS_TYPE_BYTE;
+        val_uint = g_value_get_uchar (value);
+        val = &val_uint;
+        basic_type = TRUE;
+        break;
+    case G_TYPE_INT64:
+        dbus_type = DBUS_TYPE_INT64;
+        val_int64 = g_value_get_int64 (value);
+        val = &val_int64;
+        basic_type = TRUE;
+        break;
+    case G_TYPE_UINT64:
+        dbus_type = DBUS_TYPE_UINT64;
+        val_uint64 = g_value_get_uint64 (value);
+        val = &val_uint64;
+        basic_type = TRUE;
+        break;
+    default:
+        g_warning ("%s: unsupported type ``%s''", G_STRFUNC,
+                   G_VALUE_TYPE_NAME (value));
+        break;
+    }
+
+    if (basic_type)
+    {
+        dbus_type_as_string[0] = dbus_type;
+        dbus_type_as_string[1] = '\0';
+        dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT,
+                                          dbus_type_as_string, &var);
+        dbus_message_iter_append_basic (&var, dbus_type, val);
+        dbus_message_iter_close_container (iter, &var);
+    }
+}
+
+void
+_ag_iter_append_dict_entry (DBusMessageIter *iter, const gchar *key,
+                            const GValue *value)
+{
+    DBusMessageIter args;
+
+    dbus_message_iter_open_container (iter, DBUS_TYPE_DICT_ENTRY, NULL, &args);
+    dbus_message_iter_append_basic (&args, DBUS_TYPE_STRING, &key);
+
+    ag_value_append (&args, value);
+    dbus_message_iter_close_container (iter, &args);
+}
+
