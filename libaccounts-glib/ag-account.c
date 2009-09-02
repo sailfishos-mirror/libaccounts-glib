@@ -547,6 +547,7 @@ ag_account_set_property (GObject *object, guint property_id,
         g_assert (priv->provider_name == NULL);
         priv->provider_name = g_value_dup_string (value);
         /* if this property is given, it means we are creating a new account */
+        if (priv->provider_name)
         {
             AgAccountChanges *changes = account_changes_get (priv);
             changes->created = TRUE;
