@@ -57,7 +57,11 @@ enum
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-typedef struct _AgServiceSettings AgServiceChanges;
+typedef struct _AgServiceChanges {
+    AgService *service; /* this is set only if the change came from this
+                           instance */
+    GHashTable *settings;
+} AgServiceChanges;
 
 typedef struct _AgServiceSettings {
     AgService *service;
@@ -431,14 +435,14 @@ update_settings (AgAccount *account, GHashTable *services)
 
         /* get the watches associated to this service */
         if (priv->watches)
-            watches = g_hash_table_lookup (priv->watches, sc->service);
+            watches = g_hash_table_lookup (priv->watches, ss->service);
 
         g_hash_table_iter_init (&si, sc->settings);
         while (g_hash_table_iter_next (&si,
                                        (gpointer)&key, (gpointer)&value))
         {
             /* some keys are special */
-            if (sc->service == NULL)
+            if (ss->service == NULL)
             {
                 if (strcmp (key, "enabled") == 0)
                 {
