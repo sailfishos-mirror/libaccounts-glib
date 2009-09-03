@@ -422,11 +422,17 @@ update_settings (AgAccount *account, GHashTable *services)
         GValue *value;
         GHashTable *watches = NULL;
 
+        /* if the changed service doesn't have a AgServiceSettings entry it
+         * means that the service was never selected on this account, so we
+         * don't need to update its settings. */
+        if (!priv->services) continue;
+        ss = g_hash_table_lookup (priv->services, service_name);
+        if (!ss) continue;
+
         /* get the watches associated to this service */
         if (priv->watches)
             watches = g_hash_table_lookup (priv->watches, sc->service);
 
-        ss = get_service_settings (priv, sc->service, TRUE);
         g_hash_table_iter_init (&si, sc->settings);
         while (g_hash_table_iter_next (&si,
                                        (gpointer)&key, (gpointer)&value))
@@ -586,8 +592,6 @@ ag_account_load (AgAccount *account)
     rows = _ag_manager_exec_query (priv->manager,
                                    (AgQueryCallback)got_account, priv, sql);
 
-    ag_account_select_service (account, NULL);
-
     return rows == 1;
 }
 
@@ -618,6 +622,8 @@ ag_account_constructor (GType type, guint n_params,
             return NULL;
         }
     }
+
+    ag_account_select_service (account, NULL);
 
     return object;
 }
@@ -1042,6 +1048,8 @@ void
 ag_account_select_service (AgAccount *account, AgService *service)
 {
     AgAccountPrivate *priv;
+    gboolean load_settings = FALSE;
+    AgServiceSettings *ss;
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
     priv = account->priv;
@@ -1051,12 +1059,16 @@ ag_account_select_service (AgAccount *account, AgService *service)
     if ((service == NULL || service->id != 0) && account->id != 0 &&
         !get_service_settings (priv, service, FALSE))
     {
-        AgServiceSettings *ss;
+        /* the settings for this service are not yet loaded: do it now */
+        load_settings = TRUE;
+    }
+
+    ss = get_service_settings (priv, service, TRUE);
+
+    if (load_settings)
+    {
         guint service_id;
         gchar sql[128];
-
-        /* the settings for this service are not yet loaded: do it now */
-        ss = get_service_settings (priv, service, TRUE);
 
         service_id = (service != NULL) ? service->id : 0;
         g_snprintf (sql, sizeof (sql),
