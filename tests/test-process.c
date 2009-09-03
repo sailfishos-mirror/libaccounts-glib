@@ -86,6 +86,20 @@ gboolean test_create (TestArgs *args)
     return FALSE;
 }
 
+gboolean test_delete (TestArgs *args)
+{
+    AgAccountId id;
+
+    manager = ag_manager_new ();
+    id = atoi(args->argv[0]);
+    account = ag_manager_get_account (manager, id);
+    ag_account_delete (account);
+
+    ag_account_store (account, account_store_cb, NULL);
+
+    return FALSE;
+}
+
 int main(int argc, char **argv)
 {
     TestArgs args;
@@ -104,6 +118,10 @@ int main(int argc, char **argv)
         if (strcmp (test_name, "create") == 0)
         {
             g_idle_add ((GSourceFunc)test_create, &args);
+        }
+        else if (strcmp (test_name, "delete") == 0)
+        {
+            g_idle_add ((GSourceFunc)test_delete, &args);
         }
 
         main_loop = g_main_loop_new (NULL, FALSE);

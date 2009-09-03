@@ -959,6 +959,17 @@ on_account_created (AgManager *manager, AgAccountId account_id,
     g_main_loop_quit (main_loop);
 }
 
+static void
+on_account_deleted (AgManager *manager, AgAccountId account_id,
+                    AgAccountId *id)
+{
+    g_debug ("%s called (%u)", G_STRFUNC, account_id);
+
+    fail_unless (account_id == *id, "Deletion of unexpected account");
+    *id = 0;
+    g_main_loop_quit (main_loop);
+}
+
 static gboolean
 concurrency_test_failed (gpointer userdata)
 {
@@ -972,6 +983,7 @@ START_TEST(test_concurrency)
 {
     AgAccountId account_id;
     const gchar *provider_name, *display_name;
+    gchar command[512];
 
     g_type_init ();
 
@@ -1003,6 +1015,19 @@ START_TEST(test_concurrency)
     display_name = ag_account_get_display_name (account);
     fail_unless (g_strcmp0 (display_name, "MyAccountName") == 0,
                  "Wrong display name '%s'", display_name);
+
+    /* check deletion */
+    g_signal_connect (manager, "account-deleted",
+                      G_CALLBACK (on_account_deleted), &account_id);
+    sprintf (command, "./test-process delete %d", account_id);
+    system (command);
+
+    source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
+    g_main_loop_run (main_loop);
+    fail_unless (source_id != 0, "Timeout happened");
+    g_source_remove (source_id);
+
+    fail_unless (account_id == 0, "Account still alive");
 
     end_test ();
 }
