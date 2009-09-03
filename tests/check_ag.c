@@ -36,6 +36,13 @@ static AgManager *manager = NULL;
 static AgService *service = NULL;
 static gboolean data_stored = FALSE;
 static guint source_id = 0;
+static guint idle_finish = 0;
+
+typedef struct {
+    gboolean called;
+    gchar *service;
+    gboolean enabled;
+} EnabledCbData;
 
 static void
 end_test ()
@@ -970,6 +977,18 @@ on_account_deleted (AgManager *manager, AgAccountId account_id,
     g_main_loop_quit (main_loop);
 }
 
+static void
+changed_cb (AgAccount *account, const gchar *key, gboolean *invoked)
+{
+    fail_unless (invoked != NULL);
+    fail_unless (*invoked == FALSE, "Callback invoked twice!");
+
+    fail_unless (key != NULL);
+    *invoked = TRUE;
+    if (idle_finish == 0)
+        idle_finish = g_idle_add ((GSourceFunc)g_main_loop_quit, main_loop);
+}
+
 static gboolean
 concurrency_test_failed (gpointer userdata)
 {
@@ -979,11 +998,25 @@ concurrency_test_failed (gpointer userdata)
     return FALSE;
 }
 
+static void
+on_enabled (AgAccount *account, const gchar *service, gboolean enabled,
+            EnabledCbData *ecd)
+{
+    ecd->called = TRUE;
+    ecd->service = g_strdup (service);
+    ecd->enabled = enabled;
+}
+
 START_TEST(test_concurrency)
 {
     AgAccountId account_id;
     const gchar *provider_name, *display_name;
     gchar command[512];
+    GValue value = { 0 };
+    gboolean character_changed, string_changed, boolean_changed;
+    gboolean unsigned_changed;
+    AgSettingSource source;
+    EnabledCbData ecd;
 
     g_type_init ();
 
@@ -1028,6 +1061,118 @@ START_TEST(test_concurrency)
     g_source_remove (source_id);
 
     fail_unless (account_id == 0, "Account still alive");
+
+    /* check a more complex creation */
+    system ("./test-process create2 myprovider MyAccountName");
+
+    source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
+    g_main_loop_run (main_loop);
+    fail_unless (source_id != 0, "Timeout happened");
+    g_source_remove (source_id);
+
+    fail_unless (account_id != 0, "Account ID still 0");
+
+    account = ag_manager_get_account (manager, account_id);
+    fail_unless (AG_IS_ACCOUNT (account), "Got invalid account");
+
+    fail_unless (ag_account_get_enabled (account) == TRUE);
+
+    g_value_init (&value, G_TYPE_INT);
+    ag_account_get_value (account, "integer", &value);
+    fail_unless (g_value_get_int (&value) == -12345);
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_STRING);
+    ag_account_get_value (account, "string", &value);
+    fail_unless (g_strcmp0 (g_value_get_string (&value), "a string") == 0);
+    g_value_unset (&value);
+
+    /* we expect more keys in MyService */
+    service = ag_manager_get_service (manager, "MyService");
+    fail_unless (service != NULL, "Cannot get service");
+
+    ag_account_select_service (account, service);
+
+    g_value_init (&value, G_TYPE_UINT);
+    ag_account_get_value (account, "unsigned", &value);
+    fail_unless (g_value_get_uint (&value) == 54321);
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_CHAR);
+    ag_account_get_value (account, "character", &value);
+    fail_unless (g_value_get_char (&value) == 'z');
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_BOOLEAN);
+    ag_account_get_value (account, "boolean", &value);
+    fail_unless (g_value_get_boolean (&value) == TRUE);
+    g_value_unset (&value);
+
+    fail_unless (ag_account_get_enabled (account) == FALSE);
+
+    /* watch some key changes/deletions */
+    ag_account_watch_key (account, "character",
+                          (AgAccountNotifyCb)changed_cb,
+                          &character_changed);
+
+    ag_account_watch_key (account, "boolean",
+                          (AgAccountNotifyCb)changed_cb,
+                          &boolean_changed);
+
+    ag_account_watch_key (account, "unsigned",
+                          (AgAccountNotifyCb)changed_cb,
+                          &unsigned_changed);
+
+    ag_account_select_service (account, NULL);
+    ag_account_watch_key (account, "string",
+                          (AgAccountNotifyCb)changed_cb,
+                          &string_changed);
+    /* watch account enabledness */
+    g_signal_connect (account, "enabled",
+                      G_CALLBACK (on_enabled), &ecd);
+
+    character_changed = boolean_changed = string_changed =
+        unsigned_changed = FALSE;
+    memset (&ecd, 0, sizeof (ecd));
+
+    /* make changes remotely */
+    sprintf (command, "./test-process change %d", account_id);
+    system (command);
+
+    source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
+    g_main_loop_run (main_loop);
+    fail_unless (source_id != 0, "Timeout happened");
+    g_source_remove (source_id);
+
+    fail_unless (character_changed == TRUE);
+    fail_unless (boolean_changed == TRUE);
+    fail_unless (string_changed == TRUE);
+    fail_unless (unsigned_changed == FALSE);
+
+    g_value_init (&value, G_TYPE_STRING);
+    ag_account_get_value (account, "string", &value);
+    fail_unless (g_strcmp0 (g_value_get_string (&value),
+                            "another string") == 0);
+    g_value_unset (&value);
+
+    ag_account_select_service (account, service);
+
+    g_value_init (&value, G_TYPE_CHAR);
+    source = ag_account_get_value (account, "character", &value);
+    fail_unless (source == AG_SETTING_SOURCE_NONE);
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_BOOLEAN);
+    ag_account_get_value (account, "boolean", &value);
+    fail_unless (g_value_get_boolean (&value) == FALSE);
+    g_value_unset (&value);
+
+    fail_unless (ag_account_get_enabled (account) == TRUE);
+
+    /* verify that the signal has been emitted correctly */
+    fail_unless (ecd.called == TRUE);
+    fail_unless (ecd.enabled == TRUE);
+    fail_unless (g_strcmp0 (ecd.service, "MyService") == 0);
 
     end_test ();
 }
