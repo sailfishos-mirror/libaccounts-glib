@@ -1,3 +1,11 @@
+libaccounts-glib (0.12-1) unstable; urgency=low
+
+  * Implement inter-process change notifications via D-Bus.
+
+  * Change copyright headers to LGPL.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Fri,  4 Sep 2009 15:04:21 +0300
+
 libaccounts-glib (0.11-1) unstable; urgency=low
 
   * Add an API to let clients access the service XML data.
