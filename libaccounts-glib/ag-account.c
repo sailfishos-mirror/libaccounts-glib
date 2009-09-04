@@ -226,6 +226,21 @@ ag_account_watch_free (AgAccountWatch watch)
     g_slice_free (struct _AgAccountWatch, watch);
 }
 
+static AgService *
+ag_service_ref_null (AgService *service)
+{
+    if (service)
+        ag_service_ref (service);
+    return service;
+}
+
+static void
+ag_service_unref_null (AgService *service)
+{
+    if (service)
+        ag_service_unref (service);
+}
+
 static AgAccountWatch
 ag_account_watch_int (AgAccount *account, gchar *key, gchar *prefix,
                       AgAccountNotifyCb callback, gpointer user_data)
@@ -238,7 +253,7 @@ ag_account_watch_int (AgAccount *account, gchar *key, gchar *prefix,
     {
         priv->watches =
             g_hash_table_new_full (g_direct_hash, g_direct_equal,
-                                   (GDestroyNotify)ag_service_unref,
+                                   (GDestroyNotify)ag_service_unref_null,
                                    (GDestroyNotify)g_hash_table_destroy);
     }
 
@@ -249,7 +264,8 @@ ag_account_watch_int (AgAccount *account, gchar *key, gchar *prefix,
             g_hash_table_new_full (g_direct_hash, g_direct_equal,
                                    NULL,
                                    (GDestroyNotify)ag_account_watch_free);
-        g_hash_table_insert (priv->watches, ag_service_ref (priv->service),
+        g_hash_table_insert (priv->watches,
+                             ag_service_ref_null (priv->service),
                              service_watches);
     }
 
