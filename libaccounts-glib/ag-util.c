@@ -385,3 +385,85 @@ _ag_iter_append_dict_entry (DBusMessageIter *iter, const gchar *key,
     dbus_message_iter_close_container (iter, &args);
 }
 
+static gboolean
+_ag_iter_get_value (DBusMessageIter *iter, GValue *value)
+{
+    DBusMessageIter var;
+    gchar dbus_type[2];
+    const gchar *val_str;
+    gint val_int;
+    gint64 val_int64;
+    guint val_uint;
+    guint64 val_uint64;
+    GType type;
+
+    dbus_message_iter_recurse (iter, &var);
+    dbus_type[0] = dbus_message_iter_get_arg_type (&var);
+    dbus_type[1] = '\0';
+    type = _ag_type_to_g_type (dbus_type);
+    g_value_init (value, type);
+
+    switch (type) {
+    case G_TYPE_STRING:
+        dbus_message_iter_get_basic (&var, &val_str);
+        g_value_set_string (value, val_str);
+        break;
+    case G_TYPE_INT:
+        dbus_message_iter_get_basic (&var, &val_int);
+        g_value_set_int (value, val_int);
+        break;
+    case G_TYPE_CHAR:
+        dbus_message_iter_get_basic (&var, &val_int);
+        g_value_set_char (value, val_int);
+        break;
+    case G_TYPE_UINT:
+        dbus_message_iter_get_basic (&var, &val_uint);
+        g_value_set_uint (value, val_uint);
+        break;
+    case G_TYPE_BOOLEAN:
+        dbus_message_iter_get_basic (&var, &val_int);
+        g_value_set_boolean (value, val_int);
+        break;
+    case G_TYPE_UCHAR:
+        dbus_message_iter_get_basic (&var, &val_uint);
+        g_value_set_uchar (value, val_uint);
+        break;
+    case G_TYPE_INT64:
+        dbus_message_iter_get_basic (&var, &val_int64);
+        g_value_set_int64 (value, val_int64);
+        break;
+    case G_TYPE_UINT64:
+        dbus_message_iter_get_basic (&var, &val_uint64);
+        g_value_set_uint64 (value, val_uint64);
+        break;
+    default:
+        if (type != G_TYPE_INVALID)
+            g_warning ("%s: unsupported type ``%s''", G_STRFUNC,
+                       G_VALUE_TYPE_NAME (value));
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+gboolean
+_ag_iter_get_dict_entry (DBusMessageIter *iter, const gchar **key,
+                         GValue *value)
+{
+    DBusMessageIter args;
+
+    dbus_message_iter_recurse (iter, &args);
+    if (G_UNLIKELY (dbus_message_iter_get_arg_type (&args) !=
+                    DBUS_TYPE_STRING))
+        return FALSE;
+
+    dbus_message_iter_get_basic (&args, key);
+    dbus_message_iter_next (&args);
+
+    if (G_UNLIKELY (dbus_message_iter_get_arg_type (&args) !=
+                    DBUS_TYPE_VARIANT))
+        return FALSE;
+
+    return _ag_iter_get_value (&args, value);
+}
+

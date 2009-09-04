@@ -53,6 +53,9 @@ gboolean _ag_value_set_from_string (GValue *value, const gchar *string);
 G_GNUC_INTERNAL
 void _ag_iter_append_dict_entry (DBusMessageIter *iter, const gchar *key,
                                  const GValue *value);
+G_GNUC_INTERNAL
+gboolean _ag_iter_get_dict_entry (DBusMessageIter *iter, const gchar **key,
+                                  GValue *value);
 
 G_END_DECLS
 
