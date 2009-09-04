@@ -458,17 +458,21 @@ update_settings (AgAccount *account, GHashTable *services)
                                        (gpointer)&key, (gpointer)&value))
         {
             /* some keys are special */
-            if (ss->service == NULL)
+            if (strcmp (key, "enabled") == 0)
             {
-                if (strcmp (key, "enabled") == 0)
+                gboolean enabled;
+                enabled = value ? g_value_get_boolean (value) : FALSE;
+                g_signal_emit (account, signals[ENABLED], 0,
+                               service_name, enabled);
+                if (ss->service == NULL)
                 {
-                    priv->enabled =
-                        value ? g_value_get_boolean (value) : FALSE;
-                    g_signal_emit (account, signals[ENABLED], 0,
-                                   NULL, priv->enabled);
+                    priv->enabled = enabled;
                     continue;
                 }
-                else if (strcmp (key, "name") == 0)
+            }
+            if (ss->service == NULL)
+            {
+                if (strcmp (key, "name") == 0)
                 {
                     g_free (priv->display_name);
                     priv->display_name =
