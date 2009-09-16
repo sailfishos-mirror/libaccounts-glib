@@ -517,23 +517,21 @@ ag_service_get_provider (AgService *service)
  * ag_service_get_file_contents:
  * @service: the #AgService.
  * @contents: location to receive the pointer to the file contents.
+ * @data_offset: pointer to receive the offset of the type data.
  *
- * Gets the contents of the XML service file, starting with the
- * &lt;type_data&gt;. The buffer returned in @contents should not be modified
- * or freed, and is guaranteed to be valid as long as @service is referenced.
- * If some error occurs, or if the &lt;type_data&gt; is absent, @contents is
- * set to %NULL.
- *
- * <note>
- * Applications should not attempt parsing beyond the closing &lt;type_data&gt;
- * element.
- * </note>
+ * Gets the contents of the XML service file.  The buffer returned in @contents
+ * should not be modified or freed, and is guaranteed to be valid as long as
+ * @service is referenced. If @data_offset is not %NULL, it is set to the
+ * offset where the &lt;type_data&gt; element can be found.
+ * If some error occurs, @contents is set to %NULL.
  */
 void
 ag_service_get_file_contents (AgService *service,
-                              const gchar **contents)
+                              const gchar **contents,
+                              gsize *data_offset)
 {
     g_return_if_fail (service != NULL);
+    g_return_if_fail (contents != NULL);
 
     if (service->file_data == NULL)
     {
@@ -545,13 +543,10 @@ ag_service_get_file_contents (AgService *service,
             g_warning ("Loading service %s file failed", service->name);
     }
 
-    if (service->type_data_offset == 0)
-    {
-        *contents = NULL;
-        return;
-    }
+    *contents = service->file_data;
 
-    *contents = service->file_data + service->type_data_offset;
+    if (data_offset)
+        *data_offset = service->type_data_offset;
 }
 
 /**
