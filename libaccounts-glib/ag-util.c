@@ -474,3 +474,141 @@ _ag_iter_get_dict_entry (DBusMessageIter *iter, const gchar **key,
     return _ag_iter_get_value (&args, value);
 }
 
+gboolean
+_ag_xml_get_element_data (xmlTextReaderPtr reader, const gchar **dest_ptr)
+{
+    if (dest_ptr) *dest_ptr = NULL;
+
+    if (xmlTextReaderIsEmptyElement (reader))
+        return TRUE;
+
+    if (xmlTextReaderRead (reader) != 1 ||
+        xmlTextReaderNodeType (reader) != XML_READER_TYPE_TEXT)
+        return FALSE;
+
+    if (dest_ptr)
+        *dest_ptr = (const gchar *)xmlTextReaderConstValue (reader);
+
+    return TRUE;
+}
+
+static gboolean
+close_element (xmlTextReaderPtr reader)
+{
+    if (xmlTextReaderRead (reader) != 1 ||
+        xmlTextReaderNodeType (reader) != XML_READER_TYPE_END_ELEMENT)
+        return FALSE;
+
+    return TRUE;
+}
+
+gboolean
+_ag_xml_dup_element_data (xmlTextReaderPtr reader, gchar **dest_ptr)
+{
+    const gchar *data;
+    gboolean ret;
+
+    ret = _ag_xml_get_element_data (reader, &data);
+    if (dest_ptr)
+        *dest_ptr = g_strdup (data);
+
+    close_element (reader);
+    return ret;
+}
+
+static gboolean
+parse_param (xmlTextReaderPtr reader, GValue *value)
+{
+    const gchar *str_value, *str_type;
+    gboolean ok;
+    GType type;
+
+    str_type = (const gchar *)xmlTextReaderGetAttribute (reader,
+                                                         (xmlChar *) "type");
+    if (!str_type)
+        str_type = "s"; /* string */
+
+    ok = _ag_xml_get_element_data (reader, &str_value);
+    if (G_UNLIKELY (!ok)) return FALSE;
+
+    type = _ag_type_to_g_type (str_type);
+    if (G_UNLIKELY (type == G_TYPE_INVALID)) return FALSE;
+
+    g_value_init (value, type);
+
+    ok = _ag_value_set_from_string (value, str_value);
+    if (G_UNLIKELY (!ok)) return FALSE;
+
+    ok = close_element (reader);
+    if (G_UNLIKELY (!ok)) return FALSE;
+
+    return TRUE;
+}
+
+gboolean
+_ag_xml_parse_settings (xmlTextReaderPtr reader, const gchar *group,
+                        GHashTable *settings)
+{
+    const gchar *name;
+    int ret, type;
+
+    ret = xmlTextReaderRead (reader);
+    while (ret == 1)
+    {
+        name = (const gchar *)xmlTextReaderConstName (reader);
+        if (G_UNLIKELY (!name)) return FALSE;
+
+        type = xmlTextReaderNodeType (reader);
+        if (type == XML_READER_TYPE_END_ELEMENT)
+            break;
+
+        if (type == XML_READER_TYPE_ELEMENT)
+        {
+            gboolean ok;
+
+            g_debug ("found name %s", name);
+            if (strcmp (name, "setting") == 0)
+            {
+                GValue value = { 0 }, *pval;
+                const gchar *key_name;
+                gchar *key;
+
+                key_name = (const gchar *)xmlTextReaderGetAttribute
+                    (reader, (xmlChar *)"name");
+                key = g_strdup_printf ("%s%s", group, key_name);
+
+                ok = parse_param (reader, &value);
+                if (ok)
+                {
+                    pval = g_slice_new0 (GValue);
+                    g_value_init (pval, G_VALUE_TYPE (&value));
+                    g_value_copy (&value, pval);
+
+                    g_hash_table_insert (settings, key, pval);
+                }
+                else
+                    g_free (key);
+            }
+            else
+            {
+                /* it's a subgroup */
+                if (!xmlTextReaderIsEmptyElement (reader))
+                {
+                    gchar *subgroup;
+
+                    subgroup = g_strdup_printf ("%s%s/", group, name);
+                    ok = _ag_xml_parse_settings (reader, subgroup, settings);
+                    g_free (subgroup);
+                }
+                else
+                    ok = TRUE;
+            }
+
+            if (G_UNLIKELY (!ok)) return FALSE;
+        }
+
+        ret = xmlTextReaderNext (reader);
+    }
+    return TRUE;
+}
+

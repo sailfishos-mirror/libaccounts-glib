@@ -28,6 +28,7 @@
 #include <dbus/dbus.h>
 #include <glib.h>
 #include <glib-object.h>
+#include <libxml/xmlreader.h>
 #include <sqlite3.h>
 
 G_BEGIN_DECLS
@@ -63,6 +64,17 @@ void _ag_iter_append_dict_entry (DBusMessageIter *iter, const gchar *key,
 G_GNUC_INTERNAL
 gboolean _ag_iter_get_dict_entry (DBusMessageIter *iter, const gchar **key,
                                   GValue *value);
+
+G_GNUC_INTERNAL
+gboolean _ag_xml_get_element_data (xmlTextReaderPtr reader,
+                                   const gchar **dest_ptr);
+
+G_GNUC_INTERNAL
+gboolean _ag_xml_dup_element_data (xmlTextReaderPtr reader, gchar **dest_ptr);
+
+G_GNUC_INTERNAL
+gboolean _ag_xml_parse_settings (xmlTextReaderPtr reader, const gchar *group,
+                                 GHashTable *settings);
 
 G_END_DECLS
 
