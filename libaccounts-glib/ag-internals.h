@@ -79,6 +79,9 @@ struct _AgService {
 };
 
 G_GNUC_INTERNAL
+GList *_ag_services_list (AgManager *manager);
+
+G_GNUC_INTERNAL
 AgService *_ag_service_new_from_file (const gchar *service_name);
 
 G_GNUC_INTERNAL
