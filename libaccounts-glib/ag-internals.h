@@ -94,6 +94,20 @@ const GValue *_ag_service_get_default_setting (AgService *service,
 inline
 AgService *_ag_service_new (void);
 
+struct _AgProvider {
+    /*< private >*/
+    gint ref_count;
+    gchar *name;
+    gchar *display_name;
+    gchar *file_data;
+};
+
+G_GNUC_INTERNAL
+GList *_ag_providers_list (AgManager *manager);
+
+G_GNUC_INTERNAL
+AgProvider *_ag_provider_new_from_file (const gchar *provider_name);
+
 G_END_DECLS
 
 #endif /* _AG_INTERNALS_H_ */

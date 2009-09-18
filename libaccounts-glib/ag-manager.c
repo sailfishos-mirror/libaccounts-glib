@@ -1240,3 +1240,40 @@ _ag_manager_exec_query (AgManager *manager,
     return rows;
 }
 
+/**
+ * ag_manager_get_provider:
+ * @manager: the #AgManager.
+ * @provider_name: the name of the provider.
+ *
+ * Loads the provider identified by @provider_name.
+ *
+ * Returns: an #AgProvider, which must be then free'd with ag_provider_unref().
+ */
+AgProvider *
+ag_manager_get_provider (AgManager *manager, const gchar *provider_name)
+{
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
+    g_return_val_if_fail (provider_name != NULL, NULL);
+
+    /* We don't implement any caching mechanism for AgProvider structures: they
+     * shouldn't be loaded that often. */
+    return _ag_provider_new_from_file (provider_name);
+}
+
+/**
+ * ag_manager_list_providers:
+ * @manager: the #AgManager.
+ *
+ * Gets a list of all the installed providers.
+ *
+ * Returns: a list of #AgProvider, which must be then free'd with
+ * ag_provider_list_free().
+ */
+GList *
+ag_manager_list_providers (AgManager *manager)
+{
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
+
+    return _ag_providers_list (manager);
+}
+

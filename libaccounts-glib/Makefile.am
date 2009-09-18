@@ -18,6 +18,8 @@ libaccounts_glib_la_SOURCES = \
 	ag-internals.h \
 	ag-manager.h \
 	ag-manager.c \
+	ag-provider.h \
+	ag-provider.c \
 	ag-service.h \
 	ag-service.c \
 	ag-util.h \
@@ -28,6 +30,7 @@ libaccounts_glib_includedir = $(includedir)/libaccounts-glib
 libaccounts_glib_include_HEADERS = \
 	ag-account.h \
 	ag-errors.h \
+	ag-provider.h \
 	ag-service.h \
 	ag-manager.h
 
