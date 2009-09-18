@@ -118,7 +118,9 @@ END_TEST
 
 START_TEST(test_provider)
 {
-    const gchar *provider_name;
+    const gchar *provider_name, *display_name;
+    AgProvider *provider;
+    GList *providers;
 
     g_type_init ();
     manager = ag_manager_new ();
@@ -129,6 +131,26 @@ START_TEST(test_provider)
 
     provider_name = ag_account_get_provider_name (account);
     fail_if (strcmp (provider_name, PROVIDER) != 0);
+
+    /* Test provider XML file loading */
+    provider = ag_manager_get_provider (manager, "MyProvider");
+    fail_unless (provider != NULL);
+
+    display_name = ag_provider_get_display_name (provider);
+    fail_unless (g_strcmp0 (display_name, "My Provider") == 0);
+
+    ag_provider_unref (provider);
+
+    /* Test provider enumeration */
+    providers = ag_manager_list_providers (manager);
+    fail_unless (providers != NULL);
+    fail_unless (g_list_length (providers) == 1);
+    provider = providers->data;
+
+    display_name = ag_provider_get_display_name (provider);
+    fail_unless (g_strcmp0 (display_name, "My Provider") == 0);
+
+    ag_provider_list_free (providers);
 
     end_test ();
 }
