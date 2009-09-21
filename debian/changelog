@@ -1,3 +1,9 @@
+libaccounts-glib (0.14-1) unstable; urgency=low
+
+  * Add APIs for listing and loading provider XML files.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 21 Sep 2009 14:19:43 +0300
+
 libaccounts-glib (0.13-1) unstable; urgency=low
 
   * Allow caller to get the full contents of the service XML file.
