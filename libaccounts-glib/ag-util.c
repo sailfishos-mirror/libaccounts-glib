@@ -477,14 +477,19 @@ _ag_iter_get_dict_entry (DBusMessageIter *iter, const gchar **key,
 gboolean
 _ag_xml_get_element_data (xmlTextReaderPtr reader, const gchar **dest_ptr)
 {
+    gint node_type;
+
     if (dest_ptr) *dest_ptr = NULL;
 
     if (xmlTextReaderIsEmptyElement (reader))
         return TRUE;
 
-    if (xmlTextReaderRead (reader) != 1 ||
-        xmlTextReaderNodeType (reader) != XML_READER_TYPE_TEXT)
+    if (xmlTextReaderRead (reader) != 1)
         return FALSE;
+
+    node_type = xmlTextReaderNodeType (reader);
+    if (node_type != XML_READER_TYPE_TEXT)
+        return (node_type == XML_READER_TYPE_END_ELEMENT) ? TRUE : FALSE;
 
     if (dest_ptr)
         *dest_ptr = (const gchar *)xmlTextReaderConstValue (reader);
@@ -530,6 +535,9 @@ parse_param (xmlTextReaderPtr reader, GValue *value)
 
     ok = _ag_xml_get_element_data (reader, &str_value);
     if (G_UNLIKELY (!ok)) return FALSE;
+
+    /* Empty value is not an error, but simply ignored */
+    if (G_UNLIKELY (!str_value)) return TRUE;
 
     type = _ag_type_to_g_type (str_type);
     if (G_UNLIKELY (type == G_TYPE_INVALID)) return FALSE;
@@ -578,7 +586,7 @@ _ag_xml_parse_settings (xmlTextReaderPtr reader, const gchar *group,
                 key = g_strdup_printf ("%s%s", group, key_name);
 
                 ok = parse_param (reader, &value);
-                if (ok)
+                if (ok && G_VALUE_TYPE (&value) != G_TYPE_INVALID)
                 {
                     pval = g_slice_new0 (GValue);
                     g_value_init (pval, G_VALUE_TYPE (&value));
