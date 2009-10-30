@@ -103,7 +103,11 @@ _ag_providers_list (AgManager *manager)
 
     env_dirname = g_getenv ("AG_PROVIDERS");
     if (env_dirname)
+    {
         add_providers_from_dir (manager, env_dirname, &providers);
+        /* If the environment variable is set, don't look in other places */
+        return providers;
+    }
 
     datadir = g_get_user_data_dir ();
     if (G_LIKELY (datadir))
