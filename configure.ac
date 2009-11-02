@@ -26,6 +26,16 @@ AC_PROG_LIBTOOL
 
 GTK_DOC_CHECK([1.3])
 
+SERVICE_FILES_DIR="accounts/services"
+AC_SUBST(SERVICE_FILES_DIR)
+AC_DEFINE_UNQUOTED(SERVICE_FILES_DIR, "$SERVICE_FILES_DIR",
+		   [Directory for storing service files])
+
+PROVIDER_FILES_DIR="accounts/providers"
+AC_SUBST(PROVIDER_FILES_DIR)
+AC_DEFINE_UNQUOTED(PROVIDER_FILES_DIR, "$PROVIDER_FILES_DIR",
+		   [Directory for storing provider files])
+
 AC_ARG_ENABLE(cast-checks,  [  --disable-cast-checks   compile with GLIB cast checks disabled],[cchecks=${enableval}],cchecks=yes)
 if test "x$cchecks" = "xno"; then
     CFLAGS="$CFLAGS -DG_DISABLE_CAST_CHECKS"
