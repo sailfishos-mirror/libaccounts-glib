@@ -162,6 +162,8 @@ _ag_type_to_g_type (const gchar *type_str)
         return G_TYPE_INT;
     case DBUS_TYPE_UINT32:
         return G_TYPE_UINT;
+    case DBUS_TYPE_INT64:
+        return G_TYPE_INT64;
     case DBUS_TYPE_UINT64:
         return G_TYPE_UINT64;
     case DBUS_TYPE_BOOLEAN:
@@ -206,6 +208,15 @@ _ag_value_set_from_string (GValue *value, const gchar *string)
             if (endptr && endptr[0] != '\0')
                 return FALSE;
             g_value_set_uint (value, u);
+        }
+        break;
+    case G_TYPE_INT64:
+        {
+            gint64 i;
+            i = strtoll (string, &endptr, 0);
+            if (endptr && endptr[0] != '\0')
+                return FALSE;
+            g_value_set_int64 (value, i);
         }
         break;
     case G_TYPE_UINT64:
