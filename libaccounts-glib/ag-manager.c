@@ -367,11 +367,10 @@ transaction_completed (AgManager *manager,
 static void
 exec_transaction (AgManager *manager, AgAccount *account,
                   const gchar *sql, AgAccountChanges *changes,
-                  AgAccountStoreCb callback, gpointer user_data)
+                  GError **error)
 {
     AgManagerPrivate *priv;
     gchar *err_msg = NULL;
-    GError *error = NULL;
     int ret;
 
     g_debug ("%s called: %s", G_STRFUNC, sql);
@@ -384,19 +383,21 @@ exec_transaction (AgManager *manager, AgAccount *account,
     ret = sqlite3_exec (priv->db, sql, NULL, NULL, &err_msg);
     if (G_UNLIKELY (ret != SQLITE_OK))
     {
-        error = g_error_new_literal (AG_ERRORS, AG_ERROR_DB, err_msg);
+        *error = g_error_new (AG_ERRORS, AG_ERROR_DB, "%s", err_msg);
+        if (err_msg)
+            sqlite3_free (err_msg);
 
         sqlite3_step (priv->rollback_stmt);
         sqlite3_reset (priv->rollback_stmt);
-        goto finish;
+        return;
     }
 
     ret = sqlite3_step (priv->commit_stmt);
     if (G_UNLIKELY (ret != SQLITE_DONE))
     {
-        error = g_error_new_literal (AG_ERRORS, AG_ERROR_DB,
-                                     sqlite3_errmsg (priv->db));
-        goto finish;
+        *error = g_error_new_literal (AG_ERRORS, AG_ERROR_DB,
+                                      sqlite3_errmsg (priv->db));
+        return;
     }
 
     /* everything went well; if this was a new account, we must update the
@@ -415,16 +416,6 @@ exec_transaction (AgManager *manager, AgAccount *account,
     signal_account_changes (manager, account, changes);
 
     _ag_account_done_changes (account, changes);
-
-finish:
-    transaction_completed (manager, account, changes,
-                           callback, error, user_data);
-    if (G_UNLIKELY (error))
-    {
-        g_error_free (error);
-        if (err_msg)
-            sqlite3_free (err_msg);
-    }
 }
 
 static void
@@ -462,6 +453,7 @@ exec_transaction_idle (StoreCbData *sd)
     AgManager *manager = sd->manager;
     AgAccount *account = sd->account;
     AgManagerPrivate *priv;
+    GError *error = NULL;
     int ret;
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), FALSE);
@@ -479,15 +471,16 @@ exec_transaction_idle (StoreCbData *sd)
     g_object_ref (account);
     if (ret == SQLITE_DONE)
     {
-        exec_transaction (manager, account, sd->sql, sd->changes,
-                          sd->callback, sd->user_data);
+        exec_transaction (manager, account, sd->sql, sd->changes, &error);
     }
     else
     {
-        GError error = { AG_ERRORS, AG_ERROR_DB, "Generic error" };
-        transaction_completed (manager, account, sd->changes,
-                               sd->callback, &error, sd->user_data);
+        error = g_error_new_literal (AG_ERRORS, AG_ERROR_DB, "Generic error");
     }
+    transaction_completed (manager, account, sd->changes,
+                           sd->callback, error, sd->user_data);
+    if (error)
+        g_error_free (error);
 
     priv->locks = g_list_remove (priv->locks, sd);
     sd->id = 0;
@@ -1122,12 +1115,16 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
                               AgAccountStoreCb callback, gpointer user_data)
 {
     AgManagerPrivate *priv = manager->priv;
-    GError error;
+    GError *error = NULL;
     int ret;
 
     ret = prepare_transaction_statements (priv);
     if (G_UNLIKELY (ret != SQLITE_OK))
-        goto db_error;
+    {
+        error = g_error_new (AG_ERRORS, AG_ERROR_DB, "Got error: %s (%d)",
+                             sqlite3_errmsg (priv->db), ret);
+        goto finish;
+    }
 
     ret = sqlite3_step (priv->begin_stmt);
     if (ret == SQLITE_BUSY)
@@ -1151,19 +1148,19 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
     }
 
     if (ret != SQLITE_DONE)
-        goto db_error;
+    {
+        error = g_error_new (AG_ERRORS, AG_ERROR_DB, "Got error: %s (%d)",
+                             sqlite3_errmsg (priv->db), ret);
+        goto finish;
+    }
 
-    exec_transaction (manager, account, sql, changes, callback, user_data);
-    return;
+    exec_transaction (manager, account, sql, changes, &error);
 
-db_error:
-    error.domain = AG_ERRORS;
-    error.code = AG_ERROR_DB;
-    error.message = g_strdup_printf ("Got error: %s (%d)",
-                                     sqlite3_errmsg (priv->db), ret);
+finish:
     transaction_completed (manager, account, changes,
-                           callback, &error, user_data);
-    g_free (error.message);
+                           callback, error, user_data);
+    if (error)
+        g_error_free (error);
 }
 
 /* Executes an SQL statement, and optionally calls
