@@ -103,7 +103,11 @@ _ag_services_list (AgManager *manager)
 
     env_dirname = g_getenv ("AG_SERVICES");
     if (env_dirname)
+    {
         add_services_from_dir (manager, env_dirname, &services);
+        /* If the environment variable is set, don't look in other places */
+        return services;
+    }
 
     datadir = g_get_user_data_dir ();
     if (G_LIKELY (datadir))

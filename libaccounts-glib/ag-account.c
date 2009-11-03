@@ -567,7 +567,7 @@ account_changes_get (AgAccountPrivate *priv)
 }
 
 static void
-change_service_value (AgAccountPrivate *priv,
+change_service_value (AgAccountPrivate *priv, AgService *service,
                       const gchar *key, const GValue *value)
 {
     AgAccountChanges *changes;
@@ -576,12 +576,12 @@ change_service_value (AgAccountPrivate *priv,
 
     changes = account_changes_get (priv);
 
-    service_name = priv->service ? priv->service->name : SERVICE_GLOBAL;
+    service_name = service ? service->name : SERVICE_GLOBAL;
     sc = g_hash_table_lookup (changes->services, service_name);
     if (!sc)
     {
         sc = g_slice_new (AgServiceChanges);
-        sc->service = priv->service;
+        sc->service = service;
         sc->settings = g_hash_table_new_full
             (g_str_hash, g_str_equal,
              g_free, (GDestroyNotify)_ag_value_slice_free);
@@ -590,6 +590,13 @@ change_service_value (AgAccountPrivate *priv,
 
     g_hash_table_insert (sc->settings,
                          g_strdup (key), _ag_value_slice_dup (value));
+}
+
+static inline void
+change_selected_service_value (AgAccountPrivate *priv,
+                               const gchar *key, const GValue *value)
+{
+    change_service_value(priv, priv->service, key, value);
 }
 
 static void
@@ -1060,7 +1067,7 @@ ag_account_set_display_name (AgAccount *account, const gchar *display_name)
 
     g_value_init (&value, G_TYPE_STRING);
     g_value_set_static_string (&value, display_name);
-    change_service_value (account->priv, "name", &value);
+    change_service_value (account->priv, NULL, "name", &value);
 }
 
 /**
@@ -1175,7 +1182,7 @@ ag_account_set_enabled (AgAccount *account, gboolean enabled)
 
     g_value_init (&value, G_TYPE_BOOLEAN);
     g_value_set_boolean (&value, enabled);
-    change_service_value (account->priv, "enabled", &value);
+    change_selected_service_value (account->priv, "enabled", &value);
 }
 
 /**
@@ -1265,7 +1272,7 @@ ag_account_set_value (AgAccount *account, const gchar *key,
     g_return_if_fail (AG_IS_ACCOUNT (account));
     priv = account->priv;
 
-    change_service_value (priv, key, value);
+    change_selected_service_value (priv, key, value);
 }
 
 /**

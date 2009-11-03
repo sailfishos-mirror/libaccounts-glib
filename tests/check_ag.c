@@ -1218,6 +1218,114 @@ START_TEST(test_concurrency)
 }
 END_TEST
 
+START_TEST(test_service_regression)
+{
+    GValue value = { 0 };
+    AgAccountId account_id;
+    const gchar *provider_name;
+    const gchar *username = "me@myhome.com";
+    const gint interval = 30;
+    const gboolean check_automatically = TRUE;
+    const gchar *display_name = "My test account";
+    AgSettingSource source;
+
+    /* This test is to catch a bug that happened when creating a new
+     * account and settings some service values before setting the display
+     * name. The store operation would fail with error "column name is not
+     * unique" because for some reason the same service ended up being
+     * written twice into the DB.
+     */
+
+    /* delete the database: this is essential because the bug was
+     * reproducible only when the service was not yet in DB */
+    g_unlink (db_filename);
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, PROVIDER);
+
+    service = ag_manager_get_service (manager, "MyService");
+    fail_unless (service != NULL);
+
+    ag_account_select_service (account, service);
+
+    /* enable the service */
+    ag_account_set_enabled (account, TRUE);
+
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, username);
+    ag_account_set_value (account, "username", &value);
+    g_value_unset (&value);
+
+    /* Change the display name (this is on the base account) */
+    ag_account_set_display_name (account, display_name);
+
+    /* and some more service settings */
+    g_value_init (&value, G_TYPE_BOOLEAN);
+    g_value_set_boolean (&value, check_automatically);
+    ag_account_set_value (account, "check_automatically", &value);
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_INT);
+    g_value_set_int (&value, interval);
+    ag_account_set_value (account, "interval", &value);
+    g_value_unset (&value);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    g_debug ("Service id: %d", service->id);
+    g_debug ("Account id: %d", account->id);
+    account_id = account->id;
+
+    g_object_unref (account);
+    g_object_unref (manager);
+
+    manager = ag_manager_new ();
+    account = ag_manager_get_account (manager, account_id);
+    fail_unless (AG_IS_ACCOUNT (account),
+                 "Couldn't load account %u", account_id);
+
+    provider_name = ag_account_get_provider_name (account);
+    fail_unless (strcmp (provider_name, PROVIDER) == 0,
+                 "Got provider %s, expecting %s", provider_name, PROVIDER);
+
+    /* check that the values are retained */
+    fail_unless (strcmp (ag_account_get_display_name (account),
+                         display_name) == 0,
+                 "Display name not retained!");
+
+    ag_account_select_service (account, service);
+
+    /* we enabled the service before: check that it's still enabled */
+    fail_unless (ag_account_get_enabled (account) == TRUE,
+                 "Account service not enabled!");
+
+    g_value_init (&value, G_TYPE_STRING);
+    source = ag_account_get_value (account, "username", &value);
+    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    fail_unless (strcmp(g_value_get_string (&value), username) == 0,
+                 "Wrong value");
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_BOOLEAN);
+    source = ag_account_get_value (account, "check_automatically", &value);
+    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    fail_unless (g_value_get_boolean (&value) == check_automatically,
+                 "Wrong value");
+    g_value_unset (&value);
+
+    g_value_init (&value, G_TYPE_INT);
+    source = ag_account_get_value (account, "interval", &value);
+    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    fail_unless (g_value_get_int (&value) == interval, "Wrong value");
+    g_value_unset (&value);
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -1244,6 +1352,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_delete);
     tcase_add_test (tc_create, test_watches);
     tcase_add_test (tc_create, test_concurrency);
+    tcase_add_test (tc_create, test_service_regression);
 
     suite_add_tcase (s, tc_create);
 
@@ -1258,7 +1367,6 @@ int main(void)
 
     db_filename = g_build_filename (g_getenv ("ACCOUNTS"), "accounts.db",
                                     NULL);
-    g_unlink (db_filename);
 
     srunner_set_xml(sr, "/tmp/result.xml");
     srunner_run_all(sr, CK_NORMAL);
