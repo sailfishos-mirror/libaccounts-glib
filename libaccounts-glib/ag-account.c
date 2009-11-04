@@ -389,7 +389,7 @@ ag_service_changes_free (AgServiceChanges *sc)
     g_slice_free (AgServiceChanges, sc);
 }
 
-void
+static void
 _ag_account_changes_free (AgAccountChanges *changes)
 {
     if (G_LIKELY (changes))
@@ -517,6 +517,17 @@ update_settings (AgAccount *account, GHashTable *services)
             watch->callback (account, watch->prefix, watch->user_data);
         watch_list = g_list_delete_link (watch_list, watch_list);
     }
+}
+
+void
+_ag_account_store_completed (AgAccount *account, AgAccountChanges *changes,
+                             AgAccountStoreCb callback, const GError *error,
+                             gpointer user_data)
+{
+    if (callback)
+        callback (account, error, user_data);
+
+    _ag_account_changes_free (changes);
 }
 
 /*

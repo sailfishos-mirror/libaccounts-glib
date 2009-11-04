@@ -38,7 +38,11 @@ G_BEGIN_DECLS
 
 typedef struct _AgAccountChanges AgAccountChanges;
 
-void _ag_account_changes_free (AgAccountChanges *changes) G_GNUC_INTERNAL;
+G_GNUC_INTERNAL
+void _ag_account_store_completed (AgAccount *account,
+                                  AgAccountChanges *changes,
+                                  AgAccountStoreCb callback,
+                                  const GError *error, gpointer user_data);
 
 G_GNUC_INTERNAL
 void _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes);

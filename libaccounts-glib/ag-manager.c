@@ -335,30 +335,6 @@ account_weak_unref (GObject *account)
                          ag_account_get_manager (AG_ACCOUNT (account)));
 }
 
-static void
-transaction_completed (AgManager *manager,
-                       AgAccount *account,
-                       AgAccountChanges *changes,
-                       AgAccountStoreCb callback,
-                       const GError *error,
-                       gpointer user_data)
-{
-    AgManagerPrivate *priv;
-
-    g_debug ("%s called", G_STRFUNC);
-    g_return_if_fail (AG_IS_MANAGER (manager));
-    priv = manager->priv;
-
-    if (callback)
-        callback (account, error, user_data);
-
-    if (!error)
-    {
-        /* TODO: emit D-Bus signal with the changes */
-    }
-    _ag_account_changes_free (changes);
-}
-
 /*
  * exec_transaction:
  *
@@ -427,8 +403,8 @@ lost_weak_ref (gpointer data, GObject *dead)
     GError error = { AG_ERRORS, AG_ERROR_DISPOSED, "Account disposed" };
 
     g_assert ((GObject *)sd->account == dead);
-    transaction_completed (sd->manager, sd->account, sd->changes,
-                           sd->callback, &error, sd->user_data);
+    _ag_account_store_completed (sd->account, sd->changes,
+                                 sd->callback, &error, sd->user_data);
 
     priv = AG_MANAGER_PRIV (sd->manager);
     priv->locks = g_list_remove (priv->locks, sd);
@@ -477,8 +453,8 @@ exec_transaction_idle (StoreCbData *sd)
     {
         error = g_error_new_literal (AG_ERRORS, AG_ERROR_DB, "Generic error");
     }
-    transaction_completed (manager, account, sd->changes,
-                           sd->callback, error, sd->user_data);
+    _ag_account_store_completed (account, sd->changes,
+                                 sd->callback, error, sd->user_data);
     if (error)
         g_error_free (error);
 
@@ -1157,8 +1133,8 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
     exec_transaction (manager, account, sql, changes, &error);
 
 finish:
-    transaction_completed (manager, account, changes,
-                           callback, error, user_data);
+    _ag_account_store_completed (account, changes,
+                                 callback, error, user_data);
     if (error)
         g_error_free (error);
 }
