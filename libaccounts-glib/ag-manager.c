@@ -1163,6 +1163,50 @@ finish:
         g_error_free (error);
 }
 
+void
+_ag_manager_exec_transaction_blocking (AgManager *manager, const gchar *sql,
+                                       AgAccountChanges *changes,
+                                       AgAccount *account,
+                                       GError **error)
+{
+    AgManagerPrivate *priv = manager->priv;
+    gint sleep_ms = 200;
+    int ret;
+
+    ret = prepare_transaction_statements (priv);
+    if (G_UNLIKELY (ret != SQLITE_OK))
+    {
+        *error = g_error_new (AG_ERRORS, AG_ERROR_DB, "Got error: %s (%d)",
+                              sqlite3_errmsg (priv->db), ret);
+        return;
+    }
+
+    ret = sqlite3_step (priv->begin_stmt);
+    while (ret == SQLITE_BUSY)
+    {
+        /* TODO: instead of this loop, use a semaphore or some other non
+         * polling mechanism */
+        if (sleep_ms > 30000)
+        {
+            g_debug ("Database locked for more than 30 seconds; giving up!");
+            break;
+        }
+        g_debug ("Database locked, sleeping for %ums", sleep_ms);
+        g_usleep (sleep_ms * 1000);
+        sleep_ms *= 2;
+        ret = sqlite3_step (priv->begin_stmt);
+    }
+
+    if (ret != SQLITE_DONE)
+    {
+        *error = g_error_new (AG_ERRORS, AG_ERROR_DB, "Got error: %s (%d)",
+                              sqlite3_errmsg (priv->db), ret);
+        return;
+    }
+
+    exec_transaction (manager, account, sql, changes, error);
+}
+
 /* Executes an SQL statement, and optionally calls
  * the callback for every row of the result.
  * Returns the number of rows fetched.

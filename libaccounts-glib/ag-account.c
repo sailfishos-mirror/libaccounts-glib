@@ -1700,3 +1700,57 @@ ag_account_store (AgAccount *account, AgAccountStoreCb callback,
     g_free (sql);
 }
 
+/**
+ * ag_account_store_blocking:
+ * @account: the #AgAccount.
+ * @error: pointer to receive the #GError, or %NULL.
+ *
+ * Store the account settings which have been changed into the account
+ * database. This function does not return until the operation has completed.
+ *
+ * Returns: %TRUE on success, %FALSE on failure.
+ */
+gboolean
+ag_account_store_blocking (AgAccount *account, GError **error)
+{
+    AgAccountPrivate *priv;
+    AgAccountChanges *changes;
+    GError *error_int = NULL;
+    gchar *sql;
+
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
+    priv = account->priv;
+
+    sql = ag_account_get_store_sql (account, &error_int);
+    if (G_UNLIKELY (error_int))
+    {
+        g_warning ("%s: %s", G_STRFUNC, error_int->message);
+        g_propagate_error (error, error_int);
+        return FALSE;
+    }
+
+    changes = priv->changes;
+    priv->changes = NULL;
+
+    if (G_UNLIKELY (!sql))
+    {
+        /* Nothing to do: return immediately */
+        return TRUE;
+    }
+
+    _ag_manager_exec_transaction_blocking (priv->manager, sql,
+                                           changes, account,
+                                           &error_int);
+    g_free (sql);
+    _ag_account_changes_free (changes);
+
+    if (G_UNLIKELY (error_int))
+    {
+        g_warning ("%s: %s", G_STRFUNC, error_int->message);
+        g_propagate_error (error, error_int);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+

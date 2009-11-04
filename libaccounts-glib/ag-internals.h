@@ -61,6 +61,12 @@ void _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
 typedef gboolean (*AgQueryCallback) (sqlite3_stmt *stmt, gpointer user_data);
 
 G_GNUC_INTERNAL
+void _ag_manager_exec_transaction_blocking (AgManager *manager,
+                                            const gchar *sql,
+                                            AgAccountChanges *changes,
+                                            AgAccount *account,
+                                            GError **error);
+G_GNUC_INTERNAL
 gint _ag_manager_exec_query (AgManager *manager,
                              AgQueryCallback callback, gpointer user_data,
                              const gchar *sql);

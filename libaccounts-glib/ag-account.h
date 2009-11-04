@@ -130,6 +130,8 @@ typedef void (*AgAccountStoreCb) (AgAccount *account, const GError *error,
 void ag_account_store (AgAccount *account, AgAccountStoreCb callback,
                        gpointer user_data);
 
+gboolean ag_account_store_blocking (AgAccount *account, GError **error);
+
 /* Signon */
 /* TODO: depends on signon-glib */
 
