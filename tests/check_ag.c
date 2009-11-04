@@ -35,6 +35,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <check.h>
+#include <sched.h>
 #include <sqlite3.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1326,6 +1327,81 @@ START_TEST(test_service_regression)
 }
 END_TEST
 
+START_TEST(test_blocking)
+{
+    const gchar *display_name, *lock_filename;
+    gchar command[512];
+    gint timeout_ms, block_ms;
+    GError *error = NULL;
+    gboolean ok;
+    struct timespec start_time, end_time, diff_time;
+    gint fd;
+
+    g_type_init ();
+
+    /* create an account */
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, PROVIDER);
+    fail_unless (account != NULL);
+    ag_account_set_display_name (account, "Blocked account");
+    ok = ag_account_store_blocking (account, &error);
+    fail_unless (ok, "Got error %s", error ? error->message : "No error set");
+    fail_unless (account->id != 0);
+
+    display_name = ag_account_get_display_name (account);
+    fail_unless (g_strcmp0 (display_name, "Blocked account") == 0,
+                 "Wrong display name '%s'", display_name);
+
+    /* Now change the display name and make sure it's not updated
+     * without storing :-) */
+    ag_account_set_display_name (account, "Want to change");
+    display_name = ag_account_get_display_name (account);
+    fail_unless (g_strcmp0 (display_name, "Blocked account") == 0);
+
+
+    /* Now start a process in the background to lock the DB for some time */
+
+    /* first, create a lock file to synchronize the test */
+    lock_filename = "/tmp/check_ag.lock";
+    fd = open (lock_filename, O_CREAT | O_RDWR, 0666);
+
+    timeout_ms = 2000;
+
+    sprintf (command, "./test-process lock_db %d %s &",
+             timeout_ms, lock_filename);
+    system (command);
+
+    /* wait till the file is locked */
+    while (lockf(fd, F_TEST, 0) == 0)
+        sched_yield();
+
+    clock_gettime (CLOCK_MONOTONIC, &start_time);
+    ok = ag_account_store_blocking (account, &error);
+    clock_gettime (CLOCK_MONOTONIC, &end_time);
+
+    /* the operation completed successfully */
+    fail_unless (ok, "Got error %s", error ? error->message : "No error set");
+
+    /* make sure the display name changed */
+    display_name = ag_account_get_display_name (account);
+    fail_unless (g_strcmp0 (display_name, "Want to change") == 0);
+
+    /* make sure that we have been waiting for a reasonable time */
+    diff_time.tv_sec = end_time.tv_sec - start_time.tv_sec;
+    diff_time.tv_nsec = end_time.tv_nsec - start_time.tv_nsec;
+    block_ms = diff_time.tv_sec * 1000 + diff_time.tv_nsec / 1000000;
+    g_debug ("Been blocking for %ld.%ld secs (%u ms)",
+             diff_time.tv_sec, diff_time.tv_nsec, block_ms);
+
+    fail_unless (block_ms > timeout_ms - 100);
+
+    /* the file must not be locked now */
+    fail_unless (lockf(fd, F_TEST, 0) == 0);
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -1353,6 +1429,9 @@ ag_suite(void)
     tcase_add_test (tc_create, test_watches);
     tcase_add_test (tc_create, test_concurrency);
     tcase_add_test (tc_create, test_service_regression);
+    tcase_add_test (tc_create, test_blocking);
+
+    tcase_set_timeout (tc_create, 10);
 
     suite_add_tcase (s, tc_create);
 

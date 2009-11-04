@@ -33,6 +33,7 @@
 
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <sqlite3.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -44,6 +45,8 @@ static GMainLoop *main_loop = NULL;
 static AgAccount *account = NULL;
 static AgManager *manager = NULL;
 static AgService *service = NULL;
+static sqlite3 *sqldb = NULL;
+int lock_file = 0;
 
 #define PROVIDER    "dummyprovider"
 
@@ -51,6 +54,37 @@ typedef struct {
     gint argc;
     gchar **argv;
 } TestArgs;
+
+static void
+lock_db(gboolean lock)
+{
+    static sqlite3_stmt *begin_stmt = NULL;
+    static sqlite3_stmt *commit_stmt = NULL;
+
+    /* this lock is to synchronize with the main test application */
+    if (!lock)
+        lockf(lock_file, F_ULOCK, 0);
+
+    if (!begin_stmt)
+    {
+        sqlite3_prepare_v2 (sqldb, "BEGIN EXCLUSIVE;", -1, &begin_stmt, NULL);
+        sqlite3_prepare_v2 (sqldb, "COMMIT;", -1, &commit_stmt, NULL);
+    }
+    else
+    {
+        sqlite3_reset (begin_stmt);
+        sqlite3_reset (commit_stmt);
+    }
+
+    if (lock)
+        sqlite3_step (begin_stmt);
+    else
+        sqlite3_step (commit_stmt);
+
+    /* this lock is to synchronize with the main test application */
+    if (lock)
+        lockf(lock_file, F_LOCK, 0);
+}
 
 static void
 end_test ()
@@ -200,6 +234,35 @@ gboolean test_change (TestArgs *args)
     return FALSE;
 }
 
+gboolean unlock_and_exit()
+{
+    lock_db(FALSE);
+    return FALSE;
+}
+
+gboolean test_lock_db (TestArgs *args)
+{
+    const gchar *basedir;
+    gchar *filename;
+    gint ms;
+
+    ms = atoi(args->argv[0]);
+    lock_file = open(args->argv[1], O_RDWR | O_APPEND);
+
+    basedir = g_getenv ("ACCOUNTS");
+    if (G_LIKELY (!basedir))
+        basedir = g_get_home_dir ();
+    filename = g_build_filename (basedir, "accounts.db", NULL);
+    sqlite3_open (filename, &sqldb);
+    g_free (filename);
+
+    lock_db(TRUE);
+
+    g_timeout_add (ms, (GSourceFunc)unlock_and_exit, NULL);
+
+    return FALSE;
+}
+
 int main(int argc, char **argv)
 {
     TestArgs args;
@@ -230,6 +293,10 @@ int main(int argc, char **argv)
         else if (strcmp (test_name, "change") == 0)
         {
             g_idle_add ((GSourceFunc)test_change, &args);
+        }
+        else if (strcmp (test_name, "lock_db") == 0)
+        {
+            g_idle_add ((GSourceFunc)test_lock_db, &args);
         }
 
         main_loop = g_main_loop_new (NULL, FALSE);
