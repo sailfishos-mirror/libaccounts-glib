@@ -1,3 +1,13 @@
+libaccounts-glib (0.15-1) unstable; urgency=low
+
+  * Add blocking API for storing account settings.
+
+  * Add support for 64bit integer data.
+
+  * Minor bugfixes.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Thu,  5 Nov 2009 10:32:05 +0200
+
 libaccounts-glib (0.14-1) unstable; urgency=low
 
   * Add APIs for listing and loading provider XML files.
