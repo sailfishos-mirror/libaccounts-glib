@@ -112,7 +112,7 @@ _ag_services_list (AgManager *manager)
     datadir = g_get_user_data_dir ();
     if (G_LIKELY (datadir))
     {
-        dirname = g_build_filename (datadir, PROVIDER_FILES_DIR, NULL);
+        dirname = g_build_filename (datadir, SERVICE_FILES_DIR, NULL);
         add_services_from_dir (manager, dirname, &services);
         g_free (dirname);
     }
@@ -120,7 +120,7 @@ _ag_services_list (AgManager *manager)
     dirs = g_get_system_data_dirs ();
     for (datadir = *dirs; datadir != NULL; dirs++, datadir = *dirs)
     {
-        dirname = g_build_filename (datadir, PROVIDER_FILES_DIR, NULL);
+        dirname = g_build_filename (datadir, SERVICE_FILES_DIR, NULL);
         add_services_from_dir (manager, dirname, &services);
         g_free (dirname);
     }
