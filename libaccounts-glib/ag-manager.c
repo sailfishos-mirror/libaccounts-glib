@@ -632,7 +632,6 @@ open_db (AgManager *manager)
 
         "CREATE TRIGGER IF NOT EXISTS tg_delete_account "
             "BEFORE DELETE ON Accounts FOR EACH ROW BEGIN "
-                "DELETE FROM Services WHERE id = OLD.id; "
                 "DELETE FROM Settings WHERE account = OLD.id; "
             "END;";
 
