@@ -1,3 +1,9 @@
+libaccounts-glib (0.16-1) unstable; urgency=low
+
+  * Fix loading of service files.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon,  9 Nov 2009 12:35:28 +0200
+
 libaccounts-glib (0.15-1) unstable; urgency=low
 
   * Add blocking API for storing account settings.
