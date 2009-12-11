@@ -1765,3 +1765,68 @@ ag_account_store_blocking (AgAccount *account, GError **error)
     return TRUE;
 }
 
+/**
+ * ag_account_sign:
+ * @key: the name of the key or prefix of the keys to be signed.
+ * @token: token for creating signature.
+ *
+ * Creates signature of the @key with given @token. 
+ */
+void 
+ag_account_sign (const gchar *key, const gchar *token)
+{
+    /* TODO: depends on libmaemosec */
+}
+
+/**
+ * ag_account_verify:
+ * @key: the name of the key or prefix of the keys to be verified.
+ * @token: location to receive the pointer to token.
+ *
+ * Verify if the key is signed and the signature matches the value
+ * and provides the token which was used for signing the @key.
+ *
+ * Returns: %TRUE if the key is signed and the signature matches 
+ * the value.
+ */
+gboolean 
+ag_account_verify (const gchar *key, const gchar **token)
+{
+    return TRUE;
+    /* TODO: depends on libmaemosec */
+}
+
+/**
+ * ag_account_verify_with_token:
+ * @key: the name of the key or prefix of the keys to be verified.
+ * @tokens: array of tokens.
+ *
+ * Verify if the @key is signed with any of the token from the @tokens
+ * and the signature is valid.
+ *
+ * Returns: %TRUE if the key is signed with any of the given token
+ * and the signature is valid.  
+ */
+gboolean 
+ag_account_verify_with_tokens (const gchar *key, const gchar **tokens)
+{
+    const gchar *tmp_token;
+
+    g_return_val_if_fail (tokens != NULL, FALSE);
+
+    if (ag_account_verify (key, &tmp_token))
+    {
+        g_return_val_if_fail (tmp_token != NULL, FALSE);
+
+        while (*tokens != NULL)
+        {
+            if (strcmp (tmp_token, *tokens) == 0)
+            {
+                return TRUE;
+            }
+            (*tokens)++;
+        }
+    }
+    
+    return FALSE;
+}
