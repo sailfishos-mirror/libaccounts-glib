@@ -1,3 +1,9 @@
+libaccounts-glib (0.18-1) unstable; urgency=low
+
+  * Add signing and verifying of the key
+
+ -- Radek Zielonka <ext-radek.zielonka@nokia.com>  Mon, 14 Dec 2009 10:40:05 +0200
+
 libaccounts-glib (0.17-1) unstable; urgency=low
 
   * Fix service disappearing on account removal.
