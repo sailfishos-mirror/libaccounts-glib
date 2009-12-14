@@ -1402,6 +1402,44 @@ START_TEST(test_blocking)
 }
 END_TEST
 
+START_TEST(test_sign_verify_key)
+{
+    const gchar *key = "key";
+    const gchar *list_of_tokens[] = {"t", "tok", "token", NULL};
+    const gchar *token = "token";
+    const gchar *data = "some value";
+    gboolean ok;
+    GValue value = { 0 };
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, PROVIDER);
+
+    ag_account_set_enabled (account, TRUE);
+
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, data);
+    ag_account_set_value (account, key, &value);
+    g_value_unset (&value);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    fail_unless (account->id != 0, "Account ID is still 0!");
+
+    ag_account_sign (key, token);
+
+    ok = ag_account_verify (key, &token);
+    fail_unless (ok);
+    
+    ok = ag_account_verify_with_tokens (key, list_of_tokens);
+    fail_unless (ok);
+
+    end_test();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -1430,6 +1468,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_concurrency);
     tcase_add_test (tc_create, test_service_regression);
     tcase_add_test (tc_create, test_blocking);
+    tcase_add_test (tc_create, test_sign_verify_key);
 
     tcase_set_timeout (tc_create, 10);
 
