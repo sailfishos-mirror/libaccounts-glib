@@ -1423,12 +1423,12 @@ START_TEST(test_sign_verify_key)
     ag_account_set_value (account, key, &value);
     g_value_unset (&value);
 
+    ag_account_sign (key, token);
+    
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     fail_unless (data_stored, "Callback not invoked immediately");
 
     fail_unless (account->id != 0, "Account ID is still 0!");
-
-    ag_account_sign (key, token);
 
     ok = ag_account_verify (key, &token);
     fail_unless (ok);
