@@ -1,3 +1,9 @@
+libaccounts-glib (0.18-2) unstable; urgency=low
+
+  * Add test for sign/verify the key
+
+ -- Radek Zielonka <ext-radek.zielonka@nokia.com>  Tue, 15 Dec 2009 13:40:53 +0200
+
 libaccounts-glib (0.18-1) unstable; urgency=low
 
   * Add signing and verifying of the key
