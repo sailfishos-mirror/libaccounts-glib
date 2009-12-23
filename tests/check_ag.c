@@ -1440,6 +1440,68 @@ START_TEST(test_sign_verify_key)
 }
 END_TEST
 
+START_TEST(test_cache_regression)
+{
+    AgAccountId account_id1, account_id2;
+    const gchar *provider1 = "first_provider";
+    const gchar *provider2 = "second_provider";
+    const gchar *display_name1 = "first_displayname";
+    const gchar *display_name2 = "second_displayname";
+
+    /* This test is to catch a bug that happened when deleting the account
+     * with the highest ID without letting the object die, and creating a
+     * new account: the account manager would still return the old account!
+     */
+
+    /* delete the database */
+    g_unlink (db_filename);
+
+    g_type_init ();
+
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, provider1);
+    fail_unless (account != NULL);
+
+    ag_account_set_display_name (account, display_name1);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    account_id1 = account->id;
+
+    /* now remove the account, but don't destroy the object */
+    ag_account_delete (account);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    /* after deleting the account, we shouldn't get it anymore, even if we
+     * didn't release our reference */
+    account = ag_manager_get_account (manager, account_id1);
+    fail_unless (account == NULL);
+
+    /* create another account */
+    account = ag_manager_create_account (manager, provider2);
+    fail_unless (account != NULL);
+
+    ag_account_set_display_name (account, display_name2);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    fail_unless (data_stored, "Callback not invoked immediately");
+
+    account_id2 = account->id;
+
+    /* check that the values are the correct ones */
+    fail_unless (strcmp (ag_account_get_display_name (account),
+                         display_name2) == 0);
+
+    fail_unless (strcmp (ag_account_get_provider_name (account),
+                         provider2) == 0);
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -1469,6 +1531,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_service_regression);
     tcase_add_test (tc_create, test_blocking);
     tcase_add_test (tc_create, test_sign_verify_key);
+    tcase_add_test (tc_create, test_cache_regression);
 
     tcase_set_timeout (tc_create, 10);
 
