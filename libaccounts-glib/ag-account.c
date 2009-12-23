@@ -1792,8 +1792,9 @@ ag_account_sign (const gchar *key, const gchar *token)
 gboolean 
 ag_account_verify (const gchar *key, const gchar **token)
 {
-    return TRUE;
     /* TODO: depends on libmaemosec */
+    *token = "token";
+    return TRUE;
 }
 
 /**
@@ -1824,7 +1825,7 @@ ag_account_verify_with_tokens (const gchar *key, const gchar **tokens)
             {
                 return TRUE;
             }
-            (*tokens)++;
+            tokens++;
         }
     }
     
