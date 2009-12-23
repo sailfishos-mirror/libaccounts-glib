@@ -1,3 +1,10 @@
+libaccounts-glib (0.19-1) unstable; urgency=low
+
+  * Fixes: NB#151765 - libaccounts-glib does not build with new toolchain 
+  * Fixes: NB#151538 - Deleted accounts are still returned by manager.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 23 Dec 2009 13:39:51 +0200
+
 libaccounts-glib (0.18-2) unstable; urgency=low
 
   * Add test for sign/verify the key
