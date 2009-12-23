@@ -45,6 +45,13 @@ typedef struct _AgAccount AgAccount;
 struct _AgAccountClass
 {
     GObjectClass parent_class;
+    void (*_ag_reserved1) (void);
+    void (*_ag_reserved2) (void);
+    void (*_ag_reserved3) (void);
+    void (*_ag_reserved4) (void);
+    void (*_ag_reserved5) (void);
+    void (*_ag_reserved6) (void);
+    void (*_ag_reserved7) (void);
 };
 
 struct _AgAccount

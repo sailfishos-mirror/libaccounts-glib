@@ -791,12 +791,23 @@ ag_manager_finalize (GObject *object)
 }
 
 static void
+ag_manager_account_deleted (AgManager *manager, AgAccountId id)
+{
+    g_return_if_fail (AG_IS_MANAGER (manager));
+
+    /* The weak reference is removed automatically when the account is removed
+     * from the hash table */
+    g_hash_table_remove (manager->priv->accounts, GUINT_TO_POINTER (id));
+}
+
+static void
 ag_manager_class_init (AgManagerClass *klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
 
     g_type_class_add_private (object_class, sizeof (AgManagerPrivate));
 
+    klass->account_deleted = ag_manager_account_deleted;
     object_class->constructor = ag_manager_constructor;
     object_class->dispose = ag_manager_dispose;
     object_class->finalize = ag_manager_finalize;
@@ -831,7 +842,7 @@ ag_manager_class_init (AgManagerClass *klass)
     signals[ACCOUNT_DELETED] = g_signal_new ("account-deleted",
         G_TYPE_FROM_CLASS (klass),
         G_SIGNAL_RUN_LAST,
-        0,
+        G_STRUCT_OFFSET (AgManagerClass, account_deleted),
         NULL, NULL,
         g_cclosure_marshal_VOID__UINT,
         G_TYPE_NONE,
