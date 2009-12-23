@@ -49,7 +49,7 @@ typedef guint AgAccountId;
 struct _AgManagerClass
 {
     GObjectClass parent_class;
-    void (*_ag_reserved1) (void);
+    void (*account_deleted) (AgManager *manager, AgAccountId id);
     void (*_ag_reserved2) (void);
     void (*_ag_reserved3) (void);
     void (*_ag_reserved4) (void);
