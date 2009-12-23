@@ -1810,7 +1810,7 @@ ag_account_verify (const gchar *key, const gchar **token)
 gboolean 
 ag_account_verify_with_tokens (const gchar *key, const gchar **tokens)
 {
-    const gchar *tmp_token;
+    const gchar *tmp_token = NULL;
 
     g_return_val_if_fail (tokens != NULL, FALSE);
 
