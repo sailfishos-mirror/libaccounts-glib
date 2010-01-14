@@ -1028,29 +1028,9 @@ ag_account_get_store_sql (AgAccount *account, GError **error)
 
             if (sc->service)
             {
-                if (sc->service->id == 0)
-                {
-                    /* the service is not in the DB: create the record now */
-                    _ag_string_append_printf
-                        (sql,
-                         "INSERT INTO Services "
-                         "(name, display, provider, type) "
-                         "VALUES (%Q, %Q, %Q, %Q);",
-                         sc->service->name,
-                         sc->service->display_name,
-                         sc->service->provider,
-                         sc->service->type);
-                    _ag_string_append_printf
-                        (sql, "SELECT set_last_rowid_as_service_id(%Q);",
-                         sc->service->name);
-                    service_id_str = "service_id()";
-                }
-                else
-                {
-                    g_snprintf (service_id_buffer, sizeof (service_id_buffer),
-                                "%d", sc->service->id);
-                    service_id_str = service_id_buffer;
-                }
+                g_snprintf (service_id_buffer, sizeof (service_id_buffer),
+                            "%d", sc->service->id);
+                service_id_str = service_id_buffer;
             }
             else
                 service_id_str = "0";

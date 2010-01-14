@@ -300,6 +300,44 @@ got_service (sqlite3_stmt *stmt, AgService **p_service)
 }
 
 static gboolean
+got_service_id (sqlite3_stmt *stmt, AgService *service)
+{
+    g_assert (service != NULL);
+
+    service->id = sqlite3_column_int (stmt, 0);
+    return TRUE;
+}
+
+static gboolean
+add_service_to_db (AgManager *manager, AgService *service)
+{
+    gchar *sql;
+
+    /* Add the service to the DB */
+    sql = sqlite3_mprintf ("INSERT INTO Services "
+                           "(name, display, provider, type) "
+                           "VALUES (%Q, %Q, %Q, %Q);",
+                           service->name,
+                           service->display_name,
+                           service->provider,
+                           service->type);
+    _ag_manager_exec_query (manager, NULL, NULL, sql);
+    sqlite3_free (sql);
+
+    /* The insert statement above might fail in the unlikely case
+     * that in the meantime the same service was inserted by some other
+     * process; so, instead of calling sqlite3_last_insert_rowid(), we
+     * just get the ID with another query. */
+    sql = sqlite3_mprintf ("SELECT id FROM Services WHERE name = %Q",
+                           service->name);
+    _ag_manager_exec_query (manager, (AgQueryCallback)got_service_id,
+                            service, sql);
+    sqlite3_free (sql);
+
+    return service->id != 0;
+}
+
+static gboolean
 add_id_to_list (sqlite3_stmt *stmt, GList **plist)
 {
     gint id;
@@ -502,34 +540,6 @@ prepare_transaction_statements (AgManagerPrivate *priv)
 }
 
 static void
-set_last_rowid_as_service_id (sqlite3_context *ctx,
-                              int argc, sqlite3_value **argv)
-{
-    AgManagerPrivate *priv;
-
-    g_debug ("%s called", G_STRFUNC);
-    priv = sqlite3_user_data (ctx);
-    priv->last_service_id = sqlite3_last_insert_rowid (priv->db);
-    if (argc == 1)
-    {
-        const guchar *service_name;
-        AgService *service;
-
-        service_name = sqlite3_value_text (argv[0]);
-
-        service = g_hash_table_lookup (priv->services, service_name);
-        if (G_LIKELY (service))
-        {
-            service->id = (gint)priv->last_service_id;
-        }
-        else
-            g_warning ("Service %s not loaded", service_name);
-    }
-
-    sqlite3_result_null (ctx);
-}
-
-static void
 set_last_rowid_as_account_id (sqlite3_context *ctx,
                               int argc, sqlite3_value **argv)
 {
@@ -539,15 +549,6 @@ set_last_rowid_as_account_id (sqlite3_context *ctx,
     priv = sqlite3_user_data (ctx);
     priv->last_account_id = sqlite3_last_insert_rowid (priv->db);
     sqlite3_result_null (ctx);
-}
-
-static void
-get_service_id (sqlite3_context *ctx, int argc, sqlite3_value **argv)
-{
-    AgManagerPrivate *priv;
-
-    priv = sqlite3_user_data (ctx);
-    sqlite3_result_int64 (ctx, priv->last_service_id);
 }
 
 static void
@@ -562,15 +563,9 @@ get_account_id (sqlite3_context *ctx, int argc, sqlite3_value **argv)
 static void
 create_functions (AgManagerPrivate *priv)
 {
-    sqlite3_create_function (priv->db, "set_last_rowid_as_service_id", 1,
-                             SQLITE_ANY, priv,
-                             set_last_rowid_as_service_id, NULL, NULL);
     sqlite3_create_function (priv->db, "set_last_rowid_as_account_id", 0,
                              SQLITE_ANY, priv,
                              set_last_rowid_as_account_id, NULL, NULL);
-    sqlite3_create_function (priv->db, "service_id", 0,
-                             SQLITE_ANY, priv,
-                             get_service_id, NULL, NULL);
     sqlite3_create_function (priv->db, "account_id", 0,
                              SQLITE_ANY, priv,
                              get_account_id, NULL, NULL);
@@ -1030,6 +1025,13 @@ ag_manager_get_service (AgManager *manager, const gchar *service_name)
     {
         /* The service is not in the DB: it must be loaded */
         service = _ag_service_new_from_file (service_name);
+
+        if (service && !add_service_to_db (manager, service))
+        {
+            g_warning ("Error in adding service %s to DB!", service_name);
+            ag_service_unref (service);
+            service = NULL;
+        }
     }
 
     if (G_UNLIKELY (!service)) return NULL;
