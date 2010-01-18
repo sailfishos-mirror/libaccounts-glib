@@ -628,7 +628,16 @@ open_db (AgManager *manager)
         "CREATE TRIGGER IF NOT EXISTS tg_delete_account "
             "BEFORE DELETE ON Accounts FOR EACH ROW BEGIN "
                 "DELETE FROM Settings WHERE account = OLD.id; "
-            "END;";
+            "END;"
+
+        "CREATE TABLE IF NOT EXISTS Signatures ("
+            "account INTEGER NOT NULL,"
+            "service INTEGER,"
+            "key TEXT NOT NULL,"
+            "signature TEXT NOT NULL,"
+            "token TEXT NOT NULL);"
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_signatures ON Signatures "
+           "(account, service, key);";
 
     error = NULL;
     ret = sqlite3_exec (priv->db, sql, NULL, NULL, &error);
