@@ -139,11 +139,11 @@ void ag_account_store (AgAccount *account, AgAccountStoreCb callback,
 
 gboolean ag_account_store_blocking (AgAccount *account, GError **error);
 
-void ag_account_sign (const gchar *key, const gchar *token);
+void ag_account_sign (AgAccount *account, const gchar *key, const gchar *token);
 
-gboolean ag_account_verify (const gchar *key, const gchar **token);
+gboolean ag_account_verify (AgAccount *account, const gchar *key, const gchar **token);
 
-gboolean ag_account_verify_with_tokens (const gchar *key, const gchar **tokens);
+gboolean ag_account_verify_with_tokens (AgAccount *account, const gchar *key, const gchar **tokens);
 
 /* Signon */
 /* TODO: depends on signon-glib */

@@ -68,6 +68,7 @@ typedef struct _AgServiceChanges {
     AgService *service; /* this is set only if the change came from this
                            instance */
     GHashTable *settings;
+    GHashTable *signatures;
 } AgServiceChanges;
 
 typedef struct _AgServiceSettings {
@@ -128,6 +129,11 @@ typedef struct {
     gint stage;
     gint idx2;
 } RealIter;
+
+typedef struct _AgSignature {
+    gchar *signature;
+    gchar *token;
+} AgSignature;
 
 #define AG_ITER_STAGE_UNSET     0
 #define AG_ITER_STAGE_ACCOUNT   1
@@ -289,6 +295,15 @@ ag_account_watch_int (AgAccount *account, gchar *key, gchar *prefix,
 }
 
 static gboolean
+got_account_signature (sqlite3_stmt *stmt, AgSignature *sgn)
+{
+    sgn->signature = g_strdup ((gchar *)sqlite3_column_text (stmt, 0));
+    sgn->token = g_strdup ((gchar *)sqlite3_column_text (stmt, 1));
+
+    return TRUE;
+}
+
+static gboolean
 got_account_setting (sqlite3_stmt *stmt, GHashTable *settings)
 {
     gchar *key;
@@ -386,6 +401,10 @@ static void
 ag_service_changes_free (AgServiceChanges *sc)
 {
     g_hash_table_unref (sc->settings);
+
+    if (sc->signatures)
+        g_hash_table_unref (sc->signatures);
+
     g_slice_free (AgServiceChanges, sc);
 }
 
@@ -578,8 +597,16 @@ account_changes_get (AgAccountPrivate *priv)
 }
 
 static void
-change_service_value (AgAccountPrivate *priv, AgService *service,
-                      const gchar *key, const GValue *value)
+_ag_signatures_slice_free (AgSignature *sgn)
+{
+    g_free (sgn->signature);
+    g_free (sgn->token);
+    g_slice_free (AgSignature, sgn);
+}
+
+static AgServiceChanges*
+account_service_changes_get (AgAccountPrivate *priv, AgService *service,
+                             gboolean create_signatures)
 {
     AgAccountChanges *changes;
     AgServiceChanges *sc;
@@ -595,10 +622,24 @@ change_service_value (AgAccountPrivate *priv, AgService *service,
         sc->service = service;
         sc->settings = g_hash_table_new_full
             (g_str_hash, g_str_equal,
-             g_free, (GDestroyNotify)_ag_value_slice_free);
+            g_free, (GDestroyNotify)_ag_value_slice_free);
         g_hash_table_insert (changes->services, service_name, sc);
     }
 
+    if (create_signatures && !sc->signatures)
+        sc->signatures = g_hash_table_new_full
+            (g_str_hash, g_str_equal,
+             g_free, (GDestroyNotify)_ag_signatures_slice_free);
+
+    return sc;
+}
+
+static void
+change_service_value (AgAccountPrivate *priv, AgService *service,
+                      const gchar *key, const GValue *value)
+{
+    AgServiceChanges *sc;
+    sc = account_service_changes_get (priv, service, FALSE);
     g_hash_table_insert (sc->settings,
                          g_strdup (key), _ag_value_slice_dup (value));
 }
@@ -921,6 +962,35 @@ error:
     return NULL;
 }
 
+static void
+ag_account_store_signature (AgAccount *account, AgServiceChanges *sc, GString *sql)
+{
+    AgAccountId account_id;
+    GHashTableIter i_signatures;
+    gint service_id;
+    gpointer ht_key, ht_value;
+
+    account_id = account->id;
+    service_id = (sc->service != NULL) ? sc->service->id : 0;
+
+    g_hash_table_iter_init (&i_signatures, sc->signatures);
+    while (g_hash_table_iter_next (&i_signatures, &ht_key, &ht_value))
+    {
+        const gchar *key = ht_key;
+        AgSignature *sgn = ht_value;
+
+        if (sgn)
+        {
+            _ag_string_append_printf
+                (sql,
+                 "INSERT OR REPLACE INTO Signatures"
+                 "(account, service, key, signature, token)"
+                 "VALUES (%d, %d, %Q, %Q, %Q);",
+                 account_id, service_id, key, sgn->signature, sgn->token);
+        }
+    }
+}
+
 static gchar *
 ag_account_get_store_sql (AgAccount *account, GError **error)
 {
@@ -1086,6 +1156,9 @@ ag_account_get_store_sql (AgAccount *account, GError **error)
                          account->id, service_id_str, key);
                 }
             }
+
+            if (sc->signatures)
+                ag_account_store_signature (account, sc, sql);
         }
     }
 
@@ -1765,6 +1838,90 @@ ag_account_store_blocking (AgAccount *account, GError **error)
     return TRUE;
 }
 
+static gboolean
+store_data (gpointer key, gpointer value, gpointer data)
+{
+    const gchar *str;
+    str = _ag_value_to_db ((GValue *)value);
+    g_string_append (data, (gchar *)key);
+    g_string_append (data, str);
+    return TRUE;
+}
+
+static gchar*
+signature_data (AgAccount *account, const gchar *key)
+{
+    GString *data;
+    AgServiceChanges *sc;
+    gboolean key_is_prefix = FALSE;
+
+    data = g_string_sized_new (512);
+    sc = account_service_changes_get (account->priv, account->priv->service, FALSE);
+
+    g_string_append (data, key);
+
+    if (g_str_has_suffix (key, "/"))
+        key_is_prefix = TRUE;
+
+    if (key_is_prefix)
+    {
+        AgAccountSettingIter iter;
+        const gchar *str;
+        const GValue *val;
+
+        GTree *tree;
+        tree = g_tree_new ((GCompareFunc)g_strcmp0);
+
+        ag_account_settings_iter_init (account, &iter, key);
+        while (ag_account_settings_iter_next (&iter, &str, &val))
+        {
+            g_tree_insert (tree, (gpointer)str, (gpointer)val);
+        }
+
+        if (sc->settings)
+        {
+            gpointer p_key, p_val;
+            GHashTableIter i_settings;
+            g_hash_table_iter_init (&i_settings, sc->settings);
+            while (g_hash_table_iter_next (&i_settings, &p_key, &p_val))
+            {
+                g_tree_insert (tree, p_key, p_val);
+            }
+        }
+
+        g_tree_foreach (tree, store_data, data);
+        g_tree_destroy (tree);
+    }
+    else
+    {
+        const gchar *val_str = NULL;
+
+        if (sc->settings)
+        {
+            gpointer value;
+            value = g_hash_table_lookup (sc->settings, key);
+            if (value)
+            {
+                val_str = _ag_value_to_db ((GValue *)value);
+                g_string_append (data, val_str);
+            }
+        }
+
+        if (!val_str)
+        {
+            GValue val = { 0 };
+
+            g_value_init (&val, G_TYPE_STRING);
+            ag_account_get_value (account, key, &val);
+            val_str = _ag_value_to_db (&val);
+            if (val_str)
+                g_string_append (data, val_str);
+            g_value_unset (&val);
+        }
+    }
+
+    return g_string_free (data, FALSE);
+}
 /**
  * ag_account_sign:
  * @key: the name of the key or prefix of the keys to be signed.
@@ -1772,10 +1929,33 @@ ag_account_store_blocking (AgAccount *account, GError **error)
  *
  * Creates signature of the @key with given @token. 
  */
-void 
-ag_account_sign (const gchar *key, const gchar *token)
+void
+ag_account_sign (AgAccount *account, const gchar *key, const gchar *token)
 {
-    /* TODO: depends on libmaemosec */
+    AgSignature *sgn;
+    AgAccountPrivate *priv;
+    AgServiceChanges *sc;
+    gchar *data;
+
+    g_return_if_fail (key != NULL);
+    g_return_if_fail (token != NULL);
+    g_return_if_fail (AG_IS_ACCOUNT (account));
+
+    data = signature_data (account, key);
+
+    g_return_if_fail (data != NULL);
+
+    /* TODO: sign data with token - depends on libmaemosec */
+
+    priv = account->priv;
+    sc = account_service_changes_get (priv, priv->service, TRUE);
+
+    sgn = g_slice_new (AgSignature);
+    sgn->signature = data; //signed_data;
+    sgn->token = g_strdup (token);
+
+    g_hash_table_insert (sc->signatures,
+                         g_strdup (key), sgn);
 }
 
 /**
@@ -1789,10 +1969,44 @@ ag_account_sign (const gchar *key, const gchar *token)
  * Returns: %TRUE if the key is signed and the signature matches 
  * the value.
  */
-gboolean 
-ag_account_verify (const gchar *key, const gchar **token)
+gboolean
+ag_account_verify (AgAccount *account, const gchar *key, const gchar **token)
 {
-    /* TODO: depends on libmaemosec */
+    AgAccountPrivate *priv;
+    AgServiceSettings *ss;
+    guint service_id;
+    gchar *data;
+    gchar *sql;
+    AgSignature *sgn;
+
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
+
+    priv = account->priv;
+
+    ss = get_service_settings (priv, priv->service, FALSE);
+    g_return_val_if_fail (ss != NULL, FALSE);
+
+    sgn = g_slice_new (AgSignature);
+    service_id = (priv->service != NULL) ? priv->service->id : 0;
+
+    GString *sql_str;
+    sql_str = g_string_sized_new (512);
+    _ag_string_append_printf (sql_str,
+                              "SELECT signature, token FROM Signatures "
+                              "WHERE account = %u AND service = %u AND key = %Q",
+                              account->id, service_id, key);
+    sql = g_string_free (sql_str, FALSE);
+    _ag_manager_exec_query (priv->manager,
+                            (AgQueryCallback)got_account_signature,
+                            sgn, sql);
+
+    data = signature_data(account, key);
+
+    /* TODO: verify data with sgn->signature - depends on libmaemosec */
+
+    g_free (data);
+
+    /* temporary solution */
     *token = "token";
     return TRUE;
 }
@@ -1808,14 +2022,16 @@ ag_account_verify (const gchar *key, const gchar **token)
  * Returns: %TRUE if the key is signed with any of the given token
  * and the signature is valid.  
  */
-gboolean 
-ag_account_verify_with_tokens (const gchar *key, const gchar **tokens)
+gboolean
+ag_account_verify_with_tokens (AgAccount *account, const gchar *key, const gchar **tokens)
 {
+    g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
+
     const gchar *tmp_token = NULL;
 
     g_return_val_if_fail (tokens != NULL, FALSE);
 
-    if (ag_account_verify (key, &tmp_token))
+    if (ag_account_verify (account, key, &tmp_token))
     {
         g_return_val_if_fail (tmp_token != NULL, FALSE);
 
@@ -1828,6 +2044,6 @@ ag_account_verify_with_tokens (const gchar *key, const gchar **tokens)
             tokens++;
         }
     }
-    
+
     return FALSE;
 }
