@@ -1,3 +1,10 @@
+libaccounts-glib (0.20-1) unstable; urgency=low
+
+  * Fixes: NB#152048 - Allow more than one manager instance per process.
+  * Partial implementation of key sign/verify.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 18 Jan 2010 14:01:37 +0200
+
 libaccounts-glib (0.19-1) unstable; urgency=low
 
   * Fixes: NB#151765 - libaccounts-glib does not build with new toolchain 
