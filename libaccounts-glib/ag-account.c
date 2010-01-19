@@ -618,7 +618,7 @@ account_service_changes_get (AgAccountPrivate *priv, AgService *service,
     sc = g_hash_table_lookup (changes->services, service_name);
     if (!sc)
     {
-        sc = g_slice_new (AgServiceChanges);
+        sc = g_slice_new0 (AgServiceChanges);
         sc->service = service;
         sc->settings = g_hash_table_new_full
             (g_str_hash, g_str_equal,
