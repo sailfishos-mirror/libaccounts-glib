@@ -1,3 +1,9 @@
+libaccounts-glib (0.21-1) unstable; urgency=low
+
+  * Fix a possible crash when storing the account.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Tue, 19 Jan 2010 10:20:45 +0200
+
 libaccounts-glib (0.20-1) unstable; urgency=low
 
   * Fixes: NB#152048 - Allow more than one manager instance per process.
