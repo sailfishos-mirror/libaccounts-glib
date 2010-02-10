@@ -28,7 +28,7 @@
  * @short_description: A representation of an account.
  *
  * An #AgAccount is an object which represents an account. It provides a
- * method for enabling/disabling the account and methods for editing the 
+ * method for enabling/disabling the account and methods for editing the
  * account settings.
  */
 
@@ -483,19 +483,6 @@ update_settings (AgAccount *account, GHashTable *services)
         while (g_hash_table_iter_next (&si,
                                        (gpointer)&key, (gpointer)&value))
         {
-            /* some keys are special */
-            if (strcmp (key, "enabled") == 0)
-            {
-                gboolean enabled;
-                enabled = value ? g_value_get_boolean (value) : FALSE;
-                g_signal_emit (account, signals[ENABLED], 0,
-                               service_name, enabled);
-                if (ss->service == NULL)
-                {
-                    priv->enabled = enabled;
-                    continue;
-                }
-            }
             if (ss->service == NULL)
             {
                 if (strcmp (key, "name") == 0)
@@ -504,6 +491,14 @@ update_settings (AgAccount *account, GHashTable *services)
                     priv->display_name =
                         value ? g_value_dup_string (value) : NULL;
                     g_signal_emit (account, signals[DISPLAY_NAME_CHANGED], 0);
+                    continue;
+                }
+                else if (strcmp (key, "enabled") == 0)
+                {
+                    priv->enabled =
+                        value ? g_value_get_boolean (value) : FALSE;
+                    g_signal_emit (account, signals[ENABLED], 0,
+                                   service_name, priv->enabled);
                     continue;
                 }
             }
@@ -522,6 +517,14 @@ update_settings (AgAccount *account, GHashTable *services)
             if (watches)
                 watch_list = match_watch_with_key (account, watches, key,
                                                    watch_list);
+
+            if (strcmp (key, "enabled") == 0)
+            {
+                gboolean enabled =
+                    value ? g_value_get_boolean (value) : FALSE;
+                g_signal_emit (account, signals[ENABLED], 0,
+                               service_name, enabled);
+            }
         }
     }
 
@@ -1150,7 +1153,7 @@ ag_account_get_store_sql (AgAccount *account, GError **error)
  * @account: the #AgAccount.
  *
  * Returns: a #gboolean which tells whether @account supports the service type
- * @service_type. 
+ * @service_type.
  */
 gboolean
 ag_account_supports_service (AgAccount *account, const gchar *service_type)
@@ -1443,7 +1446,7 @@ ag_account_delete (AgAccount *account)
  * @account: the #AgAccount.
  * @key: the name of the setting to retrieve.
  * @value: an initialized #GValue to receive the setting's value.
- * 
+ *
  * Gets the value of the configuration setting @key: @value must be a
  * #GValue initialized to the type of the setting.
  *
@@ -1907,7 +1910,7 @@ signature_data (AgAccount *account, const gchar *key)
  * @key: the name of the key or prefix of the keys to be signed.
  * @token: token for creating signature.
  *
- * Creates signature of the @key with given @token. 
+ * Creates signature of the @key with given @token.
  */
 void
 ag_account_sign (AgAccount *account, const gchar *key, const gchar *token)
@@ -1946,7 +1949,7 @@ ag_account_sign (AgAccount *account, const gchar *key, const gchar *token)
  * Verify if the key is signed and the signature matches the value
  * and provides the token which was used for signing the @key.
  *
- * Returns: %TRUE if the key is signed and the signature matches 
+ * Returns: %TRUE if the key is signed and the signature matches
  * the value.
  */
 gboolean
@@ -2000,7 +2003,7 @@ ag_account_verify (AgAccount *account, const gchar *key, const gchar **token)
  * and the signature is valid.
  *
  * Returns: %TRUE if the key is signed with any of the given token
- * and the signature is valid.  
+ * and the signature is valid.
  */
 gboolean
 ag_account_verify_with_tokens (AgAccount *account, const gchar *key, const gchar **tokens)

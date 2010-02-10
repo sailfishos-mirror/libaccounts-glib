@@ -1045,7 +1045,7 @@ on_enabled (AgAccount *account, const gchar *service, gboolean enabled,
 {
     ecd->called = TRUE;
     ecd->service = g_strdup (service);
-    ecd->enabled = enabled;
+    ecd->enabled = ( ag_account_get_enabled (account) == enabled );
 }
 
 START_TEST(test_concurrency)
@@ -1607,6 +1607,42 @@ START_TEST(test_serviceid_regression)
 }
 END_TEST
 
+static void
+check_enabled (AgAccount *account, const gchar *service, gboolean enabled,
+               gboolean *check)
+{
+    *check = ( ag_account_get_enabled(account) == enabled );
+}
+
+START_TEST(test_enabled_regression)
+{
+    gboolean check = FALSE;
+
+    g_type_init();
+
+    manager = ag_manager_new ();
+    account = ag_manager_create_account (manager, PROVIDER);
+
+    fail_unless (account != NULL);
+
+    g_signal_connect (account, "enabled",
+                      G_CALLBACK (check_enabled),
+                      &check);
+
+    ag_account_set_enabled (account, TRUE);
+    ag_account_store (account, NULL, TEST_STRING);
+
+    fail_unless (check, "Settings are not updated!");
+
+    ag_account_set_enabled (account, FALSE);
+    ag_account_store (account, NULL, TEST_STRING);
+
+    fail_unless (check, "Settings are not updated!");
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -1638,6 +1674,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_sign_verify_key);
     tcase_add_test (tc_create, test_cache_regression);
     tcase_add_test (tc_create, test_serviceid_regression);
+    tcase_add_test (tc_create, test_enabled_regression);
 
     tcase_set_timeout (tc_create, 10);
 
