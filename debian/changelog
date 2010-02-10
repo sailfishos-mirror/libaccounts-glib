@@ -1,3 +1,9 @@
+libaccounts-glib (0.22-1) unstable; urgency=low
+
+  * Fixes: NB#155159 -  Account signals are emitted before the account data is updated
+
+ -- Alexander Akimov <ext-alexander.akimov@nokia.com>  Wed, 10 Feb 2010 10:20:45 +0200
+ 
 libaccounts-glib (0.21-1) unstable; urgency=low
 
   * Fix a possible crash when storing the account.
