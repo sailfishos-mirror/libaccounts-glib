@@ -1,4 +1,4 @@
-libaccounts-glib (0.22-1) unstable; urgency=low
+libaccounts-glib (0.22.1) unstable; urgency=low
 
   * Fixes: NB#155159 -  Account signals are emitted before the account data is updated
 
