@@ -39,7 +39,7 @@ Description: Documentation for the OSSO Accounts library
 
 Package: libaccounts-glib0-test
 Architecture: any
-Depends: ${shlibs:Depends}, ci-testing
+Depends: libaccounts-glib0, ci-testing
 XB-Maemo-CI-Packages: libaccounts-glib0
 XB-Maemo-CI-Stage: staging, acceptance
 Description: Tests for accounts-glib
