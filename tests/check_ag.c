@@ -1067,7 +1067,7 @@ START_TEST(test_concurrency)
                       G_CALLBACK (on_account_created), &account_id);
 
     account_id = 0;
-    system ("./test-process create myprovider MyAccountName");
+    system ("test-process create myprovider MyAccountName");
 
     main_loop = g_main_loop_new (NULL, FALSE);
     source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
@@ -1093,7 +1093,7 @@ START_TEST(test_concurrency)
     /* check deletion */
     g_signal_connect (manager, "account-deleted",
                       G_CALLBACK (on_account_deleted), &account_id);
-    sprintf (command, "./test-process delete %d", account_id);
+    sprintf (command, "test-process delete %d", account_id);
     system (command);
 
     source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
@@ -1104,7 +1104,7 @@ START_TEST(test_concurrency)
     fail_unless (account_id == 0, "Account still alive");
 
     /* check a more complex creation */
-    system ("./test-process create2 myprovider MyAccountName");
+    system ("test-process create2 myprovider MyAccountName");
 
     source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
     g_main_loop_run (main_loop);
@@ -1177,7 +1177,7 @@ START_TEST(test_concurrency)
     memset (&ecd, 0, sizeof (ecd));
 
     /* make changes remotely */
-    sprintf (command, "./test-process change %d", account_id);
+    sprintf (command, "test-process change %d", account_id);
     system (command);
 
     source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
@@ -1367,7 +1367,7 @@ START_TEST(test_blocking)
 
     timeout_ms = 2000;
 
-    sprintf (command, "./test-process lock_db %d %s &",
+    sprintf (command, "test-process lock_db %d %s &",
              timeout_ms, lock_filename);
     system (command);
 
