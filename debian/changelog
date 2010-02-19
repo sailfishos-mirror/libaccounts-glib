@@ -1,3 +1,11 @@
+libaccounts-glib (0.23) unstable; urgency=low
+
+  * Update copyright notice
+  * Remove absolute pathname for test executable.
+  * Correct dependencies of test package
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Fri, 19 Feb 2010 12:44:32 +0200
+
 libaccounts-glib (0.22.1) unstable; urgency=low
 
   * Fixes: NB#155159 -  Account signals are emitted before the account data is updated
