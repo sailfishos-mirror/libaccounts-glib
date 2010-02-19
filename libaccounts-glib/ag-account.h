@@ -3,7 +3,7 @@
 /*
  * This file is part of libaccounts-glib
  *
- * Copyright (C) 2009 Nokia Corporation.
+ * Copyright (C) 2009-2010 Nokia Corporation.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
  *
