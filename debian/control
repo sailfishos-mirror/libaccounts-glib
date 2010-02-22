@@ -1,4 +1,5 @@
 Source: libaccounts-glib
+Section: libs
 Priority: optional
 Maintainer: Alberto Mardegan <alberto-mardegan@nokia.com>
 Build-Depends: debhelper (>= 4.1.0), cdbs, gtk-doc-tools, libglib2.0-dev, libsqlite3-dev, check, libdbus-1-dev, libdbus-glib-1-dev, libxml2-dev
