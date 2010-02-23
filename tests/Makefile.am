@@ -24,7 +24,7 @@ TESTS_ENVIRONMENT = ACCOUNTS=/tmp/ AG_SERVICES=$(top_srcdir)/tests/ \
 		    AG_PROVIDERS=$(top_srcdir)/tests/
 TESTS = accounts-glib-testsuite
 
-testdata_DATA = test.xml MyProvider.provider MyService.service OtherService.service
+testdata_DATA = tests.xml MyProvider.provider MyService.service OtherService.service
 
 EXTRA_DIST = \
 	MyProvider.provider \
