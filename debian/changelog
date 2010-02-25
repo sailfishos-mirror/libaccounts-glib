@@ -1,3 +1,9 @@
+libaccounts-glib (0.25) unstable; urgency=low
+
+  * Make test package recognized by the test framework.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Thu, 25 Feb 2010 10:27:31 +0200
+
 libaccounts-glib (0.24) unstable; urgency=low
 
   * Add section to source package
