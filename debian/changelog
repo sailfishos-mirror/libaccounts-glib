@@ -1,3 +1,9 @@
+libaccounts-glib (0.26) unstable; urgency=low
+
+  * Fixes: NB#157686 - Account IDs are reused.
+
+ -- Aurel Popirtac <ext-aurel.popirtac@nokia.com>  Mon, 01 Mar 2010 10:27:31 +0200
+
 libaccounts-glib (0.25) unstable; urgency=low
 
   * Make test package recognized by the test framework.

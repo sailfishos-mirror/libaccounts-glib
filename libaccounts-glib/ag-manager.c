@@ -602,13 +602,13 @@ open_db (AgManager *manager)
 
     sql = ""
         "CREATE TABLE IF NOT EXISTS Accounts ("
-            "id INTEGER PRIMARY KEY,"
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "name TEXT,"
             "provider TEXT,"
             "enabled INTEGER);"
 
         "CREATE TABLE IF NOT EXISTS Services ("
-            "id INTEGER PRIMARY KEY,"
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "name TEXT NOT NULL UNIQUE,"
             "display TEXT NOT NULL,"
             /* following fields are included for performance reasons */
