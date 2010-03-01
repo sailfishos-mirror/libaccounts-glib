@@ -199,8 +199,7 @@ parse_service (xmlTextReaderPtr reader, AgService *service)
             }
             else if (strcmp (name, "icon") == 0)
             {
-                /* TODO: Store icon name somewhere */
-                ok = _ag_xml_get_element_data (reader, NULL);
+                ok = _ag_xml_dup_element_data (reader, &service->icon_name);
             }
             else if (strcmp (name, "template") == 0)
             {
@@ -460,6 +459,21 @@ ag_service_get_provider (AgService *service)
     g_return_val_if_fail (service != NULL, NULL);
     return service->provider;
 }
+
+/**
+ * ag_service_get_icon_name:
+ * @service: the #AgService.
+ *
+ * Returns: the name of the icon of @service.
+ */
+const gchar *
+ag_service_get_icon_name (AgService *service)
+{
+    g_return_val_if_fail (service != NULL, NULL);
+    return service->icon_name;
+}
+
+
 
 /**
  * ag_service_get_file_contents:

@@ -309,7 +309,7 @@ START_TEST(test_service)
     GValue value = { 0 };
     AgService *service2;
     AgAccountId account_id;
-    const gchar *provider_name, *service_type, *service_name;
+    const gchar *provider_name, *service_type, *service_name, *icon_name;
     const gchar *description = "This is really a beautiful account";
     const gchar *username = "me@myhome.com";
     const gint interval = 30;
@@ -344,6 +344,10 @@ START_TEST(test_service)
     service_name = ag_service_get_display_name (service);
     fail_unless (strcmp (service_name, "My Service") == 0,
                  "Wrong service display name: %s", service_name);
+
+    icon_name = ag_service_get_icon_name (service);
+    fail_unless (strcmp (service_name, "general_myservice") == 0,
+                 "Wrong service icon name: %s", icon_name);
 
     ag_account_set_enabled (account, FALSE);
     ag_account_set_display_name (account, display_name);

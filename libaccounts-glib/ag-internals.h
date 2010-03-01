@@ -82,6 +82,7 @@ struct _AgService {
     gchar *display_name;
     gchar *type;
     gchar *provider;
+    gchar *icon_name;
     gchar *file_data;
     gsize type_data_offset;
     gint id;
