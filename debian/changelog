@@ -1,6 +1,7 @@
 libaccounts-glib (0.26) unstable; urgency=low
 
   * Fixes: NB#157686 - Account IDs are reused.
+  * Fixes: NB#156022 - Icons needed for account and service (libaccount-qt)
 
  -- Aurel Popirtac <ext-aurel.popirtac@nokia.com>  Mon, 01 Mar 2010 10:27:31 +0200
 
