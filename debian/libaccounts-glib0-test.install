@@ -1,0 +1,6 @@
+usr/bin/accounts-glib-test.sh
+usr/bin/accounts-glib-testsuite
+usr/bin/test-process
+usr/share/libaccounts-glib0-test/tests.xml
+usr/share/libaccounts-glib0-test/*.provider
+usr/share/libaccounts-glib0-test/*.service

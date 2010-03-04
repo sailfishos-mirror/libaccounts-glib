@@ -1,0 +1,209 @@
+libaccounts-glib (0.26) unstable; urgency=low
+
+  * Fixes: NB#157686 - Account IDs are reused.
+  * Fixes: NB#156022 - Icons needed for account and service (libaccount-qt)
+
+ -- Aurel Popirtac <ext-aurel.popirtac@nokia.com>  Mon, 01 Mar 2010 10:27:31 +0200
+
+libaccounts-glib (0.25) unstable; urgency=low
+
+  * Make test package recognized by the test framework.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Thu, 25 Feb 2010 10:27:31 +0200
+
+libaccounts-glib (0.24) unstable; urgency=low
+
+  * Add section to source package
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 22 Feb 2010 15:49:12 +0200
+
+libaccounts-glib (0.23) unstable; urgency=low
+
+  * Update copyright notice
+  * Remove absolute pathname for test executable.
+  * Correct dependencies of test package
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Fri, 19 Feb 2010 12:44:32 +0200
+
+libaccounts-glib (0.22.1) unstable; urgency=low
+
+  * Fixes: NB#155159 -  Account signals are emitted before the account data is updated
+
+ -- Alexander Akimov <ext-alexander.akimov@nokia.com>  Wed, 10 Feb 2010 10:20:45 +0200
+ 
+libaccounts-glib (0.21-1) unstable; urgency=low
+
+  * Fix a possible crash when storing the account.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Tue, 19 Jan 2010 10:20:45 +0200
+
+libaccounts-glib (0.20-1) unstable; urgency=low
+
+  * Fixes: NB#152048 - Allow more than one manager instance per process.
+  * Partial implementation of key sign/verify.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 18 Jan 2010 14:01:37 +0200
+
+libaccounts-glib (0.19-1) unstable; urgency=low
+
+  * Fixes: NB#151765 - libaccounts-glib does not build with new toolchain 
+  * Fixes: NB#151538 - Deleted accounts are still returned by manager.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 23 Dec 2009 13:39:51 +0200
+
+libaccounts-glib (0.18-2) unstable; urgency=low
+
+  * Add test for sign/verify the key
+
+ -- Radek Zielonka <ext-radek.zielonka@nokia.com>  Tue, 15 Dec 2009 13:40:53 +0200
+
+libaccounts-glib (0.18-1) unstable; urgency=low
+
+  * Add signing and verifying of the key
+
+ -- Radek Zielonka <ext-radek.zielonka@nokia.com>  Mon, 14 Dec 2009 10:40:05 +0200
+
+libaccounts-glib (0.17-1) unstable; urgency=low
+
+  * Fix service disappearing on account removal.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Tue, 10 Nov 2009 09:24:47 +0200
+
+libaccounts-glib (0.16-1) unstable; urgency=low
+
+  * Fix loading of service files.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon,  9 Nov 2009 12:35:28 +0200
+
+libaccounts-glib (0.15-1) unstable; urgency=low
+
+  * Add blocking API for storing account settings.
+
+  * Add support for 64bit integer data.
+
+  * Minor bugfixes.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Thu,  5 Nov 2009 10:32:05 +0200
+
+libaccounts-glib (0.14-1) unstable; urgency=low
+
+  * Add APIs for listing and loading provider XML files.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 21 Sep 2009 14:19:43 +0300
+
+libaccounts-glib (0.13-1) unstable; urgency=low
+
+  * Allow caller to get the full contents of the service XML file.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 16 Sep 2009 12:16:03 +0300
+
+libaccounts-glib (0.12-1) unstable; urgency=low
+
+  * Implement inter-process change notifications via D-Bus.
+
+  * Change copyright headers to LGPL.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Fri,  4 Sep 2009 15:04:21 +0300
+
+libaccounts-glib (0.11-1) unstable; urgency=low
+
+  * Add an API to let clients access the service XML data.
+
+  * Implement the account services methods.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Tue, 18 Aug 2009 12:41:05 +0300
+
+libaccounts-glib (0.10-1) unstable; urgency=low
+
+  * Implement account watches.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Tue,  4 Aug 2009 15:37:15 +0300
+
+libaccounts-glib (0.9-1) unstable; urgency=low
+
+  * Add Manager:account-deleted signal.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Thu,  9 Jul 2009 16:08:10 +0300
+
+libaccounts-glib (0.8-1) unstable; urgency=low
+
+  * API break: remove ag_manager_service_list() macro, and substitute it with
+    the ag_service_list_free() function.
+
+  * Implement account deletion.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Fri, 26 Jun 2009 10:51:01 +0300
+
+libaccounts-glib (0.7-1) unstable; urgency=low
+
+  * Add APIs for listing services.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Tue, 23 Jun 2009 13:34:29 +0300
+
+libaccounts-glib (0.6-1) unstable; urgency=low
+
+  * Implement enumeration of settings.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Thu, 18 Jun 2009 16:20:48 +0300
+
+libaccounts-glib (0.5-2) unstable; urgency=low
+
+  * Fix debian dependencies. 
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 17 Jun 2009 15:59:45 +0300
+
+libaccounts-glib (0.5-1) unstable; urgency=low
+
+  * Implement loading of services XML files, and using their default settings
+    as a fallback for missing account settings.
+
+  * Implement account listing.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 10 Jun 2009 14:46:39 +0300
+
+libaccounts-glib (0.4-1) unstable; urgency=low
+
+  * Implement get/set value on account.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed,  3 Jun 2009 09:45:36 +0300
+
+libaccounts-glib (0.3-1) unstable; urgency=low
+
+  * Add basic functionality to write to the DB.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 27 May 2009 12:00:32 +0300
+
+libaccounts-glib (0.2-3) unstable; urgency=low
+
+  * Add SGML docs index. 
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 20 May 2009 11:02:30 +0300
+
+libaccounts-glib (0.2-2) unstable; urgency=low
+
+  * Add missing check dependency. 
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 20 May 2009 09:31:11 +0300
+
+libaccounts-glib (0.2-1) unstable; urgency=low
+
+  * Add unit test framework.
+
+  * Add create/delete signals and methods for accounts. 
+
+  * Use an integer as unique identifier for accounts.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Wed, 20 May 2009 08:29:50 +0300
+
+libaccounts-glib (0.1-2) unstable; urgency=low
+
+  * Adding glib build-dependency. 
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 11 May 2009 11:11:59 +0300
+
+libaccounts-glib (0.1-1) unstable; urgency=low
+
+  * First release
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 27 Apr 2009 11:46:24 +0300
+
