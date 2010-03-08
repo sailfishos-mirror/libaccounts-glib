@@ -21,7 +21,8 @@ depcomp
 *.la
 *.stamp
 /docs/reference/html/
-/docs/reference/libaccounts-glib*
+/docs/reference/libaccounts-glib*txt
+/docs/reference/libaccounts-glib.*
 /docs/reference/tmpl/
 /docs/reference/xml/
 gtk-doc.make
