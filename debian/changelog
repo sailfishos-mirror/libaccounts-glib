@@ -1,3 +1,10 @@
+libaccounts-glib (0.27) unstable; urgency=low
+
+  * Fix defects reported by Coverity.
+  * Fix test cases.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon,  8 Mar 2010 14:04:50 +0200
+
 libaccounts-glib (0.26) unstable; urgency=low
 
   * Fixes: NB#157686 - Account IDs are reused.
