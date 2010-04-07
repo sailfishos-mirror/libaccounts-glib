@@ -1,3 +1,9 @@
+libaccounts-glib (0.29) unstable; urgency=low
+
+  * Fixes: NB#162814 - Invalid read error in libaccounts-glib-0.28+0m6
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon,  7 Apr 2010 10:33:18 +0200
+
 libaccounts-glib (0.28) unstable; urgency=low
 
   * Add gtk-doc missing file. 
