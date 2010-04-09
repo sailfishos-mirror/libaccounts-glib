@@ -1,3 +1,12 @@
+libaccounts-glib (0.30) unstable; urgency=low
+
+  * Fixes: NB#161715 - <MemLeak> valgrind leaks in libaccounts-glib-0.28+0m6
+  * Fixes: NB#162667 - <MemLeak> more valgrind leaks in libaccounts-glib-0.28+0m6
+  * Fixes: NB#163169 - <MemLeak> leaks in libaccounts-glib-0.28+0m6
+  * Fixes: NB#163546 - <MemLeak> leaks in libaccounts-glib-0.28+0m6 ag-account.c
+  
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon,  9 Apr 2010 10:33:18 +0200
+
 libaccounts-glib (0.29) unstable; urgency=low
 
   * Fixes: NB#162814 - Invalid read error in libaccounts-glib-0.28+0m6
