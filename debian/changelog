@@ -1,3 +1,11 @@
+libaccounts-glib (0.31-1) unstable; urgency=low
+
+  * Fixes: NB#162670 - test crashing in scratchbox
+  * Add AgManager::enabled-event and functionality to list enabled services by
+    service type.
+
+ -- Radek Zielonka <ext-radek.zielonka@nokia.com>  Mon, 19 Apr 2010 12:10:37 +0300
+
 libaccounts-glib (0.30) unstable; urgency=low
 
   * Fixes: NB#161715 - <MemLeak> valgrind leaks in libaccounts-glib-0.28+0m6
