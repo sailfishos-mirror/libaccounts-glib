@@ -1,3 +1,9 @@
+libaccounts-glib (0.32-1) unstable; urgency=low
+
+  * Fixes: NB#164834 - crashing when unref AgServiceChanges 
+
+ -- Radek Zielonka <ext-radek.zielonka@nokia.com>  Thu, 22 Apr 2010 13:09:20 +0300
+
 libaccounts-glib (0.31-1) unstable; urgency=low
 
   * Fixes: NB#162670 - test crashing in scratchbox
