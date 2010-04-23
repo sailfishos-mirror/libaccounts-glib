@@ -1,3 +1,9 @@
+libaccounts-glib (0.33-1) unstable; urgency=low
+
+  * Fixes: NB#162667 - <MemLeak> more valgrind leaks in libaccounts-glib-0.28+0m6
+
+ -- Tomi Suviola <tomi.suviola@nokia.com>  Fri, 22 Apr 2010 15:09:20 +0300
+
 libaccounts-glib (0.32-1) unstable; urgency=low
 
   * Fixes: NB#164834 - crashing when unref AgServiceChanges 
