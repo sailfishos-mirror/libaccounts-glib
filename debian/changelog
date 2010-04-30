@@ -1,3 +1,9 @@
+libaccounts-glib (0.34-1) unstable; urgency=low
+
+  * Fixes: NB#166052 - Manager creation fails if DB is locked.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Fri, 30 Apr 2010 15:13:59 +0300
+
 libaccounts-glib (0.33-1) unstable; urgency=low
 
   * Fixes: NB#162667 - <MemLeak> more valgrind leaks in libaccounts-glib-0.28+0m6
