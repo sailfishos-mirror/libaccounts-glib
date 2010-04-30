@@ -63,6 +63,15 @@ typedef struct {
     gboolean enabled;
 } EnabledCbData;
 
+static guint
+time_diff(struct timespec *start_time, struct timespec *end_time)
+{
+    struct timespec diff_time;
+    diff_time.tv_sec = end_time->tv_sec - start_time->tv_sec;
+    diff_time.tv_nsec = end_time->tv_nsec - start_time->tv_nsec;
+    return diff_time.tv_sec * 1000 + diff_time.tv_nsec / 1000000;
+}
+
 static void
 end_test ()
 {
@@ -1338,7 +1347,7 @@ START_TEST(test_blocking)
     gint timeout_ms, block_ms;
     GError *error = NULL;
     gboolean ok;
-    struct timespec start_time, end_time, diff_time;
+    struct timespec start_time, end_time;
     gint fd;
 
     g_type_init ();
@@ -1369,7 +1378,7 @@ START_TEST(test_blocking)
     lock_filename = "/tmp/check_ag.lock";
     fd = open (lock_filename, O_CREAT | O_RDWR, 0666);
 
-    timeout_ms = 2000;
+    timeout_ms = MAX_SQLITE_BUSY_LOOP_TIME_MS;
 
     sprintf (command, "test-process lock_db %d %s &",
              timeout_ms, lock_filename);
@@ -1391,11 +1400,8 @@ START_TEST(test_blocking)
     fail_unless (g_strcmp0 (display_name, "Want to change") == 0);
 
     /* make sure that we have been waiting for a reasonable time */
-    diff_time.tv_sec = end_time.tv_sec - start_time.tv_sec;
-    diff_time.tv_nsec = end_time.tv_nsec - start_time.tv_nsec;
-    block_ms = diff_time.tv_sec * 1000 + diff_time.tv_nsec / 1000000;
-    g_debug ("Been blocking for %ld.%ld secs (%u ms)",
-             diff_time.tv_sec, diff_time.tv_nsec, block_ms);
+    block_ms = time_diff(&start_time, &end_time);
+    g_debug ("Been blocking for %u ms", block_ms);
 
     fail_unless (block_ms > timeout_ms - 100);
 
@@ -1692,7 +1698,7 @@ START_TEST(test_manager_new_for_service_type)
 
     list = ag_manager_list_enabled_by_service_type (manager, "e-mail");
     fail_unless (g_list_length (list) == 1);
-    fail_unless (account1->id == list->data);
+    fail_unless (account1->id == GPOINTER_TO_INT(list->data));
 
     /* clear up */
     ag_service_unref (service1);
@@ -1777,10 +1783,9 @@ END_TEST
 
 START_TEST(test_account_list_enabled_services)
 {
-    GList *services, *list;
+    GList *services;
     gint n_services;
     AgService *service1, *service2;
-    const gchar *name;
 
     g_type_init ();
 
@@ -1843,6 +1848,60 @@ START_TEST(test_account_list_enabled_services)
 }
 END_TEST
 
+START_TEST(test_open_locked)
+{
+    const gchar *lock_filename;
+    gchar command[512];
+    gint timeout_ms;
+    struct timespec start_time, end_time;
+    gint fd;
+
+    g_type_init ();
+
+    /* first, create a lock file to synchronize the test */
+    lock_filename = "/tmp/check_ag.lock";
+    fd = open (lock_filename, O_CREAT | O_RDWR, 0666);
+
+    /* this timeout is initialized so that the first manager instantation
+     * will fail, and the second one will succeed */
+    timeout_ms =
+        MAX_SQLITE_BUSY_LOOP_TIME_MS + MAX_SQLITE_BUSY_LOOP_TIME_MS / 2;
+
+    sprintf (command, "test-process lock_db %d %s &",
+             timeout_ms, lock_filename);
+    system (command);
+
+    /* wait till the file is locked */
+    while (lockf (fd, F_TEST, 0) == 0)
+        sched_yield ();
+
+    /* now the DB is locked; instantiate the manager; this should block
+     * until the timeout (2 seconds) is expired, and then fail */
+
+    clock_gettime (CLOCK_MONOTONIC, &start_time);
+    manager = ag_manager_new ();
+    clock_gettime (CLOCK_MONOTONIC, &end_time);
+
+    /* we expect a failure */
+    g_debug ("%u ms elapsed while creating the manager",
+             time_diff (&start_time, &end_time));
+    fail_unless (manager == NULL,
+                 "Manager created despite the DB being locked");
+
+    /* try again: now after some time it should succeed */
+    clock_gettime (CLOCK_MONOTONIC, &start_time);
+    manager = ag_manager_new ();
+    clock_gettime (CLOCK_MONOTONIC, &end_time);
+
+    /* we expect a failure */
+    g_debug ("%u ms elapsed while creating the manager",
+             time_diff (&start_time, &end_time));
+    fail_unless (manager != NULL);
+
+    end_test ();
+}
+END_TEST
+
 Suite *
 ag_suite(void)
 {
@@ -1878,6 +1937,7 @@ ag_suite(void)
     tcase_add_test (tc_create, test_manager_new_for_service_type);
     tcase_add_test (tc_create, test_manager_enabled_event);
     tcase_add_test (tc_create, test_account_list_enabled_services);
+    tcase_add_test (tc_create, test_open_locked);
 
     tcase_set_timeout (tc_create, 10);
 

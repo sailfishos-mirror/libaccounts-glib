@@ -38,8 +38,7 @@
 #include <sched.h>
 #include <sqlite3.h>
 #include <string.h>
-
-#define MAX_SQLITE_BUSY_LOOP_TIME 2
+#include <unistd.h>
 
 enum
 {
@@ -680,6 +679,21 @@ open_db (AgManager *manager)
 
     error = NULL;
     ret = sqlite3_exec (priv->db, sql, NULL, NULL, &error);
+    if (ret == SQLITE_BUSY)
+    {
+        guint t;
+        for (t = 5; t < MAX_SQLITE_BUSY_LOOP_TIME_MS; t *= 2)
+        {
+            g_debug ("Database locked, retrying...");
+            sched_yield ();
+            g_assert(error != NULL);
+            sqlite3_free (error);
+            ret = sqlite3_exec (priv->db, sql, NULL, NULL, &error);
+            if (ret != SQLITE_BUSY) break;
+            usleep(t * 1000);
+        }
+    }
+
     if (ret != SQLITE_OK)
     {
         g_warning ("Error initializing DB: %s", error);
@@ -1432,8 +1446,8 @@ _ag_manager_exec_query (AgManager *manager,
                 }
 
             default:
-                g_debug ("%s: runtime error while executing \"%s\": %s",
-                         G_STRFUNC, sql, sqlite3_errmsg (db));
+                g_warning ("%s: runtime error while executing \"%s\": %s",
+                           G_STRFUNC, sql, sqlite3_errmsg (db));
                 sqlite3_finalize (stmt);
                 return rows;
         }
