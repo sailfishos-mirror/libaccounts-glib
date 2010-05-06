@@ -10,6 +10,9 @@ backupconfdir = ${prefix}/share/backup-framework/applications
 backupconf_in_files = accounts.conf.in 
 backupconf_DATA= accounts.conf
 
+backuprestore_SCRIPTS = accounts-restore accounts-backup
+backuprestoredir = ${prefix}/share/accounts
+
 EXTRA_DIST = $(libaccountsdoc_DATA) $(backupconf_DATA)
 
 $(backupconf_DATA): $(backupconf_in_files) 
