@@ -1,3 +1,10 @@
+libaccounts-glib (0.35-1) unstable; urgency=low
+
+  * Implemented: SWP#ASSOH-49
+  * Implemented: SWP#ASSOH-50
+
+ -- Tomi Suviola <tomi.suviola@nokia.com>  Thu, 6 May 2010 10:09:20 +0300
+
 libaccounts-glib (0.34-1) unstable; urgency=low
 
   * Fixes: NB#166052 - Manager creation fails if DB is locked.
