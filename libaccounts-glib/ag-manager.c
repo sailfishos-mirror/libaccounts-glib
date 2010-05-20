@@ -85,6 +85,8 @@ struct _AgManagerPrivate {
     /* list of EmittedSignalData for the signals emitted by this instance */
     GList *emitted_signals;
 
+    guint db_timeout;
+
     guint is_disposed : 1;
 
     gchar *service_type;
@@ -631,7 +633,7 @@ get_db_version (sqlite3 *db)
 }
 
 static gboolean
-create_db (sqlite3 *db)
+create_db (sqlite3 *db, guint timeout)
 {
     const gchar *sql;
     gchar *error;
@@ -750,7 +752,7 @@ open_db (AgManager *manager)
     version = get_db_version(priv->db);
     g_debug("DB version: %d", version);
     if (version < 1)
-        ok = create_db(priv->db);
+        ok = create_db(priv->db, priv->db_timeout);
     /* insert here code to upgrade the DB from older versions... */
 
     if (G_UNLIKELY (!ok))
@@ -820,6 +822,8 @@ ag_manager_init (AgManager *manager)
     priv->accounts =
         g_hash_table_new_full (NULL, NULL,
                                NULL, (GDestroyNotify)account_weak_unref);
+
+    priv->db_timeout = MAX_SQLITE_BUSY_LOOP_TIME_MS; /* 5 seconds */
 }
 
 static GObject *
@@ -1441,6 +1445,13 @@ _ag_manager_exec_transaction_blocking (AgManager *manager, const gchar *sql,
     exec_transaction (manager, account, sql, changes, error);
 }
 
+static guint
+timespec_diff_ms(struct timespec *ts1, struct timespec *ts0)
+{
+    return (ts1->tv_sec - ts0->tv_sec) * 1000 +
+        (ts1->tv_nsec - ts0->tv_nsec) / 1000000;
+}
+
 /* Executes an SQL statement, and optionally calls
  * the callback for every row of the result.
  * Returns the number of rows fetched.
@@ -1453,7 +1464,7 @@ _ag_manager_exec_query (AgManager *manager,
     sqlite3 *db;
     int ret;
     sqlite3_stmt *stmt;
-    time_t try_until;
+    struct timespec ts0, ts1;
     gint rows = 0;
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), 0);
@@ -1471,10 +1482,9 @@ _ag_manager_exec_query (AgManager *manager,
 
     g_debug ("%s: about to run:\n%s", G_STRFUNC, sql);
 
-    /* Set maximum time we're prepared to wait. Have to do it here also,
-     *    * because SQLite doesn't guarantee running the busy handler. Thanks,
-     *       * SQLite. */
-    try_until = time (NULL) + MAX_SQLITE_BUSY_LOOP_TIME;
+    /* get the current time, to abort the operation in case the DB is locked
+     * for longer than db_timeout. */
+    clock_gettime(CLOCK_MONOTONIC, &ts0);
 
     do
     {
@@ -1493,7 +1503,8 @@ _ag_manager_exec_query (AgManager *manager,
                 break;
 
             case SQLITE_BUSY:
-                if (time (NULL) < try_until)
+                clock_gettime(CLOCK_MONOTONIC, &ts1);
+                if (timespec_diff_ms(&ts1, &ts0) > manager->priv->db_timeout)
                 {
                     /* If timeout was specified and table is locked,
                      * wait instead of executing default runtime
@@ -1578,3 +1589,35 @@ ag_manager_get_service_type (AgManager *manager)
 
     return manager->priv->service_type;
 }
+
+/**
+ * ag_manager_set_db_timeout:
+ * @manager: the #AgManager.
+ * @timeout_ms: the new timeout, in milliseconds.
+ *
+ * Sets the timeout for database operations. This tells the library how long
+ * it is allowed to block while waiting for a locked DB to become accessible.
+ * Higher values mean a higher chance of successful reads, but also mean that
+ * the execution might be blocked for a longer time.
+ * The default is 5 seconds.
+ */
+void
+ag_manager_set_db_timeout (AgManager *manager, guint timeout_ms)
+{
+    g_return_if_fail (AG_IS_MANAGER (manager));
+    manager->priv->db_timeout = timeout_ms;
+}
+
+/**
+ * ag_manager_get_db_timeout:
+ * @manager: the #AgManager.
+ *
+ * Returns: the timeout (in milliseconds) for database operations.
+ */
+guint
+ag_manager_get_db_timeout (AgManager *manager)
+{
+    g_return_val_if_fail (AG_IS_MANAGER (manager), 0);
+    return manager->priv->db_timeout;
+}
+
