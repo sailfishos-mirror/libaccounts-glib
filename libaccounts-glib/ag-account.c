@@ -771,7 +771,7 @@ ag_account_finalize (GObject *object)
 
     if (priv->changes)
     {
-        g_debug ("Finalizing account with uncommitted changes!");
+        DEBUG_INFO ("Finalizing account with uncommitted changes!");
         _ag_account_changes_free (priv->changes);
     }
 
@@ -880,8 +880,8 @@ _ag_account_changes_from_dbus (DBusMessageIter *iter,
 #define EXPECT_TYPE(i, t) \
     if (G_UNLIKELY (dbus_message_iter_get_arg_type (i) != t)) \
     { \
-        g_debug ("%s expected (%c), got (%c)", G_STRLOC, \
-                 t, dbus_message_iter_get_arg_type (i)); \
+        DEBUG_INFO ("%s expected (%c), got (%c)", G_STRLOC, \
+                    t, dbus_message_iter_get_arg_type (i)); \
         goto error; \
     }
 
@@ -918,7 +918,7 @@ _ag_account_changes_from_dbus (DBusMessageIter *iter,
             if (_ag_iter_get_dict_entry (&i_dict, &key, &value))
             {
                 g_hash_table_insert (sc->settings, g_strdup (key),
-                                     _ag_value_slice_dup (&value));
+                                     g_slice_dup (GValue, &value));
             }
             dbus_message_iter_next (&i_dict);
         }
