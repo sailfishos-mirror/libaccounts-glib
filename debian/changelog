@@ -1,3 +1,9 @@
+libaccounts-glib (0.39-1) unstable; urgency=low
+
+  * Fixes: NB#173355 - Naive XML usage in service description files.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Sun, 13 Jun 2010 14:42:20 +0300
+
 libaccounts-glib (0.38-1) unstable; urgency=low
 
   * Add better debugging output options via the AG_DEBUG variable.
