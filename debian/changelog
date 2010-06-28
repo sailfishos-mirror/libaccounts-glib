@@ -1,3 +1,10 @@
+libaccounts-glib (0.42-1) unstable; urgency=low
+
+  * Add AgServiceType class.
+  * Fixes: NB#175687 - Bring the file-backed journal back.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 28 Jun 2010 10:58:30 +0300
+
 libaccounts-glib (0.41-1) unstable; urgency=low
 
   * Fixes: NB#173524 - Account::syncAndBlock call takes occasionally much
