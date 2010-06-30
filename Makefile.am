@@ -13,6 +13,9 @@ backupconf_DATA= accounts.conf
 backuprestore_SCRIPTS = accounts-restore accounts-backup
 backuprestoredir = ${prefix}/share/accounts
 
+cud_SCRIPTS = accounts-cud.sh
+cuddir = ${sysconfdir}/osso-cud-scripts
+
 EXTRA_DIST = $(libaccountsdoc_DATA) $(backupconf_DATA)
 
 $(backupconf_DATA): $(backupconf_in_files) 

@@ -1,3 +1,4 @@
 usr/lib/libaccounts-glib.so.*
 usr/share/backup-framework/applications/accounts.conf
 usr/share/accounts/*
+etc/osso-cud-scripts/accounts-cud.sh
