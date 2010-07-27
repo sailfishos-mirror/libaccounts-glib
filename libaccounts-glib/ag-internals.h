@@ -34,8 +34,13 @@
 G_BEGIN_DECLS
 
 #define AG_DBUS_PATH "/com/nokia/AccountsLib"
+#define AG_DBUS_PATH_SERVICE "/com/nokia/AccountsLib/ServiceType"
 #define AG_DBUS_IFACE "com.nokia.AccountsLib"
 #define AG_DBUS_SIG_CHANGED "AccountChanged"
+
+#define SERVICE_GLOBAL_TYPE "global"
+#define AG_DBUS_PATH_SERVICE_GLOBAL \
+    AG_DBUS_PATH_SERVICE "/" SERVICE_GLOBAL_TYPE
 
 #define MAX_SQLITE_BUSY_LOOP_TIME 5
 #define MAX_SQLITE_BUSY_LOOP_TIME_MS (MAX_SQLITE_BUSY_LOOP_TIME * 1000)
@@ -131,6 +136,9 @@ GList *_ag_providers_list (AgManager *manager);
 
 G_GNUC_INTERNAL
 AgProvider *_ag_provider_new_from_file (const gchar *provider_name);
+
+G_GNUC_INTERNAL
+GPtrArray *_ag_account_changes_get_service_types (AgAccountChanges *changes);
 
 G_GNUC_INTERNAL
 gboolean _ag_account_changes_have_service_type (AgAccountChanges *changes,

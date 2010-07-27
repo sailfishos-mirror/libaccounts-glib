@@ -44,7 +44,6 @@
 #include <string.h>
 
 #define SERVICE_GLOBAL "global"
-#define SERVICE_GLOBAL_TYPE "unknown"
 
 enum
 {
@@ -969,6 +968,63 @@ error:
     g_warning ("Wrong format of D-Bus message");
     g_slice_free(AgAccountChanges, changes);
     return NULL;
+}
+
+static void
+add_service_type (GPtrArray *types, const gchar *service_type)
+{
+    gboolean found = FALSE;
+    gint i;
+
+    /* if the service type is not yet in the list, add it */
+    for (i = 0; i < types->len; i++)
+    {
+        if (strcmp (service_type, g_ptr_array_index (types, i)) == 0)
+        {
+            found = TRUE;
+            break;
+        }
+    }
+
+    if (!found)
+        g_ptr_array_add (types, (gchar *)service_type);
+}
+
+/**
+ * _ag_account_changes_get_service_types:
+ * @changes: the #AgAccountChanges structure.
+ *
+ * Gets the list of service types involved in the change. The list does not
+ * contain duplicates.
+ *
+ * Returns: a newly-allocated GPtrArray (this must be freed, but not the
+ * strings it holds!).
+ */
+GPtrArray *
+_ag_account_changes_get_service_types (AgAccountChanges *changes)
+{
+    GPtrArray *ret = g_ptr_array_sized_new (8);
+
+    if (changes->services)
+    {
+        GHashTableIter iter;
+        AgServiceChanges *sc;
+
+        g_hash_table_iter_init (&iter, changes->services);
+        while (g_hash_table_iter_next (&iter, NULL, (gpointer)&sc))
+        {
+            if (!sc->service_type) continue;
+
+            add_service_type (ret, sc->service_type);
+        }
+    }
+
+    /* if the account has been created or deleted, make sure that the global
+     * service type is in the list */
+    if (changes->created || changes->deleted)
+        add_service_type (ret, SERVICE_GLOBAL_TYPE);
+
+    return ret;
 }
 
 gboolean
