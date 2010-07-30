@@ -1,3 +1,9 @@
+libaccounts-glib (0.44-2) unstable; urgency=low
+
+  * Fixes: NB#182820 - Missing service-type files in test package.
+
+ -- Alberto Mardegan <mardy@users.sourceforge.net>  Fri, 30 Jul 2010 16:20:35 +0300
+
 libaccounts-glib (0.44-1) unstable; urgency=low
 
   * Fixes: NB#180967 - .service file matching regexp is too permissive.
