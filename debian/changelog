@@ -1,3 +1,12 @@
+libaccounts-glib (0.45-1) unstable; urgency=low
+
+  * Fixes: NB#182333 - Signals coming from other processes are processed
+    several times.
+  * Fixes: NB#167236 - Account::updated signal is emitted with creation and
+    deletion.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 02 Aug 2010 10:04:59 +0300
+
 libaccounts-glib (0.44-2) unstable; urgency=low
 
   * Fixes: NB#182820 - Missing service-type files in test package.
