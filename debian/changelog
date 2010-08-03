@@ -1,3 +1,9 @@
+libaccounts-glib (0.46-1) unstable; urgency=low
+
+  * Fix regression: do not process signals coming from our own instance.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Tue, 03 Aug 2010 10:48:50 +0300
+
 libaccounts-glib (0.45-1) unstable; urgency=low
 
   * Fixes: NB#182333 - Signals coming from other processes are processed
