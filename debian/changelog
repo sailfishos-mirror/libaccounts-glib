@@ -1,3 +1,9 @@
+libaccounts-glib (0.46-2) unstable; urgency=low
+
+  * Fixes: NB#182820 - Missing environment variable for test script.
+
+ -- Alberto Mardegan <mardy@users.sourceforge.net>  Thu, 05 Aug 2010 16:31:23 +0300
+
 libaccounts-glib (0.46-1) unstable; urgency=low
 
   * Fix regression: do not process signals coming from our own instance.
