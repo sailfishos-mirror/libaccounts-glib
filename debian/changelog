@@ -1,3 +1,9 @@
+libaccounts-glib (0.51-1) unstable; urgency=low
+
+  * Taking translation from the xml for services.
+
+ -- Smita Srivastava <ext-smita.srivastava@nokia.com>  Fri, 27 Aug 2010 15:30:23 +0300
+
 libaccounts-glib (0.50-1) unstable; urgency=low
 
   * Fixes: NB#180228 - Occasional database corruption
