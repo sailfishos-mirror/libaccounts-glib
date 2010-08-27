@@ -1,3 +1,9 @@
+libaccounts-glib (0.50-1) unstable; urgency=low
+
+  * Fixes: NB#180228 - Occasional database corruption
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Fri, 27 Aug 2010 09:02:32 +0300
+
 libaccounts-glib (0.49-1) unstable; urgency=low
 
   * Fixes: NB#187346 - Accounts::Account::enabledServices() function works wrong.
