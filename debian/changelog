@@ -1,3 +1,9 @@
+libaccounts-glib (0.52-1) unstable; urgency=low
+
+  * Fixes: NB#187346 - Accounts::Account::enabledServices() function works wrong.
+
+ -- Alexander Akimov <ext-alexander.akimo@nokia.com>  Fri, 27 Aug 2010 15:30:23 +0300
+
 libaccounts-glib (0.51-1) unstable; urgency=low
 
   * Taking translation from the xml for services.
