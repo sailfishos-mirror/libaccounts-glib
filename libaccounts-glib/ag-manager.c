@@ -93,8 +93,11 @@ struct _AgManagerPrivate {
     /* D-Bus object paths we are listening to */
     GPtrArray *object_paths;
 
+    GError *last_error;
+
     guint db_timeout;
 
+    guint abort_on_db_timeout : 1;
     guint is_disposed : 1;
 
     gchar *service_type;
@@ -125,6 +128,35 @@ G_DEFINE_TYPE (AgManager, ag_manager, G_TYPE_OBJECT);
 
 static void store_cb_data_free (StoreCbData *sd);
 static void account_weak_notify (gpointer userdata, GObject *dead_account);
+
+static void
+set_error_from_db (AgManager *manager)
+{
+    AgManagerPrivate *priv = manager->priv;
+    AgError code;
+    GError *error;
+
+    switch (sqlite3_errcode (priv->db))
+    {
+    case SQLITE_DONE:
+    case SQLITE_OK:
+        _ag_manager_take_error (manager, NULL);
+        return;
+    case SQLITE_BUSY:
+        code = AG_ERROR_DB_LOCKED;
+        if (priv->abort_on_db_timeout)
+            g_error ("Accounts DB timeout: causing application to abort.");
+        break;
+    default:
+        code = AG_ERROR_DB;
+        break;
+    }
+
+    error = g_error_new (AG_ERRORS, code, "SQLite error %d: %s",
+                         sqlite3_errcode (priv->db),
+                         sqlite3_errmsg (priv->db));
+    _ag_manager_take_error (manager, error);
+}
 
 static gboolean
 timed_unref_account (gpointer account)
@@ -1187,6 +1219,9 @@ ag_manager_finalize (GObject *object)
     }
     g_free (priv->service_type);
 
+    if (priv->last_error)
+        g_error_free (priv->last_error);
+
     G_OBJECT_CLASS (ag_manager_parent_class)->finalize (object);
 }
 
@@ -1323,6 +1358,27 @@ _ag_manager_list_all (AgManager *manager)
     return list;
 }
 
+void
+_ag_manager_take_error (AgManager *manager, GError *error)
+{
+    AgManagerPrivate *priv;
+
+    g_return_if_fail (AG_IS_MANAGER (manager));
+    priv = manager->priv;
+
+    if (priv->last_error)
+        g_free (priv->last_error);
+    priv->last_error = error;
+}
+
+const GError *
+_ag_manager_get_last_error (AgManager *manager)
+{
+    g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
+
+    return manager->priv->last_error;
+}
+
 /**
  * ag_manager_list:
  * @manager: the #AgManager.
@@ -1449,10 +1505,29 @@ ag_manager_list_free (GList *list)
  * @account_id.
  *
  * Returns: an #AgAccount, on which the client must call g_object_unref()
- * when it's done with it.
+ * when it's done with it, or %NULL if an error occurs.
  */
 AgAccount *
 ag_manager_get_account (AgManager *manager, AgAccountId account_id)
+{
+    return ag_manager_load_account (manager, account_id, NULL);
+}
+
+/**
+ * ag_manager_load_account:
+ * @manager: the #AgManager.
+ * @account_id: the #AgAccountId of the account.
+ * @error: pointer to a #GError, or %NULL.
+ *
+ * Instantiates the object representing the account identified by
+ * @account_id.
+ *
+ * Returns: an #AgAccount, on which the client must call g_object_unref()
+ * when it's done with it, or %NULL if an error occurs.
+ */
+AgAccount *
+ag_manager_load_account (AgManager *manager, AgAccountId account_id,
+                         GError **error)
 {
     AgManagerPrivate *priv;
     AgAccount *account;
@@ -1476,6 +1551,13 @@ ag_manager_get_account (AgManager *manager, AgAccountId account_id)
         g_object_weak_ref (G_OBJECT (account), account_weak_notify, manager);
         g_hash_table_insert (priv->accounts, GUINT_TO_POINTER (account_id),
                              account);
+    }
+    else if (priv->last_error != NULL)
+    {
+        g_set_error_literal (error,
+                             priv->last_error->domain,
+                             priv->last_error->code,
+                             priv->last_error->message);
     }
     return account;
 }
@@ -1797,6 +1879,7 @@ _ag_manager_exec_query (AgManager *manager,
                 }
 
             default:
+                set_error_from_db (manager);
                 g_warning ("%s: runtime error while executing \"%s\": %s",
                            G_STRFUNC, sql, sqlite3_errmsg (db));
                 sqlite3_finalize (stmt);
@@ -1902,6 +1985,34 @@ ag_manager_get_db_timeout (AgManager *manager)
 {
     g_return_val_if_fail (AG_IS_MANAGER (manager), 0);
     return manager->priv->db_timeout;
+}
+
+/**
+ * ag_manager_set_abort_on_db_timeout:
+ * @manager: the #AgManager.
+ * @abort: whether to abort when a DB timeout occurs.
+ *
+ * Tells libaccounts whether it should make the client application abort when
+ * a timeout error occurs. The default is %FALSE.
+ */
+void
+ag_manager_set_abort_on_db_timeout (AgManager *manager, gboolean abort)
+{
+    g_return_if_fail (AG_IS_MANAGER (manager));
+    manager->priv->abort_on_db_timeout = abort;
+}
+
+/**
+ * ag_manager_get_abort_on_db_timeout:
+ * @manager: the #AgManager.
+ *
+ * Returns: whether the library will abort when a timeout error occurs.
+ */
+gboolean
+ag_manager_get_abort_on_db_timeout (AgManager *manager)
+{
+    g_return_val_if_fail (AG_IS_MANAGER (manager), FALSE);
+    return manager->priv->abort_on_db_timeout;
 }
 
 /**

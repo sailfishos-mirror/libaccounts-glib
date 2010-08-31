@@ -92,6 +92,10 @@ G_GNUC_INTERNAL
 gint _ag_manager_exec_query (AgManager *manager,
                              AgQueryCallback callback, gpointer user_data,
                              const gchar *sql);
+G_GNUC_INTERNAL
+void _ag_manager_take_error (AgManager *manager, GError *error);
+G_GNUC_INTERNAL
+const GError *_ag_manager_get_last_error (AgManager *manager);
 
 struct _AgService {
     /*< private >*/
