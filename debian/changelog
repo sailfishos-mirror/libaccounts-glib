@@ -1,6 +1,8 @@
 libaccounts-glib (0.52-1) unstable; urgency=low
 
   * Fixes: NB#187346 - Accounts::Account::enabledServices() function works wrong.
+  * Add ag_manager_load_account() function, which can return a GError.
+  * Add ag_manager_set_abort_on_db_timeout() function.
 
  -- Alexander Akimov <ext-alexander.akimo@nokia.com>  Fri, 27 Aug 2010 15:30:23 +0300
 
