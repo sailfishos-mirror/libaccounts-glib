@@ -1,3 +1,9 @@
+libaccounts-glib (0.53-1) unstable; urgency=low
+
+  * Fixes: NB#192786 - Fenix and messageserver crash while trying to create IMAP account with wrong Email Address.
+
+ -- Smita Srivastava <ext-smita.srivastava@nokia.com>  Wed, 22 Sep 2010 12:00:23 +0300
+
 libaccounts-glib (0.52-1) unstable; urgency=low
 
   * Fixes: NB#187346 - Accounts::Account::enabledServices() function works wrong.
