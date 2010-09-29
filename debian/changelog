@@ -1,3 +1,9 @@
+accounts-glib (0.54-1) unstable; urgency=low
+
+  * Fixes: NB#189503 - <MemLeak>Memory leak observed in accounts-ui when running libaccounts-qt-tests through valgrind
+
+ -- Smita Srivastava <ext-smita.srivastava@nokia.com>  Wed, 29 Sep 2010 10:39:23 +0300
+
 libaccounts-glib (0.53-1) unstable; urgency=low
 
   * Fixes: NB#192786 - Fenix and messageserver crash while trying to create IMAP account with wrong Email Address.
