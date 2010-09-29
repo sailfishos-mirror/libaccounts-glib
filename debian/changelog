@@ -1,4 +1,4 @@
-accounts-glib (0.54-1) unstable; urgency=low
+libaccounts-glib (0.54-1) unstable; urgency=low
 
   * Fixes: NB#189503 - <MemLeak>Memory leak observed in accounts-ui when running libaccounts-qt-tests through valgrind
 
