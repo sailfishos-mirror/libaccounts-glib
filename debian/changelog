@@ -1,4 +1,4 @@
-libaccounts-glib (0.57-1) unstable; urgency=low
+libaccounts-glib (0.57-2) unstable; urgency=low
 
   * Fixes: NB#198281 - Unable to fetch mails into configured accounts after first Email account, device reboot helps to fetch mails
 
