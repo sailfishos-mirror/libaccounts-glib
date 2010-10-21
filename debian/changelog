@@ -2,7 +2,7 @@ libaccounts-glib (0.57-1) unstable; urgency=low
 
   * Fixes: NB#198281 - Unable to fetch mails into configured accounts after first Email account, device reboot helps to fetch mails
 
- -- Smita Srivastava <ext-smita.srivastava@nokia.com>  Thu, 21 Oct 2010 09:3330:23 +0300
+ -- Smita Srivastava <ext-smita.srivastava@nokia.com>  Thu, 21 Oct 2010 09:30:23 +0300
 
 libaccounts-glib (0.56-1) unstable; urgency=low
 
