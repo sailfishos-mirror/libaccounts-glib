@@ -1,6 +1,6 @@
 interface: libaccounts-glib
 type: library
 scope: Platform
-state: unstable
+state: stable
 libs-pkg: libaccounts-glib0
 dev-pkg: libaccounts-glib-dev

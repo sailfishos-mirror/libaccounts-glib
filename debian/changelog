@@ -1,3 +1,19 @@
+libaccounts-glib (0.56-1) unstable; urgency=low
+
+  * Do not export internal symbols.
+  * Fixes: NB#198153 - ag_account_list_enabled_services() returns more results
+    than it should.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 18 Oct 2010 09:57:51 +0300
+
+libaccounts-glib (0.55-1) unstable; urgency=low
+
+  * Fixes: NB#194674 - Source package 'libaccounts-glib' interfaces not
+    frozen.
+  * Fixes: NB#195799 - "Account database is locked" when enumerating services
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 11 Oct 2010 15:05:41 +0300
+
 libaccounts-glib (0.54-1) unstable; urgency=low
 
   * Fixes: NB#189503 - <MemLeak>Memory leak observed in accounts-ui when running libaccounts-qt-tests through valgrind
