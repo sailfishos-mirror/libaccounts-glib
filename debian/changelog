@@ -1,3 +1,9 @@
+libaccounts-glib (0.59-1) unstable; urgency=low
+
+  * Fixes: NB#202721 - QMailAccount fields sometimes stored in accounts.db with incorrect service id of 0.
+
+ -- Aurel Popirtac <ext-aurel.popirtac@nokia.com>  Thu, 11 Nov 2010 11:22:00 +0300
+
 libaccounts-glib (0.58-1) unstable; urgency=low
 
   * Fixes: NB#198281 - Unable to fetch mails into configured accounts after first Email account, device reboot helps to fetch mails
