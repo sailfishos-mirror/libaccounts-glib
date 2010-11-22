@@ -1,3 +1,9 @@
+libaccounts-glib (0.61-1) unstable; urgency=low
+
+  * Fixes: NB#202721 - QMailAccount fields sometimes stored in accounts.db with incorrect service id of 0 - revisited.
+
+ -- Aurel Popirtac <ext-aurel.popirtac@nokia.com>  Mon, 22 Nov 2010 12:00:00 +0300
+
 libaccounts-glib (0.60-1) unstable; urgency=low
 
   * Fixes: NB#200711 - Configured accounts are cleared/disappear after taking backup
