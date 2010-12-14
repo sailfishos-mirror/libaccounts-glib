@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(libaccounts-glib, 0.61)
+AC_INIT(libaccounts-glib, 0.62)
 
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 AM_CONFIG_HEADER(config.h)
@@ -78,4 +78,5 @@ AC_OUTPUT([
 	docs/Makefile
 	docs/reference/Makefile
 	tests/Makefile
+	tools/Makefile
 ])
