@@ -1,3 +1,11 @@
+libaccounts-glib (0.62-1) unstable; urgency=low
+
+  * Add ag-tool command, thanks to Aparna Nand <aparna.nand@wipro.com>
+  * Fixes: MB#10991 - API ag_manager_list_enabled returning disabled accounts
+    also
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Tue, 14 Dec 2010 10:44:19 +0200
+
 libaccounts-glib (0.61-1) unstable; urgency=low
 
   * Fixes: NB#202721 - QMailAccount fields sometimes stored in accounts.db with incorrect service id of 0 - revisited.
