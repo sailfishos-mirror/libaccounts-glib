@@ -1,0 +1,4 @@
+*.log
+*.substvars
+libaccounts-glib-tools/
+libaccounts-glib0-test/

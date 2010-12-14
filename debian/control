@@ -45,5 +45,10 @@ XB-Maemo-CI-Packages: libaccounts-glib0
 XB-Maemo-CI-Stage: staging, acceptance
 Description: Tests for accounts-glib
 
-
+Package: libaccounts-glib-tools
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Command line tools for the libaccounts-glib library
+ This package contains the ag-tool, which can be used to access the accounts DB
+ from the command line.
 
