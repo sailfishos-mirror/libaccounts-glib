@@ -1,3 +1,9 @@
+libaccounts-glib (0.63-1) unstable; urgency=low
+
+  * Fixes: NB#203268 - accountListEnabled and accountList doesnot return the expected size
+
+ -- Dominic Velikakath <dominic.velikakath@nokia.com>  Tue, 25 Jan 2011 18:53:33 +0530
+
 libaccounts-glib (0.62-1) unstable; urgency=low
 
   * Add ag-tool command, thanks to Aparna Nand <aparna.nand@wipro.com>
