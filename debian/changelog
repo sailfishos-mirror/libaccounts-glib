@@ -1,3 +1,9 @@
+libaccounts-glib (0.64-2) unstable; urgency=low
+
+  * Fixes: NB#221488 - API: Method needed for getting provider icon
+
+ -- Smita Srivastava <ext-smita.srivastava@nokia.com>  Fri, 28 Jan 2011 10:06:00 +0300
+
 libaccounts-glib (0.64-1) unstable; urgency=low
 
   * Fixes: NB#200711 - Configured accounts are cleared/disappear after taking backup
