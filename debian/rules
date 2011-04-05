@@ -16,9 +16,16 @@ ifneq (,$(findstring coverage,$(DEB_BUILD_OPTIONS)))
     SBOX_USE_CCACHE := no
     DEB_CONFIGURE_EXTRA_FLAGS += --enable-coverage
 endif
-# do not generate docs if gcov is enabled
-ifeq (,$(findstring coverage,$(DEB_BUILD_OPTIONS)))
+
+export NO_DOCS := no
+ifneq (,$(findstring nodocs,$(DEB_BUILD_OPTIONS)))
+    export NO_DOCS = yes
+endif
+
+ifeq (,$(findstring yes,$(NO_DOCS)))
     DEB_CONFIGURE_EXTRA_FLAGS += --enable-gtk-doc
+    DEB_INSTALL_DOCS_libaccounts-glib-doc := docs/reference/html
+else 
     DEB_INSTALL_DOCS_libaccounts-glib-doc := docs/reference/html
 endif
 
