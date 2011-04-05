@@ -1,3 +1,9 @@
+libaccounts-glib (0.64-4) unstable; urgency=low
+
+  * Fixes: NB#224780 - Source packages still generating -docs packages for arm targets
+
+ -- Tomi Suviola <tomi.suviola@nokia.com>  Tue, 05 Apr 2011 14:06:00 +0300
+
 libaccounts-glib (0.64-3) unstable; urgency=low
 
   * Version Bump-up. Updation of changelog
