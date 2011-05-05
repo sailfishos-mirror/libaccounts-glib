@@ -1,3 +1,11 @@
+libaccounts-glib (0.65-1) unstable; urgency=low
+
+  * Use SQLite in WAL-journaled mode.
+    Fixes: NB#206455 - Concurrency issues when a process is locking the DB for
+    too long.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Thu, 05 May 2011 11:10:53 +0300
+
 libaccounts-glib (0.64-4) unstable; urgency=low
 
   * Fixes: NB#224780 - Source packages still generating -docs packages for arm targets
