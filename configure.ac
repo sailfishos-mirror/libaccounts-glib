@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(libaccounts-glib, 0.64)
+AC_INIT(libaccounts-glib, 0.65)
 
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 AM_CONFIG_HEADER(config.h)
@@ -12,7 +12,7 @@ PKG_CHECK_MODULES(
 	glib-2.0
 	gobject-2.0
 	libxml-2.0
-	sqlite3);
+	sqlite3 >= 3.7.0);
 AC_SUBST(LIBACCOUNTS_CFLAGS)
 AC_SUBST(LIBACCOUNTS_LIBS)
 
