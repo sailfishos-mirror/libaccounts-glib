@@ -1,3 +1,9 @@
+libaccounts-glib (0.66-1) unstable; urgency=low
+
+  * Fixes: NB#235727 - <Safety> Invalid read in ag-manager.c:365
+
+ -- Ramakrishna <ramakrishna.narasimhaswamy@nokia.com>  Tue, 10 May 2011 16:00:00 +0530
+
 libaccounts-glib (0.65-1) unstable; urgency=low
 
   * Use SQLite in WAL-journaled mode.
