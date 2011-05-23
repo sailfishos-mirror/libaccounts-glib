@@ -1,3 +1,11 @@
+libaccounts-glib (0.67-1) unstable; urgency=low
+
+  * Fix backup; especially with WAL, we cannot just copy the SQLite files,
+    because they might be in inconsistent state.
+    Fixes: NB#256552 - accounts do not get restored.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Mon, 23 May 2011 11:06:00 +0300
+
 libaccounts-glib (0.66-1) unstable; urgency=low
 
   * Fixes: NB#235727 - <Safety> Invalid read in ag-manager.c:365
