@@ -1,5 +1,8 @@
 #!/bin/sh
 
 #accounts-restore script
-
+rm -f ~/.accounts/accounts.db
+rm -f ~/.accounts/accounts.db-*
+mv ~/.accounts/accounts.db.bak ~/.accounts/accounts.db
 exit 0
+

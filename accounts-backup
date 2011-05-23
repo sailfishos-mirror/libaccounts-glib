@@ -2,4 +2,5 @@
 
 #accounts-backup script
 
-exit 0
+/usr/bin/ag-backup
+
