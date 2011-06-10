@@ -1,3 +1,9 @@
+libaccounts-glib (0.68-1) unstable; urgency=low
+
+  * Fixes: NB#262025 - libaccounts-glib-dev has missing package dependency.
+
+ -- Alberto Mardegan <alberto.mardegan@nokia.com>  Fri, 10 Jun 2011 16:50:54 +0300
+
 libaccounts-glib (0.67-1) unstable; urgency=low
 
   * Fix backup; especially with WAL, we cannot just copy the SQLite files,
