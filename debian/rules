@@ -45,3 +45,10 @@ debian/stamp-autotools-files:
 	gtkdocize
 	autoreconf -v --install
 	touch debian/stamp-autotools-files
+
+binary-arch:
+	aegis-deb-add -control debian/libaccounts-glib0/DEBIAN/control .. debian/libaccounts-glib0.aegis=_aegis
+	aegis-deb-add -control debian/libaccounts-glib0-test/DEBIAN/control .. debian/libaccounts-glib0-test.aegis=_aegis
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure
