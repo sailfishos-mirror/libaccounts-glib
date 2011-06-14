@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(libaccounts-glib, 0.68)
+AC_INIT(libaccounts-glib, 0.69)
 
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 AM_CONFIG_HEADER(config.h)
@@ -17,6 +17,15 @@ AC_SUBST(LIBACCOUNTS_CFLAGS)
 AC_SUBST(LIBACCOUNTS_LIBS)
 
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
+
+dnl Check for aegis-crypto library.
+PKG_CHECK_MODULES(AEGISCRYPTO, aegis-crypto, have_aegiscrypto=yes, have_aegiscrypto=no)
+
+if test x$have_aegiscrypto = xyes; then
+        AC_DEFINE(HAVE_AEGISCRYPTO, 1, [Detect if aegis-crypto is available.])
+        AC_SUBST(AEGISCRYPTO_CFLAGS)
+        AC_SUBST(AEGISCRYPTO_LIBS)
+fi
 
 AC_ISC_POSIX
 AC_PROG_CC
