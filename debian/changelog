@@ -1,4 +1,4 @@
-libaccounts-glib (0.69-1) unstable; urgency=low
+libaccounts-glib (0.69-2) unstable; urgency=low
 
   * Fixes: NB#204950 - Account::verify and Account::verifyWithTokens() returns TRUE all the time irrespective of whether Account::sign() called or not.
 
