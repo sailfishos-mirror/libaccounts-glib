@@ -1,3 +1,9 @@
+libaccounts-glib (0.69-3) unstable; urgency=low
+
+  * Fixes: NB#238481 - libaccounts-glib0 CUD script is not needed anymore
+
+ -- Tomi Suviola <tomi.suviola@nokia.com>  Thu, 23 Jun 2011 11:06:00 +0300
+
 libaccounts-glib (0.69-2) unstable; urgency=low
 
   * Fixes: NB#204950 - Account::verify and Account::verifyWithTokens() returns TRUE all the time irrespective of whether Account::sign() called or not.
