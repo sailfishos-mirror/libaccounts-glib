@@ -1,3 +1,9 @@
+libaccounts-glib (1.1-1) unstable; urgency=low
+
+  * Addresses: NB#275878 - [Task] Object sensitive menu in Accounts view
+
+ -- Smita Srivastava <smita.srivastava@teleca.com>  Fri, 23 Sep 2011 10:53:35 +0300
+
 libaccounts-glib (1.0-1) unstable; urgency=low
 
   * UNRELEASED
