@@ -28,7 +28,6 @@
 /**
  * SECTION:ag-manager
  * @short_description: The account manager object
- * @include: libaccounts-glib/ag-manager.h
  *
  * The #AgManager is the main object in this library. Use it to create an
  * #AgAccount, and to instantiate boxed types such as #AgProvider,
@@ -45,7 +44,6 @@
  * the #GList of #AgService returned from ag_manager_list_services().
  */
 
-#include "config.h"
 #include "ag-manager.h"
 
 #include "ag-account-service.h"

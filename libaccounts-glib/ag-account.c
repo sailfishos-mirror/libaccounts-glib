@@ -26,7 +26,6 @@
 /**
  * SECTION:ag-account
  * @short_description: A representation of an account.
- * @include: libaccounts-glib/ag-account.h
  *
  * An #AgAccount is an object which represents an account. It provides a
  * method for enabling/disabling the account and methods for editing the
@@ -109,8 +108,6 @@
 #include "ag-provider.h"
 #include "ag-service.h"
 #include "ag-util.h"
-
-#include "config.h"
 
 #include <string.h>
 

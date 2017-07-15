@@ -25,9 +25,7 @@
 #ifndef _ACCOUNTS_GLIB_H_
 #define _ACCOUNTS_GLIB_H_
 
-#if !defined (ACCOUNTS_GLIB_COMPILATION)
 #warning "<accounts-glib.h> is deprecated, only <libaccounts-glib.h> should be included directly."
-#endif
 
 #define __ACCOUNTS_GLIB_H_INSIDE__
 

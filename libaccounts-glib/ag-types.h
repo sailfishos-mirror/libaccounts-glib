@@ -30,6 +30,8 @@
 #warning "Only <libaccounts-glib.h> should be included directly."
 #endif
 
+#include <glib.h>
+
 G_BEGIN_DECLS
 
 /**

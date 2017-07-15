@@ -28,7 +28,6 @@
 /**
  * SECTION:ag-service-type
  * @short_description: A description of a service type.
- * @include: libaccounts-glib/ag-service-type.h
  *
  * The #AgServiceType structure represents a service type. The structure is
  * not directly exposed to applications, but its fields are accessible via
@@ -43,7 +42,6 @@
  * when done with it.
  */
 
-#include "config.h"
 #include "ag-service-type.h"
 
 #include "ag-internals.h"

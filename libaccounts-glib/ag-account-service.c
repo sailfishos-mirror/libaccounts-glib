@@ -26,7 +26,6 @@
 /**
  * SECTION:ag-account-service
  * @short_description: Account settings for a specific service
- * @include: libaccounts-glib/ag-account-service.h
  *
  * The #AgAccountService object provides access to the account settings for a
  * specific service type. It is meant to be easier to use than the #AgAccount

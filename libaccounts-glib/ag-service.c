@@ -38,7 +38,6 @@
  * done with it.
  */
 
-#include "config.h"
 #include "ag-service.h"
 
 #include "ag-service-type.h"

@@ -3,24 +3,33 @@ image: ubuntu:xenial
 cache:
   key: apt-cache
   paths:
-  - apt-cache/
+    - apt-cache/
 
 before_script:
   - export APT_CACHE_DIR=`pwd`/apt-cache && mkdir -pv $APT_CACHE_DIR
-  - apt-get update -yq && apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq automake autotools-dev gobject-introspection gtk-doc-tools intltool libgirepository1.0-dev libglib2.0-dev libsqlite3-dev libtool libxml2-dev libxml2-utils python3 python3-gi python-gi-dev
+  - apt-get update -yq && apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq software-properties-common
+  - add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ xenial-backports main restricted universe multiverse" -u -s
+  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -t xenial-backports install -yq meson
+  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq gobject-introspection gtk-doc-tools libgirepository1.0-dev libglib2.0-dev libsqlite3-dev libxml2-dev libxml2-utils python3 python3-gi python-gi-dev valac
   - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq check dbus-test-runner lcov gcovr
   - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq sudo
   - useradd -m tester
   - adduser tester sudo
+  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -y locales
+  - echo "en_US UTF-8" > /etc/locale.gen
+  - locale-gen en_US.UTF-8
+  - export LANG=en_US.UTF-8
+  - export LANGUAGE=en_US:en
+  - export LC_ALL=en_US.UTF-8
+
 
 build_amd64:
   stage: build
   script:
     - export PYTHON=python3
-    - mkdir build
+    - meson build -Db_coverage=true
     - cd build
-    - ../autogen.sh --enable-gtk-doc --enable-gcov --enable-debug --enable-python --disable-wal
-    - make -j 4
+    - ninja
   artifacts:
     paths:
       - ./
@@ -30,8 +39,9 @@ test_amd64:
   script:
     - cd build
     - chmod a+rw -R .
-    - sudo -u tester make check || (cat tests/test-suite.log && /bin/false)
-    - sudo -u tester make coverage-html
+    - sudo -u tester ninja test
+    - sudo -u tester ninja coverage-html
+    - sudo ninja install
   dependencies:
     - build_amd64
   artifacts:
@@ -42,10 +52,12 @@ pages:
   stage: deploy
   script:
     - mkdir public
-    - cp -a build/coveragereport public/coverage
+    - cp -a build/meson-logs/coveragereport public/coverage
     - cp -a build/docs/reference/html/* public/
   dependencies:
     - test_amd64
   artifacts:
     paths:
       - public
+  only:
+    - master

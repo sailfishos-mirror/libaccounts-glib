@@ -40,8 +40,6 @@
  * used.
  */
 
-#include "config.h"
-
 #include "ag-provider.h"
 
 #include "ag-internals.h"

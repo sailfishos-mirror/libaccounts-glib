@@ -57,7 +57,6 @@
  * </example>
  */
 
-#include "config.h"
 #include "ag-application.h"
 #include "ag-internals.h"
 #include "ag-service.h"

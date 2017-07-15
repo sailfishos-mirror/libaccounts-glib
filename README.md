@@ -18,10 +18,9 @@ The project depends on GLib (including GIO and GObject), libxml2, sqlite3 and
 [check][].
 To build it, run:
 ```
-./autogen.sh
-./configure
-make
-make install
+meson build --prefix=/usr
+cd build
+ninja
 ```
 
 Resources

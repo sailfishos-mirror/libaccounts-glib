@@ -32,10 +32,6 @@
   <part id="libaccounts-glib-objects">
     <title>libaccounts-glib Objects</title>
 
-    <chapter id="object-tree">
-      <title>Object Hierarchy</title>
-      <xi:include href="xml/tree_index.sgml"/>
-    </chapter>
     <chapter id="account-management">
       <title>Account management</title>
       <xi:include href="xml/ag-manager.xml"/>
