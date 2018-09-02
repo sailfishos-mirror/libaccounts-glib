@@ -50,8 +50,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "config.h"
-
 #define PROVIDER    "dummyprovider"
 #define TEST_STRING "Hey dude!"
 #define TEST_SERVICE_VALUE  "calendar"
@@ -299,7 +297,6 @@ START_TEST(test_provider)
     const gchar *description;
     const gchar *domains;
     const gchar *plugin_name;
-    AgSettingSource source;
     AgProvider *provider;
     GList *providers, *list;
     gboolean single_account;
@@ -1453,7 +1450,6 @@ START_TEST(test_auth_data_get_login_parameters)
 {
     GList *account_services;
     AgAccountService *account_service;
-    AgService *my_service;
     AgAuthData *data;
     GVariant *params, *variant;
     GVariantBuilder builder;
@@ -1718,6 +1714,7 @@ START_TEST(test_service)
         "snake",
         NULL
     };
+
     AgSettingSource source;
     GError *error = NULL;
 
