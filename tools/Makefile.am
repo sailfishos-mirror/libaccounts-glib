@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = -I$(top_srcdir) $(LIBACCOUNTS_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/libaccounts-glib $(LIBACCOUNTS_CFLAGS)
 
 bin_PROGRAMS = \
     ag-backup \

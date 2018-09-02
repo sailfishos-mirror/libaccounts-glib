@@ -25,10 +25,7 @@
 
 #define AG_DISABLE_DEPRECATION_WARNINGS
 
-#include "libaccounts-glib/ag-account.h"
-#include "libaccounts-glib/ag-manager.h"
-#include "libaccounts-glib/ag-provider.h"
-#include "libaccounts-glib/ag-service.h"
+#include <libaccounts-glib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1184,8 +1181,6 @@ list_enabled (gchar **argv)
 static int
 parse (int argc, char **argv)
 {
-    int i = 0;
-
     if (strcmp (argv[1], "create-account") == 0)
     {
         create_account (argv);
