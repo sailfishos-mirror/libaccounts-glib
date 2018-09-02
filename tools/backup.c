@@ -22,8 +22,6 @@
  * 02110-1301 USA
  */
 
-#include <config.h>
-
 #include <glib.h>
 #include <sched.h>
 #include <sqlite3.h>
