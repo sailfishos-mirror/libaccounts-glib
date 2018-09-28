@@ -19,6 +19,7 @@ private_headers = [
 gnome.gtkdoc('libaccounts-glib',
     main_xml: 'libaccounts-glib-docs.xml',
     src_dir: [join_paths(meson.source_root (), 'libaccounts-glib')],
+    dependencies : [glib_dep, gobject_dep, accounts_glib_dep],
     content_files: [
         'ag-backup.xml',
         'ag-tool.xml',
