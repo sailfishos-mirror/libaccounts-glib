@@ -7,5 +7,5 @@ if python_exec_result.returncode() != 0
 endif
 
 install_data('Accounts.py',
-    install_dir: join_paths(python_exec_result.stdout())
+    install_dir: join_paths(python_exec_result.stdout().strip())
 )
