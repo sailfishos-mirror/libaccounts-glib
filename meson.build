@@ -1,7 +1,7 @@
 project('libaccounts-glib', 'c')
 
 version_major = 1
-version_minor = 23
+version_minor = 24
 full_version = '@0@.@1@'.format(version_major, version_minor)
 api_version = '@0@.0'.format(version_major)
 
