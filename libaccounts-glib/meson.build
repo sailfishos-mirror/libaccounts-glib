@@ -5,6 +5,7 @@ public_headers = files(
     'ag-account-service.h',
     'ag-application.h',
     'ag-auth-data.h',
+    'ag-autocleanups.h',
     'ag-errors.h',
     'ag-manager.h',
     'ag-provider.h',

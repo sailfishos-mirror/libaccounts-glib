@@ -39,4 +39,6 @@
 #include <libaccounts-glib/ag-service.h>
 #include <libaccounts-glib/ag-service-type.h>
 
+#include <libaccounts-glib/ag-autocleanups.h>
+
 #endif /* _ACCOUNTS_GLIB_H_ */

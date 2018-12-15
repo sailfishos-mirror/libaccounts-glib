@@ -37,4 +37,6 @@
 #include <ag-service.h>
 #include <ag-service-type.h>
 
+#include <ag-autocleanups.h>
+
 #endif /* _ACCOUNTS_GLIB_H_ */
