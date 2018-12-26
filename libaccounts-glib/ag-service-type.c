@@ -372,7 +372,7 @@ ag_service_type_ref (AgServiceType *service_type)
 
     DEBUG_REFS ("Referencing service_type %s (%d)",
                 service_type->name, service_type->ref_count);
-    service_type->ref_count++;
+    g_atomic_int_inc (&service_type->ref_count);
     return service_type;
 }
 
@@ -390,8 +390,7 @@ ag_service_type_unref (AgServiceType *service_type)
 
     DEBUG_REFS ("Unreferencing service_type %s (%d)",
                 service_type->name, service_type->ref_count);
-    service_type->ref_count--;
-    if (service_type->ref_count == 0)
+    if (g_atomic_int_dec_and_test (&service_type->ref_count))
     {
         g_free (service_type->name);
         g_free (service_type->i18n_domain);

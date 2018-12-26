@@ -489,7 +489,7 @@ ag_provider_ref (AgProvider *provider)
 
     DEBUG_REFS ("Referencing provider %s (%d)",
                 provider->name, provider->ref_count);
-    provider->ref_count++;
+    g_atomic_int_inc (&provider->ref_count);
     return provider;
 }
 
@@ -507,8 +507,7 @@ ag_provider_unref (AgProvider *provider)
 
     DEBUG_REFS ("Unreferencing provider %s (%d)",
                 provider->name, provider->ref_count);
-    provider->ref_count--;
-    if (provider->ref_count == 0)
+    if (g_atomic_int_dec_and_test (&provider->ref_count))
     {
         g_free (provider->name);
         g_free (provider->i18n_domain);

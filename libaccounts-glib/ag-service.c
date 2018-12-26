@@ -559,7 +559,7 @@ ag_service_ref (AgService *service)
 
     DEBUG_REFS ("Referencing service %s (%d)",
                 service->name, service->ref_count);
-    service->ref_count++;
+    g_atomic_int_inc (&service->ref_count);
     return service;
 }
 
@@ -577,8 +577,7 @@ ag_service_unref (AgService *service)
 
     DEBUG_REFS ("Unreferencing service %s (%d)",
                 service->name, service->ref_count);
-    service->ref_count--;
-    if (service->ref_count == 0)
+    if (g_atomic_int_dec_and_test (&service->ref_count))
     {
         g_free (service->name);
         g_free (service->display_name);
