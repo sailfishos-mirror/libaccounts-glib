@@ -533,7 +533,6 @@ ag_provider_unref (AgProvider *provider)
 void
 ag_provider_list_free (GList *list)
 {
-    g_list_foreach (list, (GFunc)ag_provider_unref, NULL);
-    g_list_free (list);
+    g_list_free_full (list, (GDestroyNotify)ag_provider_unref);
 }
 

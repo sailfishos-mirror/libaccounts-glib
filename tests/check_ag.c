@@ -1180,8 +1180,7 @@ START_TEST(test_account_service_list)
     fail_unless (g_list_length (list) == N_ACCOUNTS * 2,
                  "Got list length %d, expecting %d",
                  g_list_length (list), N_ACCOUNTS * 2);
-    g_list_foreach (list, (GFunc)g_object_unref, NULL);
-    g_list_free (list);
+    g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
 
     /* Now add a few services, and play with the enabled flags */
@@ -1241,8 +1240,7 @@ START_TEST(test_account_service_list)
     fail_unless (g_list_length (list) == N_ACCOUNTS * 2,
                  "Got list length %d, expecting %d",
                  g_list_length (list), N_ACCOUNTS * 2);
-    g_list_foreach (list, (GFunc)g_object_unref, NULL);
-    g_list_free (list);
+    g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
     list = ag_manager_get_enabled_account_services (manager);
     fail_unless (account_service_in_list (list, account_id[0], "MyService"));
@@ -1250,8 +1248,7 @@ START_TEST(test_account_service_list)
     fail_unless (g_list_length (list) == 2,
                  "Got list length %d, expecting %d",
                  g_list_length (list), 2);
-    g_list_foreach (list, (GFunc)g_object_unref, NULL);
-    g_list_free (list);
+    g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
     g_object_unref (manager);
 
@@ -1266,16 +1263,14 @@ START_TEST(test_account_service_list)
     fail_unless (g_list_length (list) == N_ACCOUNTS,
                  "Got list length %d, expecting %d",
                  g_list_length (list), N_ACCOUNTS);
-    g_list_foreach (list, (GFunc)g_object_unref, NULL);
-    g_list_free (list);
+    g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
     list = ag_manager_get_enabled_account_services (manager);
     fail_unless (account_service_in_list (list, account_id[0], "MyService"));
     fail_unless (g_list_length (list) == 1,
                  "Got list length %d, expecting %d",
                  g_list_length (list), 1);
-    g_list_foreach (list, (GFunc)g_object_unref, NULL);
-    g_list_free (list);
+    g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
     ag_service_unref (my_service);
     ag_service_unref (my_service2);

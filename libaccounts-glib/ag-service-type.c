@@ -414,6 +414,5 @@ ag_service_type_unref (AgServiceType *service_type)
 void
 ag_service_type_list_free (GList *list)
 {
-    g_list_foreach (list, (GFunc)ag_service_type_unref, NULL);
-    g_list_free (list);
+    g_list_free_full (list, (GDestroyNotify)ag_service_type_unref);
 }
