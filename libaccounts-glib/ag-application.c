@@ -576,18 +576,13 @@ ag_application_unref (AgApplication *self)
     g_return_if_fail (self != NULL);
     if (g_atomic_int_dec_and_test (&self->ref_count))
     {
-        g_free (self->name);
-        g_free (self->desktop_entry);
-        g_free (self->description);
-        g_free (self->i18n_domain);
-
-        if (self->desktop_app_info != NULL)
-            g_object_unref (self->desktop_app_info);
-        if (self->services != NULL)
-            g_hash_table_unref (self->services);
-        if (self->service_types != NULL)
-            g_hash_table_unref (self->service_types);
-
+        g_clear_pointer (&self->name, g_free);
+        g_clear_pointer (&self->desktop_entry, g_free);
+        g_clear_pointer (&self->description, g_free);
+        g_clear_pointer (&self->i18n_domain, g_free);
+        g_clear_object (&self->desktop_app_info);
+        g_clear_pointer (&self->services, g_hash_table_unref);
+        g_clear_pointer (&self->service_types, g_hash_table_unref);
         g_slice_free (AgApplication, self);
     }
 }

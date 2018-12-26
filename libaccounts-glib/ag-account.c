@@ -398,7 +398,7 @@ ag_account_watch_int (AgAccount *account, gchar *key, gchar *prefix,
         priv->watches =
             g_hash_table_new_full (g_direct_hash, g_direct_equal,
                                    (GDestroyNotify)ag_service_unref_null,
-                                   (GDestroyNotify)g_hash_table_destroy);
+                                   (GDestroyNotify)g_hash_table_unref);
     }
 
     service_watches = g_hash_table_lookup (priv->watches, priv->service);
@@ -969,17 +969,8 @@ ag_account_dispose (GObject *object)
 
     DEBUG_REFS ("Disposing account %p", object);
 
-    if (priv->watches)
-    {
-        g_hash_table_destroy (priv->watches);
-        priv->watches = NULL;
-    }
-
-    if (priv->provider)
-    {
-        ag_provider_unref (priv->provider);
-        priv->provider = NULL;
-    }
+    g_clear_pointer (&priv->watches, g_hash_table_unref);
+    g_clear_pointer (&priv->provider, ag_provider_unref);
 
     if (priv->manager)
     {
@@ -995,16 +986,15 @@ ag_account_finalize (GObject *object)
 {
     AgAccountPrivate *priv = AG_ACCOUNT_PRIV (object);
 
-    g_free (priv->provider_name);
-    g_free (priv->display_name);
+    g_clear_pointer (&priv->provider_name, g_free);
+    g_clear_pointer (&priv->display_name, g_free);
 
-    if (priv->services)
-        g_hash_table_unref (priv->services);
+    g_clear_pointer (&priv->services, g_hash_table_unref);
 
     if (priv->changes)
     {
         DEBUG_INFO ("Finalizing account with uncommitted changes!");
-        _ag_account_changes_free (priv->changes);
+        g_clear_pointer (&priv->services, _ag_account_changes_free);
     }
 
     G_OBJECT_CLASS (ag_account_parent_class)->finalize (object);
@@ -2163,9 +2153,8 @@ ag_account_settings_iter_free (AgAccountSettingIter *iter)
 
     RealIter *ri = (RealIter *)iter;
     if (ri->must_free_prefix)
-        g_free (ri->key_prefix);
-    if (ri->last_gvalue != NULL)
-        _ag_value_slice_free (ri->last_gvalue);
+        g_clear_pointer (&ri->key_prefix, g_free);
+    g_clear_pointer (&ri->last_gvalue, _ag_value_slice_free);
     g_slice_free (AgAccountSettingIter, iter);
 }
 

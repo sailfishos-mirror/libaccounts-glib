@@ -66,7 +66,7 @@ parse_template (xmlTextReaderPtr reader, AgProvider *provider)
     ok = _ag_xml_parse_settings (reader, "", settings);
     if (G_UNLIKELY (!ok))
     {
-        g_hash_table_destroy (settings);
+        g_hash_table_unref (settings);
         return FALSE;
     }
 
@@ -509,16 +509,15 @@ ag_provider_unref (AgProvider *provider)
                 provider->name, provider->ref_count);
     if (g_atomic_int_dec_and_test (&provider->ref_count))
     {
-        g_free (provider->name);
-        g_free (provider->i18n_domain);
-        g_free (provider->icon_name);
-        g_free (provider->description);
-        g_free (provider->display_name);
-        g_free (provider->domains);
-        g_free (provider->plugin_name);
-        g_free (provider->file_data);
-        if (provider->default_settings != NULL)
-            g_hash_table_unref (provider->default_settings);
+        g_clear_pointer (&provider->name, g_free);
+        g_clear_pointer (&provider->i18n_domain, g_free);
+        g_clear_pointer (&provider->icon_name, g_free);
+        g_clear_pointer (&provider->description, g_free);
+        g_clear_pointer (&provider->display_name, g_free);
+        g_clear_pointer (&provider->domains, g_free);
+        g_clear_pointer (&provider->plugin_name, g_free);
+        g_clear_pointer (&provider->file_data, g_free);
+        g_clear_pointer (&provider->default_settings, g_hash_table_unref);
         g_slice_free (AgProvider, provider);
     }
 }

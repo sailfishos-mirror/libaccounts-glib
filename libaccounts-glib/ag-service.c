@@ -65,7 +65,7 @@ parse_template (xmlTextReaderPtr reader, AgService *service)
     ok = _ag_xml_parse_settings (reader, "", settings);
     if (G_UNLIKELY (!ok))
     {
-        g_hash_table_destroy (settings);
+        g_hash_table_unref (settings);
         return FALSE;
     }
 
@@ -579,18 +579,16 @@ ag_service_unref (AgService *service)
                 service->name, service->ref_count);
     if (g_atomic_int_dec_and_test (&service->ref_count))
     {
-        g_free (service->name);
-        g_free (service->display_name);
-        g_free (service->description);
-        g_free (service->icon_name);
-        g_free (service->i18n_domain);
-        g_free (service->type);
-        g_free (service->provider);
-        g_free (service->file_data);
-        if (service->default_settings)
-            g_hash_table_unref (service->default_settings);
-        if (service->tags)
-            g_hash_table_destroy (service->tags);
+        g_clear_pointer (&service->name, g_free);
+        g_clear_pointer (&service->display_name, g_free);
+        g_clear_pointer (&service->description, g_free);
+        g_clear_pointer (&service->icon_name, g_free);
+        g_clear_pointer (&service->i18n_domain, g_free);
+        g_clear_pointer (&service->type, g_free);
+        g_clear_pointer (&service->provider, g_free);
+        g_clear_pointer (&service->file_data, g_free);
+        g_clear_pointer (&service->default_settings, g_hash_table_unref);
+        g_clear_pointer (&service->tags, g_hash_table_unref);
         g_slice_free (AgService, service);
     }
 }

@@ -392,14 +392,13 @@ ag_service_type_unref (AgServiceType *service_type)
                 service_type->name, service_type->ref_count);
     if (g_atomic_int_dec_and_test (&service_type->ref_count))
     {
-        g_free (service_type->name);
-        g_free (service_type->i18n_domain);
-        g_free (service_type->display_name);
-        g_free (service_type->description);
-        g_free (service_type->icon_name);
-        g_free (service_type->file_data);
-        if (service_type->tags)
-            g_hash_table_destroy (service_type->tags);
+        g_clear_pointer (&service_type->name, g_free);
+        g_clear_pointer (&service_type->i18n_domain, g_free);
+        g_clear_pointer (&service_type->display_name, g_free);
+        g_clear_pointer (&service_type->description, g_free);
+        g_clear_pointer (&service_type->icon_name, g_free);
+        g_clear_pointer (&service_type->file_data, g_free);
+        g_clear_pointer (&service_type->tags, g_hash_table_unref);
         g_slice_free (AgServiceType, service_type);
     }
 }

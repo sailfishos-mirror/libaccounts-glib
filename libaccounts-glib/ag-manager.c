@@ -1585,11 +1585,7 @@ ag_manager_dispose (GObject *object)
 
     DEBUG_REFS ("Disposing manager %p", object);
 
-    while (priv->locks)
-    {
-        store_cb_data_free (priv->locks->data);
-        priv->locks = g_list_delete_link (priv->locks, priv->locks);
-    }
+    g_list_free_full (g_steal_pointer (&priv->locks), (GDestroyNotify)store_cb_data_free);
 
     if (priv->dbus_conn)
     {
@@ -1602,9 +1598,11 @@ ag_manager_dispose (GObject *object)
                                      priv->subscription_ids);
         }
 
-        g_object_unref (priv->dbus_conn);
-        priv->dbus_conn = NULL;
+        g_clear_object (&priv->dbus_conn);
     }
+
+    g_clear_pointer (&priv->services, g_hash_table_unref);
+    g_clear_pointer (&priv->accounts, g_hash_table_unref);
 
     G_OBJECT_CLASS (ag_manager_parent_class)->finalize (object);
 }
@@ -1614,7 +1612,7 @@ ag_manager_finalize (GObject *object)
 {
     AgManagerPrivate *priv = AG_MANAGER_PRIV (object);
 
-    g_ptr_array_free (priv->object_paths, TRUE);
+    g_clear_pointer (&priv->object_paths, g_ptr_array_unref);
 
     while (priv->emitted_signals)
     {
@@ -1630,18 +1628,9 @@ ag_manager_finalize (GObject *object)
                                                       priv->processed_signals);
     }
 
-    if (priv->begin_stmt)
-        sqlite3_finalize (priv->begin_stmt);
-    if (priv->commit_stmt)
-        sqlite3_finalize (priv->commit_stmt);
-    if (priv->rollback_stmt)
-        sqlite3_finalize (priv->rollback_stmt);
-
-    if (priv->services)
-        g_hash_table_unref (priv->services);
-
-    if (priv->accounts)
-        g_hash_table_unref (priv->accounts);
+    g_clear_pointer (&priv->begin_stmt, sqlite3_finalize);
+    g_clear_pointer (&priv->commit_stmt, sqlite3_finalize);
+    g_clear_pointer (&priv->rollback_stmt, sqlite3_finalize);
 
     if (priv->db)
     {
@@ -1650,10 +1639,9 @@ ag_manager_finalize (GObject *object)
                        sqlite3_errmsg (priv->db));
         priv->db = NULL;
     }
-    g_free (priv->service_type);
 
-    if (priv->last_error)
-        g_error_free (priv->last_error);
+    g_clear_pointer (&priv->service_type, g_free);
+    g_clear_pointer (&priv->last_error, g_error_free);
 
     G_OBJECT_CLASS (ag_manager_parent_class)->finalize (object);
 }
