@@ -5,6 +5,7 @@
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
  * Copyright (C) 2012-2016 Canonical Ltd.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
@@ -139,6 +140,10 @@ parse_provider (xmlTextReaderPtr reader, AgProvider *provider)
             else if (strcmp (name, "template") == 0)
             {
                 ok = parse_template (reader, provider);
+            }
+            else if (strcmp (name, "tags") == 0)
+            {
+                ok = _ag_xml_parse_element_list (reader, "tag", &provider->tags);
             }
             else
                 ok = TRUE;
@@ -441,6 +446,25 @@ ag_provider_get_single_account (AgProvider *provider)
 {
     g_return_val_if_fail (provider != NULL, FALSE);
     return provider->single_account;
+}
+
+/**
+ * ag_provider_get_tags:
+ * @provider: the #AgProvider.
+ *
+ * Get list of tags specified for the #AgProvider.
+ *
+ * Returns: (transfer container) (element-type utf8): #GList of tags for
+ * @provider. The list must be freed with g_list_free(). Entries are owned by
+ * the #AgProvider type and must not be free'd.
+ *
+ * Since: 1.25
+ */
+GList *ag_provider_get_tags (AgProvider *provider)
+{
+    g_return_val_if_fail (provider != NULL, NULL);
+
+    return g_hash_table_get_keys (provider->tags);
 }
 
 /**

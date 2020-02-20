@@ -6,6 +6,7 @@
  * Copyright (C) 2009-2010 Nokia Corporation.
  * Copyright (C) 2012-2016 Canonical Ltd.
  * Copyright (C) 2012 Intel Corporation.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  * Contact: Jussi Laako <jussi.laako@linux.intel.com>
@@ -298,7 +299,7 @@ START_TEST(test_provider)
     const gchar *domains;
     const gchar *plugin_name;
     AgProvider *provider;
-    GList *providers, *list;
+    GList *providers, *list, *tags;
     gboolean single_account;
     gboolean found;
 
@@ -329,6 +330,17 @@ START_TEST(test_provider)
 
     single_account = ag_provider_get_single_account (provider);
     fail_unless (single_account);
+
+    tags = ag_provider_get_tags (provider);
+    fail_unless (tags != NULL);
+    for (list = tags; list != NULL; list = list->next)
+    {
+        const gchar *tag = list->data;
+        g_debug(" Provider tag: %s", tag);
+        fail_unless (g_strcmp0 (tag, "user-group:mygroup") == 0,
+                     "Wrong service tag: %s", tag);
+    }
+    g_list_free (tags);
 
     /* The next couple of lines serve only to add coverage for
      * ag_provider_ref() */

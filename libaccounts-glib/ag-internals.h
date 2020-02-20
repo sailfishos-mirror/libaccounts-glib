@@ -6,6 +6,7 @@
  * Copyright (C) 2009-2010 Nokia Corporation.
  * Copyright (C) 2012-2016 Canonical Ltd.
  * Copyright (C) 2012 Intel Corporation.
+ * Copyright (C) 2020 Open Mobile Platform LLC.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  * Contact: Jussi Laako <jussi.laako@linux.intel.com>
@@ -176,6 +177,7 @@ struct _AgProvider {
     gchar *file_data;
     gboolean single_account;
     GHashTable *default_settings;
+    GHashTable *tags;
 };
 
 G_GNUC_INTERNAL

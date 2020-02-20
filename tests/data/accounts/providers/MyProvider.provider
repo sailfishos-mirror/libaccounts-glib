@@ -7,6 +7,9 @@
   <domains>.*provider\.com</domains>
   <plugin>oauth2</plugin>
   <single-account>true</single-account>
+  <tags>
+    <tag>user-group:mygroup</tag>
+  </tags>
 
   <!-- default settings (account settings have precedence over these) -->
   <template>
