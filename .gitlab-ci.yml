@@ -15,12 +15,14 @@ before_script:
   - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq sudo
   - useradd -m tester
   - adduser tester sudo
-  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -y locales
+  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq locales
   - echo "en_US UTF-8" > /etc/locale.gen
   - locale-gen en_US.UTF-8
   - export LANG=en_US.UTF-8
   - export LANGUAGE=en_US:en
   - export LC_ALL=en_US.UTF-8
+  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq python3-pip
+  - pip3 install meson
 
 
 build_amd64:
