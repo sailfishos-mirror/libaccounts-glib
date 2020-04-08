@@ -40,10 +40,16 @@ marshal_files = gnome.genmarshal('ag-marshal',
 private_headers += marshal_files[1]
 c_files += marshal_files[0]
 
-ag_library = shared_library('accounts-glib',
+src_dir = include_directories('.')
+
+ag_library = library('accounts-glib',
     public_headers + private_headers + c_files,
-    c_args: '-DACCOUNTS_GLIB_COMPILATION=1',
-    soversion: version_major,
+    c_args: [
+        '-DG_LOG_DOMAIN="accounts-glib"',
+        '-DACCOUNTS_GLIB_COMPILATION=1',
+    ],
+    version: meson.project_version(),
+    soversion: so_version,
     dependencies: accounts_glib_library_deps,
     include_directories: root_dir,
     install: true
@@ -54,21 +60,20 @@ install_headers(public_headers + files('accounts-glib.h'),
 )
 
 # PkgConfig creation
-accounts_glib_config = configuration_data()
-accounts_glib_config.set('prefix', get_option('prefix'))
-accounts_glib_config.set('libdir', join_paths('${prefix}', get_option('libdir')))
-accounts_glib_config.set('includedir', join_paths('${prefix}', get_option('includedir')))
-accounts_glib_config.set('APPLICATION_FILES_DIR', application_files_dir)
-accounts_glib_config.set('SERVICE_FILES_DIR', service_files_dir)
-accounts_glib_config.set('SERVICE_TYPE_FILES_DIR', service_type_files_dir)
-accounts_glib_config.set('PROVIDER_FILES_DIR', provider_files_dir)
-accounts_glib_config.set('VERSION', full_version)
-
-configure_file(
-    input: 'libaccounts-glib.pc.in',
-    output: 'libaccounts-glib.pc',
-    configuration: accounts_glib_config,
-    install_dir: join_paths(get_option('libdir'), 'pkgconfig')
+pkg.generate(
+    ag_library,
+    filebase: 'libaccounts-glib',
+    name: 'libaccounts-glib',
+    description: 'A low-level library for managing accounts settings.',
+    version: meson.project_version(),
+    requires: [glib_dep, gio_dep, gio_unix_dep, gobject_dep],
+    subdirs: 'libaccounts-glib',
+    variables: [
+        'applicationfilesdir=${prefix}/share/' + application_files_dir,
+        'servicefilesdir=${prefix}/share/' + service_files_dir,
+        'servicetypefilesdir=${prefix}/share/' + service_type_files_dir,
+        'providerfilesdir=${prefix}/share/' + provider_files_dir,
+    ]
 )
 
 # Creation of the dependency to use it in tools and tests
@@ -87,7 +92,8 @@ gir_targets = gnome.generate_gir(ag_library,
     symbol_prefix: 'ag',
     includes: ['GObject-2.0', 'Gio-2.0'],
     dependencies: accounts_glib_library_deps,
-    extra_args: ['--c-include=libaccounts-glib.h', '-DACCOUNTS_GLIB_COMPILATION=1'],
+    header: 'libaccounts-glib.h',
+    extra_args: ['-DACCOUNTS_GLIB_COMPILATION=1'],
     install: true
 )
 

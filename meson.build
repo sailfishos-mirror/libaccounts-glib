@@ -1,16 +1,17 @@
-project('libaccounts-glib', 'c')
+project('libaccounts-glib', 'c', version: '1.24', license: 'LGPL2.1', meson_version: '>=0.48.0')
 
-version_major = 1
-version_minor = 24
-full_version = '@0@.@1@'.format(version_major, version_minor)
-api_version = '@0@.0'.format(version_major)
+version_parts = meson.project_version().split('.')
+api_version = '@0@.0'.format(version_parts[0])
+so_version = '0'
 
 gnome = import('gnome')
+pkg = import('pkgconfig')
 
-glib_dep = dependency('glib-2.0', version : '>=2.26')
-gio_dep = dependency('gio-2.0', version : '>=2.26')
-gio_unix_dep = dependency('gio-unix-2.0')
-gobject_dep = dependency('gobject-2.0', version : '>=2.35.1')
+glib_minimal_version = '2.26'
+glib_dep = dependency('glib-2.0', version : '>=' + glib_minimal_version)
+gio_dep = dependency('gio-2.0', version : '>=' + glib_minimal_version)
+gio_unix_dep = dependency('gio-unix-2.0', version : '>=' + glib_minimal_version)
+gobject_dep = dependency('gobject-2.0', version : '>=' + glib_minimal_version)
 libxml_dep = dependency('libxml-2.0')
 sqlite_dep = dependency('sqlite3', version : '>=3.7.0')
 
@@ -20,11 +21,11 @@ service_files_dir = 'accounts/services'
 service_type_files_dir = 'accounts/service_types'
 database_dir = 'libaccounts-glib'
 
-add_global_arguments('-DAPPLICATION_FILES_DIR="'+ application_files_dir + '"', language : 'c')
-add_global_arguments('-DPROVIDER_FILES_DIR="'+ provider_files_dir + '"', language : 'c')
-add_global_arguments('-DSERVICE_FILES_DIR="'+ service_files_dir + '"', language : 'c')
-add_global_arguments('-DSERVICE_TYPE_FILES_DIR="'+ service_type_files_dir + '"', language : 'c')
-add_global_arguments('-DDATABASE_DIR="'+ database_dir + '"', language : 'c')
+add_project_arguments('-DAPPLICATION_FILES_DIR="'+ application_files_dir + '"', language : 'c')
+add_project_arguments('-DPROVIDER_FILES_DIR="'+ provider_files_dir + '"', language : 'c')
+add_project_arguments('-DSERVICE_FILES_DIR="'+ service_files_dir + '"', language : 'c')
+add_project_arguments('-DSERVICE_TYPE_FILES_DIR="'+ service_type_files_dir + '"', language : 'c')
+add_project_arguments('-DDATABASE_DIR="'+ database_dir + '"', language : 'c')
 
 accounts_glib_library_deps = [glib_dep, gio_dep, gio_unix_dep, gobject_dep, libxml_dep, sqlite_dep]
 

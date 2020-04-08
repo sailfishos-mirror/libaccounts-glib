@@ -3,7 +3,7 @@ glib_docpath = join_paths(glib_prefix, 'share', 'gtk-doc', 'html')
 docpath = join_paths(get_option('prefix'), get_option('datadir'), 'gtk-doc', 'html')
 
 doc_configuration = configuration_data()
-doc_configuration.set('VERSION', full_version)
+doc_configuration.set('VERSION', meson.project_version())
 
 configure_file(input : 'version.xml.in',
     output : 'version.xml',
@@ -18,7 +18,7 @@ private_headers = [
 
 gnome.gtkdoc('libaccounts-glib',
     main_xml: 'libaccounts-glib-docs.xml',
-    src_dir: [join_paths(meson.source_root (), 'libaccounts-glib')],
+    src_dir: src_dir,
     dependencies : [glib_dep, gobject_dep, accounts_glib_dep],
     content_files: [
         'ag-backup.xml',
@@ -40,6 +40,10 @@ gnome.gtkdoc('libaccounts-glib',
         '--extra-dir=' + join_paths(glib_docpath, 'gobject'),
         '--extra-dir=' + join_paths(glib_docpath, 'gio')
     ],
-    scan_args: ['--rebuild-types','--ignore-headers=' + ' '.join(private_headers)],
+    c_args: [
+        '-DACCOUNTS_GLIB_COMPILATION=1'
+    ],
+    ignore_headers: private_headers,
+    scan_args: ['--rebuild-types'],
     install: true
 )
