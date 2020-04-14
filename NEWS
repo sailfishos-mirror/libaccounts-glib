@@ -1,5 +1,12 @@
 libaccounts-glib NEWS
 
+Version 1.25
+------------
+
+* Add support for provider tags
+* Reference counting is implemented atomically
+* Add option to specify path to pygobject override directory
+
 Version 1.24
 ------------
 

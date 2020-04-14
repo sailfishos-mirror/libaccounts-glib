@@ -1,4 +1,4 @@
-project('libaccounts-glib', 'c', version: '1.24', license: 'LGPL2.1', meson_version: '>=0.48.0')
+project('libaccounts-glib', 'c', version: '1.25', license: 'LGPL2.1', meson_version: '>=0.48.0')
 
 version_parts = meson.project_version().split('.')
 api_version = '@0@.0'.format(version_parts[0])
