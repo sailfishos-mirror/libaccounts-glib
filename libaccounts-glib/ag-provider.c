@@ -464,6 +464,9 @@ GList *ag_provider_get_tags (AgProvider *provider)
 {
     g_return_val_if_fail (provider != NULL, NULL);
 
+    if (G_UNLIKELY (provider->tags == NULL))
+        return NULL;
+
     return g_hash_table_get_keys (provider->tags);
 }
 
