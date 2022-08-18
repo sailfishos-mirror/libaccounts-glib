@@ -67,7 +67,7 @@ pkg.generate(
     description: 'A low-level library for managing accounts settings.',
     version: meson.project_version(),
     requires: [glib_dep, gio_dep, gio_unix_dep, gobject_dep],
-    subdirs: 'libaccounts-glib',
+    subdirs: ['', 'libaccounts-glib'],
     variables: [
         'applicationfilesdir=${prefix}/share/' + application_files_dir,
         'servicefilesdir=${prefix}/share/' + service_files_dir,
