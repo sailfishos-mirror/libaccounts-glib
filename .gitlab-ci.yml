@@ -22,7 +22,7 @@ before_script:
   - export LANGUAGE=en_US:en
   - export LC_ALL=en_US.UTF-8
   - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq python3-pip
-  - pip3 install meson
+  - pip3 install meson==0.56.2
 
 
 build_amd64:
