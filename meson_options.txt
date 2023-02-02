@@ -1,1 +1,2 @@
+option('install-py-overrides', type: 'boolean', value: false, description: 'Install Python gi overrides file')
 option('py-overrides-dir', type : 'string', value : '', description: 'Path to pygobject overrides directory')
