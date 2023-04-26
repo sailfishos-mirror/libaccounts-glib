@@ -1108,7 +1108,6 @@ exec_transaction_idle (StoreCbData *sd)
                                      "Generic error");
     }
 
-finish:
     if (error != NULL)
     {
         g_task_return_error (sd->task, error);
@@ -1118,6 +1117,7 @@ finish:
         g_task_return_boolean (sd->task, TRUE);
     }
 
+finish:
     _ag_account_store_completed (account, sd->changes);
 
     priv->locks = g_list_remove (priv->locks, sd);
