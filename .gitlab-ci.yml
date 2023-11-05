@@ -7,9 +7,15 @@ cache:
 
 before_script:
   - export APT_CACHE_DIR=`pwd`/apt-cache && mkdir -pv $APT_CACHE_DIR
+  - export DEBIAN_FRONTEND=noninteractive
   - apt-get update -yq && apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq software-properties-common
-  - add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ xenial-backports main restricted universe multiverse" -u -s
-  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" -t xenial-backports install -yq meson
+  - |
+      if [ "$CI_JOB_IMAGE" == "ubuntu:xenial" ]; then
+        add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ xenial-backports main restricted universe multiverse" -u -s
+        apt-get -o dir::cache::archives="$APT_CACHE_DIR" -t xenial-backports install -yq meson
+      else
+        apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq meson
+      fi
   - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq gobject-introspection gtk-doc-tools libgirepository1.0-dev libglib2.0-dev libsqlite3-dev libxml2-dev libxml2-utils python3 python3-gi python-gi-dev valac
   - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq check dbus-test-runner lcov gcovr
   - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq sudo
@@ -21,8 +27,11 @@ before_script:
   - export LANG=en_US.UTF-8
   - export LANGUAGE=en_US:en
   - export LC_ALL=en_US.UTF-8
-  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq python3-pip
-  - pip3 install meson==0.56.2
+  - |
+      if [ "$CI_JOB_IMAGE" == "ubuntu:xenial" ]; then
+        apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -yq python3-pip
+        pip3 install meson==0.56.2
+      fi
 
 
 build_amd64:
@@ -46,6 +55,33 @@ test_amd64:
     - sudo ninja install
   dependencies:
     - build_amd64
+  artifacts:
+    paths:
+      - ./
+
+build_jammy_amd64:
+  image: ubuntu:jammy
+  stage: build
+  script:
+    - export PYTHON=python3
+    - meson build -Db_coverage=true
+    - cd build
+    - ninja
+  artifacts:
+    paths:
+      - ./
+
+test_jammy_amd64:
+  image: ubuntu:jammy
+  stage: test
+  script:
+    - cd build
+    - chmod a+rw -R .
+    - sudo -u tester ninja test
+    - sudo -u tester ninja coverage-html
+    - sudo ninja install
+  dependencies:
+    - build_jammy_amd64
   artifacts:
     paths:
       - ./
