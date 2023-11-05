@@ -72,6 +72,11 @@ typedef struct {
 } EnabledCbData;
 
 typedef struct {
+    gint called_count;
+    gboolean enabled;
+} AccountServiceEnabledCbData;
+
+typedef struct {
     gboolean called;
     guint account_id;
     gboolean created;
@@ -830,10 +835,11 @@ END_TEST
 static void
 on_account_service_enabled (AgAccountService *account_service,
                             gboolean enabled,
-                            gboolean *enabled_value)
+                            AccountServiceEnabledCbData *cb_data)
 {
     fail_unless (ag_account_service_get_enabled (account_service) == enabled);
-    *enabled_value = enabled;
+    cb_data->called_count++;
+    cb_data->enabled = enabled;
 }
 
 START_TEST(test_account_service_enabledness)
@@ -841,6 +847,7 @@ START_TEST(test_account_service_enabledness)
     AgAccountId account_id;
     AgAccountService *account_service;
     gboolean service_enabled = FALSE;
+    AccountServiceEnabledCbData enabled_signal = { 0, FALSE };
     GError *error = NULL;
 
     manager = ag_manager_new ();
@@ -863,7 +870,7 @@ START_TEST(test_account_service_enabledness)
 
     g_signal_connect (account_service, "enabled",
                       G_CALLBACK (on_account_service_enabled),
-                      &service_enabled);
+                      &enabled_signal);
 
     /* enable the service */
     ag_account_select_service (account, service);
@@ -875,13 +882,29 @@ START_TEST(test_account_service_enabledness)
     data_stored = FALSE;
 
     /* Still disabled, because the account is disabled */
-    fail_unless (service_enabled == FALSE);
+    fail_unless (enabled_signal.enabled == FALSE);
+    fail_unless (enabled_signal.called_count == 0);
     service_enabled = TRUE;
     g_object_get (account_service, "enabled", &service_enabled, NULL);
     fail_unless (service_enabled == FALSE);
 
-    /* enable the account */
+    /* enable the account but disable the service*/
     ag_account_select_service (account, NULL);
+    ag_account_set_enabled (account, TRUE);
+    ag_account_select_service (account, service);
+    ag_account_set_enabled (account, FALSE);
+
+    ag_account_store (account, account_store_now_cb, TEST_STRING);
+    run_main_loop_for_n_seconds(0);
+    fail_unless (data_stored, "Callback not invoked immediately");
+    data_stored = FALSE;
+
+    /* Still disabled, because the account is disabled */
+    fail_unless (enabled_signal.enabled == FALSE);
+    fail_unless (enabled_signal.called_count == 0);
+
+    /* Now enable the service */
+    ag_account_select_service (account, service);
     ag_account_set_enabled (account, TRUE);
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
@@ -889,7 +912,8 @@ START_TEST(test_account_service_enabledness)
     fail_unless (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (service_enabled == TRUE);
+    fail_unless (enabled_signal.enabled == TRUE);
+    fail_unless (enabled_signal.called_count == 1);
     service_enabled = FALSE;
     g_object_get (account_service, "enabled", &service_enabled, NULL);
     fail_unless (service_enabled == TRUE);
@@ -925,7 +949,7 @@ START_TEST(test_account_service_enabledness)
 
     g_signal_connect (account_service, "enabled",
                       G_CALLBACK (on_account_service_enabled),
-                      &service_enabled);
+                      &enabled_signal);
 
     fail_unless (ag_account_service_get_enabled (account_service) == TRUE);
 
@@ -938,7 +962,7 @@ START_TEST(test_account_service_enabledness)
     fail_unless (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (service_enabled == FALSE);
+    fail_unless (enabled_signal.enabled == FALSE);
 
     g_object_unref (account_service);
     end_test ();
