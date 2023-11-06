@@ -223,6 +223,11 @@ typedef struct {
     gpointer user_data;
 } AsyncReadyCbWrapperData;
 
+typedef struct {
+    gchar *service_name;
+    gboolean enabled;
+} EnabledSignalParams;
+
 #define AG_ITER_STAGE_UNSET     0
 #define AG_ITER_STAGE_ACCOUNT   1
 #define AG_ITER_STAGE_SERVICE   2
@@ -584,6 +589,7 @@ update_settings (AgAccount *account, GHashTable *services)
     AgServiceChanges *sc;
     gchar *service_name;
     GList *watch_list = NULL;
+    GSList *enabled_signals = NULL;
 
     g_hash_table_iter_init (&iter, services);
     while (g_hash_table_iter_next (&iter,
@@ -641,10 +647,12 @@ update_settings (AgAccount *account, GHashTable *services)
                     {
                         priv->enabled =
                             value ? g_variant_get_boolean (value) : FALSE;
-                        g_signal_emit (account, signals[ENABLED], 0,
-                                       NULL, priv->enabled);
                         g_object_notify_by_pspec ((GObject *)account,
                                                   properties[PROP_ENABLED]);
+                        EnabledSignalParams *params = g_new (EnabledSignalParams, 1);
+                        params->service_name = NULL;
+                        params->enabled = priv->enabled;
+                        enabled_signals = g_slist_prepend (enabled_signals, params);
                         continue;
                     }
                 }
@@ -665,10 +673,22 @@ update_settings (AgAccount *account, GHashTable *services)
             {
                 gboolean enabled =
                     value ? g_variant_get_boolean (value) : FALSE;
-                g_signal_emit (account, signals[ENABLED], 0,
-                               service_name, enabled);
+                EnabledSignalParams *params = g_new (EnabledSignalParams, 1);
+                params->service_name = service_name;
+                params->enabled = enabled;
+                enabled_signals = g_slist_prepend (enabled_signals, params);
             }
         }
+    }
+
+    /* Emit all enabled signals */
+    while (enabled_signals)
+    {
+        EnabledSignalParams *params = enabled_signals->data;
+        g_signal_emit (account, signals[ENABLED], 0,
+                       params->service_name, params->enabled);
+        g_free (params);
+        enabled_signals = g_slist_delete_link (enabled_signals, enabled_signals);
     }
 
     /* Invoke all watches
