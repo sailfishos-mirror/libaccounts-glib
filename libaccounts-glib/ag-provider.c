@@ -545,6 +545,7 @@ ag_provider_unref (AgProvider *provider)
         g_clear_pointer (&provider->plugin_name, g_free);
         g_clear_pointer (&provider->file_data, g_free);
         g_clear_pointer (&provider->default_settings, g_hash_table_unref);
+        g_clear_pointer (&provider->tags, g_hash_table_unref);
         g_slice_free (AgProvider, provider);
     }
 }
