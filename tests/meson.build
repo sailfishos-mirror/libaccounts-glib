@@ -29,6 +29,7 @@ test_environment.set ('ACCOUNTS', '/tmp')
 test_environment.set ('AG_DEBUG', 'all')
 test_environment.set ('G_MESSAGES_DEBUG', 'all')
 test_environment.set ('G_DEBUG', 'fatal-criticals')
+test_environment.set ('G_SLICE', 'always-malloc')
 test_environment.set ('XDG_DATA_HOME', test_data_dir)
 test_environment.append ('PATH', meson.current_build_dir ())
 
