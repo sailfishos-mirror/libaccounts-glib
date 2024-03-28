@@ -1,5 +1,20 @@
 libaccounts-glib NEWS
 
+Version 1.27
+------------
+
+* Do not install python gobject introspection files by default. If they
+  are needed, build with `-Dinstall-py-overrides=true`.
+* Lib: do not attempt to terminate the GTask twice
+* Fix memory leak on provider tags
+* Do not emit misleading enabled signals on account services
+* Fix incorrect cleanup in ag_account_finalize
+
+Version 1.26
+------------
+
+* Fix pkg-config file
+
 Version 1.25
 ------------
 
