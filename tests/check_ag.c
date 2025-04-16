@@ -215,8 +215,8 @@ START_TEST(test_init)
 {
     manager = ag_manager_new ();
 
-    fail_unless (AG_IS_MANAGER (manager),
-                 "Failed to initialize the AgManager.");
+    ck_assert_msg (AG_IS_MANAGER (manager),
+                   "Failed to initialize the AgManager.");
 
     end_test ();
 }
@@ -255,8 +255,8 @@ START_TEST(test_object)
     manager = ag_manager_new ();
 
     account = ag_manager_create_account (manager, NULL);
-    fail_unless (AG_IS_ACCOUNT (account),
-                 "Failed to create the AgAccount.");
+    ck_assert_msg (AG_IS_ACCOUNT (account),
+                   "Failed to create the AgAccount.");
 
     end_test ();
 }
@@ -270,16 +270,16 @@ START_TEST(test_read_only)
     set_read_only ();
 
     manager = ag_manager_new ();
-    fail_unless (manager != NULL);
+    ck_assert (manager != NULL);
 
     /* create an account, and expect a failure */
     account = ag_manager_create_account (manager, "bisbone");
-    fail_unless (AG_IS_ACCOUNT (account),
-                 "Failed to create the AgAccount.");
+    ck_assert_msg (AG_IS_ACCOUNT (account),
+                   "Failed to create the AgAccount.");
 
     ok = ag_account_store_blocking (account, &error);
-    fail_unless (!ok);
-    fail_unless (error->code == AG_ACCOUNTS_ERROR_READONLY);
+    ck_assert (!ok);
+    ck_assert (error->code == AG_ACCOUNTS_ERROR_READONLY);
     g_debug ("Error message: %s", error->message);
     g_error_free (error);
 
@@ -311,15 +311,15 @@ START_TEST(test_provider)
     manager = ag_manager_new ();
 
     account = ag_manager_create_account (manager, PROVIDER);
-    fail_unless (AG_IS_ACCOUNT (account),
-                 "Failed to create the AgAccount.");
+    ck_assert_msg (AG_IS_ACCOUNT (account),
+                   "Failed to create the AgAccount.");
 
     provider_name = ag_account_get_provider_name (account);
     fail_if (g_strcmp0 (provider_name, PROVIDER) != 0);
 
     /* Test provider XML file loading */
     provider = ag_manager_get_provider (manager, "MyProvider");
-    fail_unless (provider != NULL);
+    ck_assert (provider != NULL);
 
     ck_assert_str_eq (ag_provider_get_name (provider), "MyProvider");
     ck_assert_str_eq (ag_provider_get_i18n_domain (provider),
@@ -328,22 +328,22 @@ START_TEST(test_provider)
                       "general_myprovider");
 
     display_name = ag_provider_get_display_name (provider);
-    fail_unless (g_strcmp0 (display_name, "My Provider") == 0);
+    ck_assert (g_strcmp0 (display_name, "My Provider") == 0);
 
     description = ag_provider_get_description (provider);
-    fail_unless (g_strcmp0 (description, "My Provider Description") == 0);
+    ck_assert (g_strcmp0 (description, "My Provider Description") == 0);
 
     single_account = ag_provider_get_single_account (provider);
-    fail_unless (single_account);
+    ck_assert (single_account);
 
     tags = ag_provider_get_tags (provider);
-    fail_unless (tags != NULL);
+    ck_assert (tags != NULL);
     for (list = tags; list != NULL; list = list->next)
     {
         const gchar *tag = list->data;
         g_debug(" Provider tag: %s", tag);
-        fail_unless (g_strcmp0 (tag, "user-group:mygroup") == 0,
-                     "Wrong service tag: %s", tag);
+        ck_assert_msg (g_strcmp0 (tag, "user-group:mygroup") == 0,
+                       "Wrong service tag: %s", tag);
     }
     g_list_free (tags);
 
@@ -355,17 +355,17 @@ START_TEST(test_provider)
     ag_provider_unref (provider);
 
     provider = ag_manager_get_provider (manager, "maemo");
-    fail_unless (provider != NULL);
+    ck_assert (provider != NULL);
 
     single_account = ag_provider_get_single_account (provider);
-    fail_unless (!single_account);
+    ck_assert (!single_account);
 
     ag_provider_unref (provider);
 
     /* Test provider enumeration */
     providers = ag_manager_list_providers (manager);
-    fail_unless (providers != NULL);
-    fail_unless (g_list_length (providers) == 2);
+    ck_assert (providers != NULL);
+    ck_assert (g_list_length (providers) == 2);
 
     found = FALSE;
     for (list = providers; list != NULL; list = list->next)
@@ -376,15 +376,15 @@ START_TEST(test_provider)
 
         found = TRUE;
         domains = ag_provider_get_domains_regex (provider);
-        fail_unless (g_strcmp0 (domains, ".*provider\\.com") == 0);
+        ck_assert (g_strcmp0 (domains, ".*provider\\.com") == 0);
 
-        fail_unless (ag_provider_match_domain (provider, "www.provider.com"));
+        ck_assert (ag_provider_match_domain (provider, "www.provider.com"));
 
         plugin_name = ag_provider_get_plugin_name (provider);
-        fail_unless (g_strcmp0 (plugin_name, "oauth2") == 0);
+        ck_assert (g_strcmp0 (plugin_name, "oauth2") == 0);
     }
 
-    fail_unless (found);
+    ck_assert (found);
 
     ag_provider_list_free (providers);
 
@@ -400,22 +400,22 @@ START_TEST(test_provider_settings)
     manager = ag_manager_new ();
 
     account = ag_manager_create_account (manager, "MyProvider");
-    fail_unless (AG_IS_ACCOUNT (account),
-                 "Failed to create the AgAccount.");
+    ck_assert_msg (AG_IS_ACCOUNT (account),
+                   "Failed to create the AgAccount.");
 
     /* Test provider default settings */
     source = AG_SETTING_SOURCE_NONE;
     variant = ag_account_get_variant (account, "login/server", &source);
-    fail_unless (source == AG_SETTING_SOURCE_PROFILE);
-    fail_unless (variant != NULL);
-    fail_unless (g_strcmp0 (g_variant_get_string (variant, NULL),
+    ck_assert (source == AG_SETTING_SOURCE_PROFILE);
+    ck_assert (variant != NULL);
+    ck_assert (g_strcmp0 (g_variant_get_string (variant, NULL),
                             "login.example.com") == 0);
 
     source = AG_SETTING_SOURCE_NONE;
     variant = ag_account_get_variant (account, "login/remember-me", &source);
-    fail_unless (source == AG_SETTING_SOURCE_PROFILE);
-    fail_unless (variant != NULL);
-    fail_unless (g_variant_get_boolean (variant) == TRUE);
+    ck_assert (source == AG_SETTING_SOURCE_PROFILE);
+    ck_assert (variant != NULL);
+    ck_assert (g_variant_get_boolean (variant) == TRUE);
 
     end_test ();
 }
@@ -442,7 +442,7 @@ START_TEST(test_provider_directories)
     manager = ag_manager_new ();
 
     provider = ag_manager_get_provider (manager, "MyProvider");
-    fail_unless (provider != NULL);
+    ck_assert (provider != NULL);
     ck_assert_str_eq (ag_provider_get_name (provider), "MyProvider");
     ck_assert_str_eq (ag_provider_get_display_name (provider), "My Provider");
 
@@ -454,7 +454,7 @@ START_TEST(test_provider_directories)
     manager = ag_manager_new ();
 
     provider = ag_manager_get_provider (manager, "MyProvider");
-    fail_unless (provider != NULL);
+    ck_assert (provider != NULL);
     ck_assert_str_eq (ag_provider_get_name (provider), "MyProvider");
     ck_assert_str_eq (ag_provider_get_display_name (provider), "FakeOs Provider");
 
@@ -476,10 +476,10 @@ void account_store_cb (AgAccount *account, const GError *error,
 {
     const gchar *string = user_data;
 
-    fail_unless (AG_IS_ACCOUNT (account), "Account got disposed?");
+    ck_assert_msg (AG_IS_ACCOUNT (account), "Account got disposed?");
     if (error)
-        fail("Got error: %s", error->message);
-    fail_unless (g_strcmp0 (string, TEST_STRING) == 0, "Got wrong string");
+        ck_abort_msg("Got error: %s", error->message);
+    ck_assert_msg (g_strcmp0 (string, TEST_STRING) == 0, "Got wrong string");
 
     end_test ();
 }
@@ -508,12 +508,12 @@ void account_store_locked_cb (AgAccount *account, const GError *error,
     const gchar *string = user_data;
 
     g_debug ("%s called", G_STRFUNC);
-    fail_unless (AG_IS_ACCOUNT (account), "Account got disposed?");
+    ck_assert_msg (AG_IS_ACCOUNT (account), "Account got disposed?");
     if (error)
-        fail("Got error: %s", error->message);
-    fail_unless (g_strcmp0 (string, TEST_STRING) == 0, "Got wrong string");
+        ck_abort_msg("Got error: %s", error->message);
+    ck_assert_msg (g_strcmp0 (string, TEST_STRING) == 0, "Got wrong string");
 
-    fail_unless (lock_released, "Data stored while DB locked!");
+    ck_assert_msg (lock_released, "Data stored while DB locked!");
 
     end_test ();
 }
@@ -542,7 +542,7 @@ START_TEST(test_store_locked)
     main_loop = g_main_loop_new (NULL, FALSE);
     ag_account_store (account, account_store_locked_cb, TEST_STRING);
     g_timeout_add (100, (GSourceFunc)release_lock, db);
-    fail_unless (main_loop != NULL, "Callback invoked too early");
+    ck_assert_msg (main_loop != NULL, "Callback invoked too early");
     g_debug ("Running loop");
     g_main_loop_run (main_loop);
     sqlite3_close (db);
@@ -559,10 +559,10 @@ account_store_locked_cancel_cb (GObject *object, GAsyncResult *res,
     g_debug ("%s called", G_STRFUNC);
 
     ag_account_store_finish (AG_ACCOUNT (object), res, &error);
-    fail_unless (error != NULL, "Account disposed but no error set!");
-    fail_unless (error->domain == G_IO_ERROR, "Wrong error domain");
-    fail_unless (error->code == G_IO_ERROR_CANCELLED,
-                 "Got a different error code");
+    ck_assert_msg (error != NULL, "Account disposed but no error set!");
+    ck_assert_msg (error->domain == G_IO_ERROR, "Wrong error domain");
+    ck_assert_msg (error->code == G_IO_ERROR_CANCELLED,
+                   "Got a different error code");
     g_error_free (error);
     *called = TRUE;
 }
@@ -606,10 +606,10 @@ START_TEST(test_store_locked_cancel)
     ag_account_store_async (account, cancellable, account_store_locked_cancel_cb, &cb_called);
     g_timeout_add (100, (GSourceFunc)cancel_store, cancellable);
     g_timeout_add (200, (GSourceFunc)release_lock_cancel, db);
-    fail_unless (main_loop != NULL, "Callback invoked too early");
+    ck_assert_msg (main_loop != NULL, "Callback invoked too early");
     g_debug ("Running loop");
     g_main_loop_run (main_loop);
-    fail_unless (cb_called, "Callback not invoked");
+    ck_assert_msg (cb_called, "Callback not invoked");
     sqlite3_close (db);
     g_object_unref (cancellable);
 }
@@ -697,8 +697,8 @@ START_TEST(test_store_read_only)
 
     /* create an account, write its display name */
     account = ag_manager_create_account (manager, "fakebook");
-    fail_unless (AG_IS_ACCOUNT (account),
-                 "Failed to create the AgAccount.");
+    ck_assert_msg (AG_IS_ACCOUNT (account),
+                   "Failed to create the AgAccount.");
     ag_account_set_display_name (account, display_name);
 
     /* We want to verify that the local account will be updated with this
@@ -745,10 +745,10 @@ void account_store_now_cb (AgAccount *account, const GError *error,
 {
     const gchar *string = user_data;
 
-    fail_unless (AG_IS_ACCOUNT (account), "Account got disposed?");
+    ck_assert_msg (AG_IS_ACCOUNT (account), "Account got disposed?");
     if (error)
-        fail("Got error: %s", error->message);
-    fail_unless (g_strcmp0 (string, TEST_STRING) == 0, "Got wrong string");
+        ck_abort_msg("Got error: %s", error->message);
+    ck_assert_msg (g_strcmp0 (string, TEST_STRING) == 0, "Got wrong string");
 
     data_stored = TRUE;
 }
@@ -771,18 +771,18 @@ START_TEST(test_account_service)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
 
     ag_account_set_enabled (account, FALSE);
     ag_account_set_display_name (account, display_name);
 
     account_service = ag_account_service_new (account, service);
-    fail_unless (AG_IS_ACCOUNT_SERVICE (account_service),
-                 "Failed to create AccountService");
+    ck_assert_msg (AG_IS_ACCOUNT_SERVICE (account_service),
+                   "Failed to create AccountService");
 
     /* test the readable properties */
     {
@@ -793,8 +793,8 @@ START_TEST(test_account_service)
                       "account", &account_prop,
                       "service", &service_prop,
                       NULL);
-        fail_unless (account_prop == account);
-        fail_unless (service_prop == service);
+        ck_assert (account_prop == account);
+        ck_assert (service_prop == service);
         g_object_unref (account_prop);
         ag_service_unref (service_prop);
     }
@@ -802,28 +802,28 @@ START_TEST(test_account_service)
     /* test getting default setting from template */
     g_value_init (&value, G_TYPE_INT);
     source = ag_account_service_get_value (account_service, "parameters/port", &value);
-    fail_unless (source == AG_SETTING_SOURCE_PROFILE,
-                 "Cannot get port from profile");
-    fail_unless (g_value_get_int (&value) == 5223,
-                 "Wrong port number: %d", g_value_get_int (&value));
+    ck_assert_msg (source == AG_SETTING_SOURCE_PROFILE,
+                   "Cannot get port from profile");
+    ck_assert_msg (g_value_get_int (&value) == 5223,
+                   "Wrong port number: %d", g_value_get_int (&value));
 
     g_value_unset (&value);
 
     /* test getters for account and service */
-    fail_unless (ag_account_service_get_service (account_service) == service);
-    fail_unless (ag_account_service_get_account (account_service) == account);
+    ck_assert (ag_account_service_get_service (account_service) == service);
+    ck_assert (ag_account_service_get_account (account_service) == account);
 
     g_object_unref (account_service);
 
     /* Test account service for global settings */
     account_service = ag_account_service_new (account, NULL);
-    fail_unless (AG_IS_ACCOUNT_SERVICE (account_service),
-                 "Failed to create AccountService for global settings");
+    ck_assert_msg (AG_IS_ACCOUNT_SERVICE (account_service),
+                   "Failed to create AccountService for global settings");
 
     g_value_init (&value, G_TYPE_STRING);
     source = ag_account_service_get_value (account_service, "description", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT);
-    fail_unless (g_strcmp0 (g_value_get_string (&value), description) == 0);
+    ck_assert (source == AG_SETTING_SOURCE_ACCOUNT);
+    ck_assert (g_strcmp0 (g_value_get_string (&value), description) == 0);
     g_value_unset (&value);
 
     g_object_unref (account_service);
@@ -837,7 +837,7 @@ on_account_service_enabled (AgAccountService *account_service,
                             gboolean enabled,
                             AccountServiceEnabledCbData *cb_data)
 {
-    fail_unless (ag_account_service_get_enabled (account_service) == enabled);
+    ck_assert (ag_account_service_get_enabled (account_service) == enabled);
     cb_data->called_count++;
     cb_data->enabled = enabled;
 }
@@ -854,17 +854,17 @@ START_TEST(test_account_service_enabledness)
     account = ag_manager_create_account (manager, PROVIDER);
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
 
     ag_account_set_enabled (account, FALSE);
 
     account_service = ag_account_service_new (account, service);
-    fail_unless (AG_IS_ACCOUNT_SERVICE (account_service),
-                 "Failed to create AccountService");
+    ck_assert_msg (AG_IS_ACCOUNT_SERVICE (account_service),
+                   "Failed to create AccountService");
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
     account_id = account->id;
 
@@ -878,15 +878,15 @@ START_TEST(test_account_service_enabledness)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* Still disabled, because the account is disabled */
-    fail_unless (enabled_signal.enabled == FALSE);
-    fail_unless (enabled_signal.called_count == 0);
+    ck_assert (enabled_signal.enabled == FALSE);
+    ck_assert (enabled_signal.called_count == 0);
     service_enabled = TRUE;
     g_object_get (account_service, "enabled", &service_enabled, NULL);
-    fail_unless (service_enabled == FALSE);
+    ck_assert (service_enabled == FALSE);
 
     /* enable the account but disable the service*/
     ag_account_select_service (account, NULL);
@@ -896,12 +896,12 @@ START_TEST(test_account_service_enabledness)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* Still disabled, because the account is disabled */
-    fail_unless (enabled_signal.enabled == FALSE);
-    fail_unless (enabled_signal.called_count == 0);
+    ck_assert (enabled_signal.enabled == FALSE);
+    ck_assert (enabled_signal.called_count == 0);
 
     /* Now enable the service */
     ag_account_select_service (account, service);
@@ -909,14 +909,14 @@ START_TEST(test_account_service_enabledness)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (enabled_signal.enabled == TRUE);
-    fail_unless (enabled_signal.called_count == 1);
+    ck_assert (enabled_signal.enabled == TRUE);
+    ck_assert (enabled_signal.called_count == 1);
     service_enabled = FALSE;
     g_object_get (account_service, "enabled", &service_enabled, NULL);
-    fail_unless (service_enabled == TRUE);
+    ck_assert (service_enabled == TRUE);
 
     g_object_unref (account_service);
 
@@ -928,30 +928,30 @@ START_TEST(test_account_service_enabledness)
 
     /* reload the account and see that it's enabled */
     account = ag_manager_load_account (manager, account_id, &error);
-    fail_unless (AG_IS_ACCOUNT (account),
-                 "Couldn't load account %u", account_id);
-    fail_unless (error == NULL, "Error is not NULL");
+    ck_assert_msg (AG_IS_ACCOUNT (account),
+                   "Couldn't load account %u", account_id);
+    ck_assert_msg (error == NULL, "Error is not NULL");
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
 
     /* load the global account, and check that it's enabled */
     account_service = ag_account_service_new (account, NULL);
-    fail_unless (AG_IS_ACCOUNT_SERVICE (account_service));
+    ck_assert (AG_IS_ACCOUNT_SERVICE (account_service));
 
-    fail_unless (ag_account_service_get_enabled (account_service) == TRUE);
+    ck_assert (ag_account_service_get_enabled (account_service) == TRUE);
     g_object_unref (account_service);
 
     /* load the service, and check that it's enabled */
     account_service = ag_account_service_new (account, service);
-    fail_unless (AG_IS_ACCOUNT_SERVICE (account_service),
-                 "Failed to create AccountService");
+    ck_assert_msg (AG_IS_ACCOUNT_SERVICE (account_service),
+                   "Failed to create AccountService");
 
     g_signal_connect (account_service, "enabled",
                       G_CALLBACK (on_account_service_enabled),
                       &enabled_signal);
 
-    fail_unless (ag_account_service_get_enabled (account_service) == TRUE);
+    ck_assert (ag_account_service_get_enabled (account_service) == TRUE);
 
     /* disable the service */
     ag_account_select_service (account, service);
@@ -959,10 +959,10 @@ START_TEST(test_account_service_enabledness)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (enabled_signal.enabled == FALSE);
+    ck_assert (enabled_signal.enabled == FALSE);
 
     g_object_unref (account_service);
     end_test ();
@@ -1010,14 +1010,14 @@ START_TEST(test_account_service_settings)
     account = ag_manager_create_account (manager, PROVIDER);
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
 
     ag_account_set_enabled (account, FALSE);
     ag_account_set_display_name (account, display_name);
 
     account_service = ag_account_service_new (account, service);
-    fail_unless (AG_IS_ACCOUNT_SERVICE (account_service),
-                 "Failed to create AccountService");
+    ck_assert_msg (AG_IS_ACCOUNT_SERVICE (account_service),
+                   "Failed to create AccountService");
 
     g_signal_connect (account_service, "changed",
                       G_CALLBACK (on_account_service_changed),
@@ -1037,22 +1037,22 @@ START_TEST(test_account_service_settings)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* The callback for the "changed" signal should have been emitted.
      * Let's check what changed fields were reported, and what their value
      * is now.
      */
-    fail_unless (changed_fields != NULL);
-    fail_unless (string_in_array (changed_fields, "username"));
+    ck_assert (changed_fields != NULL);
+    ck_assert (string_in_array (changed_fields, "username"));
     g_value_init (&value, G_TYPE_STRING);
     source = ag_account_service_get_value (account_service, "username", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT);
-    fail_unless (strcmp (g_value_get_string (&value), username) == 0);
+    ck_assert (source == AG_SETTING_SOURCE_ACCOUNT);
+    ck_assert (strcmp (g_value_get_string (&value), username) == 0);
     g_value_unset (&value);
 
-    fail_unless (string_in_array (changed_fields, "check_automatically"));
+    ck_assert (string_in_array (changed_fields, "check_automatically"));
     g_strfreev (changed_fields);
 
     /* Let's repeat the test, now that the settings are stored in the DB */
@@ -1073,22 +1073,22 @@ START_TEST(test_account_service_settings)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* The callback for the "changed" signal should have been emitted.
      * Let's check what changed fields were reported, and what their value
      * is now.
      */
-    fail_unless (string_in_array (changed_fields, "check_automatically"));
+    ck_assert (string_in_array (changed_fields, "check_automatically"));
     variant = ag_account_service_get_variant (account_service,
                                               "check_automatically", &source);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT);
-    fail_unless (g_variant_is_of_type (variant, G_VARIANT_TYPE_BOOLEAN));
+    ck_assert (source == AG_SETTING_SOURCE_ACCOUNT);
+    ck_assert (g_variant_is_of_type (variant, G_VARIANT_TYPE_BOOLEAN));
     ck_assert_int_eq (g_variant_get_boolean (variant), check_automatically);
 
-    fail_unless (string_in_array (changed_fields, "day"));
-    fail_unless (string_in_array (changed_fields, "ForReal"));
+    ck_assert (string_in_array (changed_fields, "day"));
+    ck_assert (string_in_array (changed_fields, "ForReal"));
     g_strfreev (changed_fields);
 
     /* Enumerate the account service settings */
@@ -1097,40 +1097,40 @@ START_TEST(test_account_service_settings)
     ag_account_service_settings_iter_init (account_service, &iter, NULL);
     while (ag_account_settings_iter_get_next (&iter, &key, &variant))
     {
-        fail_unless (key != NULL);
-        fail_unless (variant != NULL);
+        ck_assert (key != NULL);
+        ck_assert (variant != NULL);
 
         total_keys_count++;
 
         if (g_strcmp0 (key, "check_automatically") == 0)
         {
             known_keys_count++;
-            fail_unless (g_variant_is_of_type (variant,
-                                               G_VARIANT_TYPE_BOOLEAN));
+            ck_assert (g_variant_is_of_type (variant,
+                                             G_VARIANT_TYPE_BOOLEAN));
             ck_assert_int_eq (g_variant_get_boolean (variant),
                               check_automatically);
         }
         else if (g_strcmp0 (key, "username") == 0)
         {
             known_keys_count++;
-            fail_unless (g_variant_is_of_type (variant,
-                                               G_VARIANT_TYPE_STRING));
+            ck_assert (g_variant_is_of_type (variant,
+                                             G_VARIANT_TYPE_STRING));
             ck_assert_str_eq (g_variant_get_string (variant, NULL),
                               username);
         }
         else if (g_strcmp0 (key, "day") == 0)
         {
             known_keys_count++;
-            fail_unless (g_variant_is_of_type (variant,
-                                               G_VARIANT_TYPE_STRING));
+            ck_assert (g_variant_is_of_type (variant,
+                                             G_VARIANT_TYPE_STRING));
             ck_assert_str_eq (g_variant_get_string (variant, NULL),
                               "Wednesday");
         }
         else if (g_strcmp0 (key, "ForReal") == 0)
         {
             known_keys_count++;
-            fail_unless (g_variant_is_of_type (variant,
-                                               G_VARIANT_TYPE_BOOLEAN));
+            ck_assert (g_variant_is_of_type (variant,
+                                             G_VARIANT_TYPE_BOOLEAN));
             ck_assert_int_eq (g_variant_get_boolean (variant), TRUE);
         }
     }
@@ -1140,7 +1140,7 @@ START_TEST(test_account_service_settings)
     /* Now try the same with the dynamically allocated iterator; let's just
      * check that it returns the same number of keys. */
     dyn_iter = ag_account_service_get_settings_iter (account_service, NULL);
-    fail_unless (dyn_iter != NULL);
+    ck_assert (dyn_iter != NULL);
 
     while (ag_account_settings_iter_get_next (dyn_iter, &key, &variant))
     {
@@ -1196,7 +1196,7 @@ START_TEST(test_account_service_list)
         ag_account_set_display_name (account, display_name);
         ag_account_store (account, account_store_now_cb, TEST_STRING);
         run_main_loop_for_n_seconds(0);
-        fail_unless (data_stored, "Callback not invoked immediately");
+        ck_assert_msg (data_stored, "Callback not invoked immediately");
         data_stored = FALSE;
         account_id[i] = account->id;
         g_object_unref (account);
@@ -1204,41 +1204,41 @@ START_TEST(test_account_service_list)
     }
 
     list = ag_manager_get_enabled_account_services (manager);
-    fail_unless (list == NULL);
+    ck_assert (list == NULL);
 
     list = ag_manager_get_account_services (manager);
     for (i = 0; i < N_ACCOUNTS; i++) {
-        fail_unless (account_service_in_list (list,
-                                              account_id[i], "MyService"));
-        fail_unless (account_service_in_list (list,
-                                              account_id[i], "MyService2"));
+        ck_assert (account_service_in_list (list,
+                                            account_id[i], "MyService"));
+        ck_assert (account_service_in_list (list,
+                                            account_id[i], "MyService2"));
     }
-    fail_unless (g_list_length (list) == N_ACCOUNTS * 2,
-                 "Got list length %d, expecting %d",
-                 g_list_length (list), N_ACCOUNTS * 2);
+    ck_assert_msg (g_list_length (list) == N_ACCOUNTS * 2,
+                   "Got list length %d, expecting %d",
+                   g_list_length (list), N_ACCOUNTS * 2);
     g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
 
     /* Now add a few services, and play with the enabled flags */
     my_service = ag_manager_get_service (manager, "MyService");
-    fail_unless (my_service != NULL);
+    ck_assert (my_service != NULL);
     my_service2 = ag_manager_get_service (manager, "MyService2");
-    fail_unless (my_service2 != NULL);
+    ck_assert (my_service2 != NULL);
 
     account = ag_manager_get_account (manager, account_id[0]);
-    fail_unless (AG_IS_ACCOUNT(account));
+    ck_assert (AG_IS_ACCOUNT(account));
     ag_account_select_service (account, my_service);
     ag_account_set_enabled (account, TRUE);
     ag_account_select_service (account, my_service2);
     ag_account_set_enabled (account, FALSE);
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
     g_object_unref (account);
 
     account = ag_manager_get_account (manager, account_id[1]);
-    fail_unless (AG_IS_ACCOUNT(account));
+    ck_assert (AG_IS_ACCOUNT(account));
     ag_account_set_enabled (account, FALSE);
     ag_account_select_service (account, my_service);
     ag_account_set_enabled (account, TRUE);
@@ -1246,19 +1246,19 @@ START_TEST(test_account_service_list)
     ag_account_set_enabled (account, FALSE);
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
     g_object_unref (account);
 
     account = ag_manager_get_account (manager, account_id[2]);
-    fail_unless (AG_IS_ACCOUNT(account));
+    ck_assert (AG_IS_ACCOUNT(account));
     ag_account_select_service (account, my_service);
     ag_account_set_enabled (account, FALSE);
     ag_account_select_service (account, my_service2);
     ag_account_set_enabled (account, TRUE);
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     g_object_unref (manager);
@@ -1268,22 +1268,22 @@ START_TEST(test_account_service_list)
 
     list = ag_manager_get_account_services (manager);
     for (i = 0; i < N_ACCOUNTS; i++) {
-        fail_unless (account_service_in_list (list,
-                                              account_id[i], "MyService"));
-        fail_unless (account_service_in_list (list,
-                                              account_id[i], "MyService2"));
+        ck_assert (account_service_in_list (list,
+                                            account_id[i], "MyService"));
+        ck_assert (account_service_in_list (list,
+                                            account_id[i], "MyService2"));
     }
-    fail_unless (g_list_length (list) == N_ACCOUNTS * 2,
-                 "Got list length %d, expecting %d",
-                 g_list_length (list), N_ACCOUNTS * 2);
+    ck_assert_msg (g_list_length (list) == N_ACCOUNTS * 2,
+                   "Got list length %d, expecting %d",
+                   g_list_length (list), N_ACCOUNTS * 2);
     g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
     list = ag_manager_get_enabled_account_services (manager);
-    fail_unless (account_service_in_list (list, account_id[0], "MyService"));
-    fail_unless (account_service_in_list (list, account_id[2], "MyService2"));
-    fail_unless (g_list_length (list) == 2,
-                 "Got list length %d, expecting %d",
-                 g_list_length (list), 2);
+    ck_assert (account_service_in_list (list, account_id[0], "MyService"));
+    ck_assert (account_service_in_list (list, account_id[2], "MyService2"));
+    ck_assert_msg (g_list_length (list) == 2,
+                   "Got list length %d, expecting %d",
+                   g_list_length (list), 2);
     g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
     g_object_unref (manager);
@@ -1293,19 +1293,19 @@ START_TEST(test_account_service_list)
 
     list = ag_manager_get_account_services (manager);
     for (i = 0; i < N_ACCOUNTS; i++) {
-        fail_unless (account_service_in_list (list,
-                                              account_id[i], "MyService"));
+        ck_assert (account_service_in_list (list,
+                                            account_id[i], "MyService"));
     }
-    fail_unless (g_list_length (list) == N_ACCOUNTS,
-                 "Got list length %d, expecting %d",
-                 g_list_length (list), N_ACCOUNTS);
+    ck_assert_msg (g_list_length (list) == N_ACCOUNTS,
+                   "Got list length %d, expecting %d",
+                   g_list_length (list), N_ACCOUNTS);
     g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
     list = ag_manager_get_enabled_account_services (manager);
-    fail_unless (account_service_in_list (list, account_id[0], "MyService"));
-    fail_unless (g_list_length (list) == 1,
-                 "Got list length %d, expecting %d",
-                 g_list_length (list), 1);
+    ck_assert (account_service_in_list (list, account_id[0], "MyService"));
+    ck_assert_msg (g_list_length (list) == 1,
+                   "Got list length %d, expecting %d",
+                   g_list_length (list), 1);
     g_list_free_full (list, (GDestroyNotify)g_object_unref);
 
     ag_service_unref (my_service);
@@ -1346,7 +1346,7 @@ check_string_in_params (GHashTable *params,
     if (value == NULL)
     {
         if (expected == NULL) return;
-        fail ("Key %s is missing", key);
+        ck_abort_msg ("Key %s is missing", key);
     }
 
     actual = g_value_get_string (value);
@@ -1356,7 +1356,7 @@ check_string_in_params (GHashTable *params,
         g_warning ("Values differ! Expected %s, actual %s", expected, actual);
     }
 
-    fail_unless (equal);
+    ck_assert (equal);
 }
 
 START_TEST(test_auth_data)
@@ -1395,7 +1395,7 @@ START_TEST(test_auth_data)
     write_strings_to_account (account, key_prefix, global_params);
 
     my_service = ag_manager_get_service (manager, "MyService");
-    fail_unless (my_service != NULL);
+    ck_assert (my_service != NULL);
     ag_account_select_service (account, my_service);
     ag_account_set_enabled (account, TRUE);
     write_strings_to_account (account, key_prefix, service_params);
@@ -1418,7 +1418,7 @@ START_TEST(test_auth_data)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
     account_id = account->id;
     g_object_unref (account);
@@ -1426,18 +1426,18 @@ START_TEST(test_auth_data)
 
     /* reload the account and get the AccountService */
     account = ag_manager_get_account (manager, account_id);
-    fail_unless (AG_IS_ACCOUNT (account));
+    ck_assert (AG_IS_ACCOUNT (account));
     account_service = ag_account_service_new (account, my_service);
-    fail_unless (AG_IS_ACCOUNT_SERVICE (account_service));
+    ck_assert (AG_IS_ACCOUNT_SERVICE (account_service));
 
     /* get the auth data and check its contents */
     data = ag_account_service_get_auth_data (account_service);
-    fail_unless (data != NULL);
-    fail_unless (ag_auth_data_get_credentials_id (data) == credentials_id);
-    fail_unless (strcmp (ag_auth_data_get_method (data), method) == 0);
-    fail_unless (strcmp (ag_auth_data_get_mechanism (data), mechanism) == 0);
+    ck_assert (data != NULL);
+    ck_assert (ag_auth_data_get_credentials_id (data) == credentials_id);
+    ck_assert (strcmp (ag_auth_data_get_method (data), method) == 0);
+    ck_assert (strcmp (ag_auth_data_get_mechanism (data), mechanism) == 0);
     params = ag_auth_data_get_parameters (data);
-    fail_unless (params != NULL);
+    ck_assert (params != NULL);
 
     check_string_in_params (params, "id", "123");
     check_string_in_params (params, "display", "mobile");
@@ -1462,14 +1462,14 @@ check_variant_in_dict (GVariant *dict, const gchar *key,
     if (actual == NULL)
     {
         if (expected == NULL) return;
-        fail ("Key %s is missing", key);
+        ck_abort_msg ("Key %s is missing", key);
     }
 
     if (!g_variant_equal(actual, expected))
     {
-        fail ("Values differ for key %s! Expected %s, actual %s", key,
-              g_variant_print (expected, TRUE),
-              g_variant_print (actual, TRUE));
+        ck_abort_msg ("Values differ for key %s! Expected %s, actual %s", key,
+                      g_variant_print (expected, TRUE),
+                      g_variant_print (actual, TRUE));
     }
 
     g_variant_ref_sink (expected);
@@ -1493,10 +1493,10 @@ START_TEST(test_auth_data_get_login_parameters)
     account = ag_manager_create_account (manager, "maemo");
     account_service = ag_account_service_new (account, NULL);
     data = ag_account_service_get_auth_data (account_service);
-    fail_unless (data != NULL);
+    ck_assert (data != NULL);
 
     params = ag_auth_data_get_login_parameters (data, NULL);
-    fail_unless (params != NULL);
+    ck_assert (params != NULL);
 
     check_variant_in_dict (params, "id", g_variant_new_string ("879"));
     check_variant_in_dict (params, "display",
@@ -1511,18 +1511,18 @@ START_TEST(test_auth_data_get_login_parameters)
 
     /* reload the account and get the AccountService */
     account_services = ag_manager_get_account_services (manager);
-    fail_unless (g_list_length(account_services) == 1);
+    ck_assert (g_list_length(account_services) == 1);
     account_service = AG_ACCOUNT_SERVICE (account_services->data);
-    fail_unless (AG_IS_ACCOUNT_SERVICE (account_service));
+    ck_assert (AG_IS_ACCOUNT_SERVICE (account_service));
     g_list_free (account_services);
 
     /* get the auth data */
     data = ag_account_service_get_auth_data (account_service);
-    fail_unless (data != NULL);
+    ck_assert (data != NULL);
 
     /* add an application setting */
     params = ag_auth_data_get_login_parameters (data, NULL);
-    fail_unless (params != NULL);
+    ck_assert (params != NULL);
 
     check_variant_in_dict (params, "id", g_variant_new_string ("123"));
     check_variant_in_dict (params, "display",
@@ -1570,14 +1570,14 @@ START_TEST(test_auth_data_insert_parameters)
 
     /* reload the account and get the AccountService */
     account_services = ag_manager_get_account_services (manager);
-    fail_unless (g_list_length(account_services) == 1);
+    ck_assert (g_list_length(account_services) == 1);
     account_service = AG_ACCOUNT_SERVICE (account_services->data);
-    fail_unless (AG_IS_ACCOUNT_SERVICE (account_service));
+    ck_assert (AG_IS_ACCOUNT_SERVICE (account_service));
     g_list_free (account_services);
 
     /* get the auth data */
     data = ag_account_service_get_auth_data (account_service);
-    fail_unless (data != NULL);
+    ck_assert (data != NULL);
 
     /* add an application setting */
     params = g_hash_table_new (g_str_hash, g_str_equal);
@@ -1595,7 +1595,7 @@ START_TEST(test_auth_data_insert_parameters)
 
     /* now check that the values are what we expect them to be */
     params = ag_auth_data_get_parameters (data);
-    fail_unless (params != NULL);
+    ck_assert (params != NULL);
 
     check_string_in_params (params, "animal", animal);
     check_string_in_params (params, "display", display);
@@ -1619,56 +1619,56 @@ START_TEST(test_application)
     manager = ag_manager_new ();
 
     application = ag_manager_get_application (manager, "Mailer");
-    fail_unless (application != NULL);
+    ck_assert (application != NULL);
     ag_application_unref (application);
 
     email_service = ag_manager_get_service (manager, "MyService");
-    fail_unless (email_service != NULL);
+    ck_assert (email_service != NULL);
 
     sharing_service = ag_manager_get_service (manager, "OtherService");
-    fail_unless (email_service != NULL);
+    ck_assert (email_service != NULL);
 
     list = ag_manager_list_applications_by_service (manager, email_service);
-    fail_unless (list != NULL);
-    fail_unless (g_list_length(list) == 1,
-                 "Got %d applications, expecting 1", g_list_length(list));
+    ck_assert (list != NULL);
+    ck_assert_msg (g_list_length(list) == 1,
+                   "Got %d applications, expecting 1", g_list_length(list));
 
     application = list->data;
-    fail_unless (g_strcmp0 (ag_application_get_name (application),
-                            "Mailer") == 0);
-    fail_unless (g_strcmp0 (ag_application_get_i18n_domain (application),
-                            "mailer-catalog") == 0);
-    fail_unless (g_strcmp0 (ag_application_get_description (application),
-                            "Mailer application") == 0);
+    ck_assert (g_strcmp0 (ag_application_get_name (application),
+                          "Mailer") == 0);
+    ck_assert (g_strcmp0 (ag_application_get_i18n_domain (application),
+                          "mailer-catalog") == 0);
+    ck_assert (g_strcmp0 (ag_application_get_description (application),
+                          "Mailer application") == 0);
     ck_assert (ag_application_supports_service (application, email_service));
     ck_assert (!ag_application_supports_service (application, sharing_service));
-    fail_unless (g_strcmp0 (ag_application_get_service_usage (application,
-                                                              email_service),
-                            "Mailer can retrieve your e-mails") == 0);
+    ck_assert (g_strcmp0 (ag_application_get_service_usage (application,
+                                                            email_service),
+                          "Mailer can retrieve your e-mails") == 0);
     app_info = ag_application_get_desktop_app_info (application);
-    fail_unless (G_IS_DESKTOP_APP_INFO (app_info));
-    fail_unless (g_strcmp0 (g_app_info_get_display_name (G_APP_INFO (app_info)),
-                            "Easy Mailer") == 0);
+    ck_assert (G_IS_DESKTOP_APP_INFO (app_info));
+    ck_assert (g_strcmp0 (g_app_info_get_display_name (G_APP_INFO (app_info)),
+                          "Easy Mailer") == 0);
     g_object_unref (app_info);
 
     ag_application_unref (application);
     g_list_free (list);
 
     list = ag_manager_list_applications_by_service (manager, sharing_service);
-    fail_unless (list != NULL);
-    fail_unless (g_list_length(list) == 1,
-                 "Got %d applications, expecting 1", g_list_length(list));
+    ck_assert (list != NULL);
+    ck_assert_msg (g_list_length(list) == 1,
+                   "Got %d applications, expecting 1", g_list_length(list));
 
     application = list->data;
-    fail_unless (g_strcmp0 (ag_application_get_name (application),
-                            "Gallery") == 0);
-    fail_unless (g_strcmp0 (ag_application_get_description (application),
-                            "Image gallery") == 0);
+    ck_assert (g_strcmp0 (ag_application_get_name (application),
+                          "Gallery") == 0);
+    ck_assert (g_strcmp0 (ag_application_get_description (application),
+                          "Image gallery") == 0);
     ck_assert (!ag_application_supports_service (application, email_service));
     ck_assert (ag_application_supports_service (application, sharing_service));
-    fail_unless (g_strcmp0 (ag_application_get_service_usage (application,
-                                                              sharing_service),
-                            "Publish images on OtherService") == 0);
+    ck_assert (g_strcmp0 (ag_application_get_service_usage (application,
+                                                            sharing_service),
+                          "Publish images on OtherService") == 0);
     ag_application_unref (application);
     g_list_free (list);
 
@@ -1752,7 +1752,7 @@ START_TEST(test_service)
     manager = ag_manager_new ();
     account = ag_manager_create_account (manager, PROVIDER);
 
-    fail_unless (ag_account_get_selected_service (account) == NULL);
+    ck_assert (ag_account_get_selected_service (account) == NULL);
 
     g_value_init (&value, G_TYPE_STRING);
     g_value_set_static_string (&value, description);
@@ -1760,47 +1760,47 @@ START_TEST(test_service)
     g_value_unset (&value);
 
     service = ag_manager_get_service (manager, "MyUnexistingService");
-    fail_unless (service == NULL);
+    ck_assert (service == NULL);
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
 
     service_type = ag_service_get_service_type (service);
-    fail_unless (g_strcmp0 (service_type, "e-mail") == 0,
-                 "Wrong service type: %s", service_type);
+    ck_assert_msg (g_strcmp0 (service_type, "e-mail") == 0,
+                   "Wrong service type: %s", service_type);
 
     service_name = ag_service_get_name (service);
-    fail_unless (g_strcmp0 (service_name, "MyService") == 0,
-                 "Wrong service name: %s", service_name);
+    ck_assert_msg (g_strcmp0 (service_name, "MyService") == 0,
+                   "Wrong service name: %s", service_name);
 
     service_name = ag_service_get_display_name (service);
-    fail_unless (g_strcmp0 (service_name, "My Service") == 0,
-                 "Wrong service display name: %s", service_name);
+    ck_assert_msg (g_strcmp0 (service_name, "My Service") == 0,
+                   "Wrong service display name: %s", service_name);
 
     service_description = ag_service_get_description (service);
-    fail_unless (g_strcmp0 (service_description,
-			    "My Service Description") == 0,
-                 "Wrong service description: %s", service_description);
+    ck_assert_msg (g_strcmp0 (service_description,
+                   "My Service Description") == 0,
+                   "Wrong service description: %s", service_description);
 
     icon_name = ag_service_get_icon_name (service);
-    fail_unless (g_strcmp0 (icon_name, "general_myservice") == 0,
-                 "Wrong service icon name: %s", icon_name);
+    ck_assert_msg (g_strcmp0 (icon_name, "general_myservice") == 0,
+                   "Wrong service icon name: %s", icon_name);
 
     ck_assert_str_eq (ag_service_get_i18n_domain (service), "myservice_i18n");
 
     tag_list = ag_service_get_tags (service);
-    fail_unless (tag_list != NULL);
+    ck_assert (tag_list != NULL);
     for (list = tag_list; list != NULL; list = list->next)
     {
         const gchar *tag = list->data;
         g_debug(" Service tag: %s", tag);
-        fail_unless (g_strcmp0 (tag, "e-mail") == 0 ||
-                     g_strcmp0 (tag, "messaging") == 0,
-                     "Wrong service tag: %s", tag);
+        ck_assert_msg (g_strcmp0 (tag, "e-mail") == 0 ||
+                       g_strcmp0 (tag, "messaging") == 0,
+                       "Wrong service tag: %s", tag);
     }
     g_list_free (tag_list);
-    fail_unless (ag_service_has_tag (service, "e-mail"),
-                 "Missing service tag");
+    ck_assert_msg (ag_service_has_tag (service, "e-mail"),
+                   "Missing service tag");
 
     ag_account_set_enabled (account, FALSE);
     ag_account_set_display_name (account, display_name);
@@ -1811,20 +1811,20 @@ START_TEST(test_service)
     /* test getting default setting from template */
     g_value_init (&value, G_TYPE_INT);
     source = ag_account_get_value (account, "parameters/port", &value);
-    fail_unless (source == AG_SETTING_SOURCE_PROFILE,
-                 "Cannot get port from profile");
-    fail_unless (g_value_get_int (&value) == 5223,
-                 "Wrong port number: %d", g_value_get_int (&value));
+    ck_assert_msg (source == AG_SETTING_SOURCE_PROFILE,
+                   "Cannot get port from profile");
+    ck_assert_msg (g_value_get_int (&value) == 5223,
+                   "Wrong port number: %d", g_value_get_int (&value));
     g_value_unset (&value);
 
     /* test getting a string list */
     g_value_init (&value, G_TYPE_STRV);
     source = ag_account_get_value (account, "parameters/capabilities", &value);
-    fail_unless (source == AG_SETTING_SOURCE_PROFILE,
-                 "Cannot get capabilities from profile");
+    ck_assert_msg (source == AG_SETTING_SOURCE_PROFILE,
+                   "Cannot get capabilities from profile");
     string_list = g_value_get_boxed (&value);
-    fail_unless (test_strv_equal (capabilities, string_list),
-                 "Wrong capabilties");
+    ck_assert_msg (test_strv_equal (capabilities, string_list),
+                   "Wrong capabilties");
     g_value_unset (&value);
 
     /* enable the service */
@@ -1853,18 +1853,18 @@ START_TEST(test_service)
     service2 = ag_manager_get_service (manager, "OtherService");
 
     tag_list = ag_service_get_tags (service2);
-    fail_unless (tag_list != NULL);
+    ck_assert (tag_list != NULL);
     for (list = tag_list; list != NULL; list = list->next)
     {
         const gchar *tag = list->data;
         g_debug(" Service tag: %s", tag);
-        fail_unless (g_strcmp0 (tag, "video") == 0 ||
-                     g_strcmp0 (tag, "sharing") == 0,
-                     "Wrong service tag: %s", tag);
+        ck_assert_msg (g_strcmp0 (tag, "video") == 0 ||
+                       g_strcmp0 (tag, "sharing") == 0,
+                       "Wrong service tag: %s", tag);
     }
     g_list_free (tag_list);
-    fail_unless (ag_service_has_tag (service2, "sharing"),
-                 "Missing service tag");
+    ck_assert_msg (ag_service_has_tag (service2, "sharing"),
+                   "Missing service tag");
     
     ag_account_select_service (account, service2);
 
@@ -1880,7 +1880,7 @@ START_TEST(test_service)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     g_debug ("Account id: %d", account->id);
@@ -1894,75 +1894,75 @@ START_TEST(test_service)
 
     /* first, try to load an unexisting account */
     account = ag_manager_load_account (manager, account_id + 2, &error);
-    fail_unless (account == NULL, "Loading a non-existing account!");
-    fail_unless (error != NULL, "Error is NULL");
+    ck_assert_msg (account == NULL, "Loading a non-existing account!");
+    ck_assert_msg (error != NULL, "Error is NULL");
     g_clear_error (&error);
 
     account = ag_manager_load_account (manager, account_id, &error);
-    fail_unless (AG_IS_ACCOUNT (account),
-                 "Couldn't load account %u", account_id);
-    fail_unless (error == NULL, "Error is not NULL");
+    ck_assert_msg (AG_IS_ACCOUNT (account),
+                   "Couldn't load account %u", account_id);
+    ck_assert_msg (error == NULL, "Error is not NULL");
 
     provider_name = ag_account_get_provider_name (account);
-    fail_unless (g_strcmp0 (provider_name, PROVIDER) == 0,
-                 "Got provider %s, expecting %s", provider_name, PROVIDER);
+    ck_assert_msg (g_strcmp0 (provider_name, PROVIDER) == 0,
+                   "Got provider %s, expecting %s", provider_name, PROVIDER);
 
     /* check that the values are retained */
-    fail_unless (ag_account_get_enabled (account) == FALSE,
-                 "Account enabled!");
-    fail_unless (g_strcmp0 (ag_account_get_display_name (account),
+    ck_assert_msg (ag_account_get_enabled (account) == FALSE,
+                   "Account enabled!");
+    ck_assert_msg (g_strcmp0 (ag_account_get_display_name (account),
                             display_name) == 0,
-                 "Display name not retained!");
+                   "Display name not retained!");
 
     g_value_init (&value, G_TYPE_STRING);
     source = ag_account_get_value (account, "description", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
-    fail_unless (g_strcmp0(g_value_get_string (&value), description) == 0,
-                 "Wrong value");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (g_strcmp0(g_value_get_string (&value), description) == 0,
+                   "Wrong value");
     g_value_unset (&value);
 
     ag_account_select_service (account, service);
 
     /* we enabled the service before: check that it's still enabled */
-    fail_unless (ag_account_get_enabled (account) == TRUE,
-                 "Account service not enabled!");
+    ck_assert_msg (ag_account_get_enabled (account) == TRUE,
+                   "Account service not enabled!");
 
     g_value_init (&value, G_TYPE_STRING);
     source = ag_account_get_value (account, "username", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
-    fail_unless (g_strcmp0(g_value_get_string (&value), username) == 0,
-                 "Wrong value");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (g_strcmp0(g_value_get_string (&value), username) == 0,
+                   "Wrong value");
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_BOOLEAN);
     source = ag_account_get_value (account, "check_automatically", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
-    fail_unless (g_value_get_boolean (&value) == check_automatically,
-                 "Wrong value");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (g_value_get_boolean (&value) == check_automatically,
+                   "Wrong value");
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_INT);
     source = ag_account_get_value (account, "interval", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
-    fail_unless (g_value_get_int (&value) == interval, "Wrong value");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (g_value_get_int (&value) == interval, "Wrong value");
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_STRV);
     source = ag_account_get_value (account, "pets", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
     string_list = g_value_get_boxed (&value);
-    fail_unless (test_strv_equal (string_list, animals),
-                 "Wrong animals :-)");
+    ck_assert_msg (test_strv_equal (string_list, animals),
+                   "Wrong animals :-)");
     g_value_unset (&value);
 
     /* check also value conversion */
     g_value_init (&value, G_TYPE_CHAR);
     source = ag_account_get_value (account, "interval", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
 #if GLIB_CHECK_VERSION(2,32,0)
-    fail_unless (g_value_get_schar (&value) == interval, "Wrong value");
+    ck_assert_msg (g_value_get_schar (&value) == interval, "Wrong value");
 #else
-    fail_unless (g_value_get_char (&value) == interval, "Wrong value");
+    ck_assert_msg (g_value_get_char (&value) == interval, "Wrong value");
 #endif
     g_value_unset (&value);
 
@@ -1978,11 +1978,11 @@ START_TEST(test_service)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (ag_account_get_enabled (account) == TRUE,
-                 "Account still disabled!");
+    ck_assert_msg (ag_account_get_enabled (account) == TRUE,
+                   "Account still disabled!");
     end_test ();
 }
 END_TEST
@@ -2008,32 +2008,32 @@ START_TEST(test_account_services)
     manager = ag_manager_new ();
 
     account = ag_manager_create_account (manager, "maemo");
-    fail_unless (AG_IS_ACCOUNT (account),
-                 "Failed to create the AgAccount.");
+    ck_assert_msg (AG_IS_ACCOUNT (account),
+                   "Failed to create the AgAccount.");
 
     services = ag_account_list_services (account);
-    fail_unless (g_list_length (services) == 2);
+    ck_assert (g_list_length (services) == 2);
 
     /* These should be MyService and Myservice2; the order is random */
-    fail_unless (service_in_list(services, "MyService"));
-    fail_unless (service_in_list(services, "MyService2"));
+    ck_assert (service_in_list(services, "MyService"));
+    ck_assert (service_in_list(services, "MyService2"));
 
     ag_service_list_free (services);
 
     /* check that MyService is returned as a service supporting e-mail for
      * this account */
     services = ag_account_list_services_by_type (account, "e-mail");
-    fail_unless (g_list_length (services) == 1);
+    ck_assert (g_list_length (services) == 1);
 
-    fail_unless (service_in_list(services, "MyService"));
+    ck_assert (service_in_list(services, "MyService"));
 
     ag_service_list_free (services);
 
     /* check that the account supports the "e-mail" type (it's the type of
      * MyService */
-    fail_unless (ag_account_supports_service (account, "e-mail") == TRUE);
+    ck_assert (ag_account_supports_service (account, "e-mail") == TRUE);
     /* and doesn't support "sharing" */
-    fail_unless (ag_account_supports_service (account, "sharing") == FALSE);
+    ck_assert (ag_account_supports_service (account, "sharing") == FALSE);
 
     end_test ();
 }
@@ -2076,15 +2076,15 @@ START_TEST(test_signals)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
 
-    fail_unless (enabled_called, "Enabled signal not emitted!");
-    fail_unless (display_name_called, "DisplayName signal not emitted!");
-    fail_unless (notify_enabled_called, "Enabled property not notified!");
+    ck_assert_msg (enabled_called, "Enabled signal not emitted!");
+    ck_assert_msg (display_name_called, "DisplayName signal not emitted!");
+    ck_assert_msg (notify_enabled_called, "Enabled property not notified!");
     g_object_get (account, "enabled", &enabled, NULL);
-    fail_unless (enabled == TRUE, "Account not enabled!");
-    fail_unless (notify_display_name_called,
-                 "DisplayName property not notified!");
+    ck_assert_msg (enabled == TRUE, "Account not enabled!");
+    ck_assert_msg (notify_display_name_called,
+                   "DisplayName property not notified!");
 
     end_test ();
 }
@@ -2102,13 +2102,13 @@ START_TEST(test_signals_other_manager)
     account = ag_manager_create_account (manager, PROVIDER);
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
 
     ag_account_set_enabled (account, FALSE);
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
     account_id = account->id;
 
@@ -2116,9 +2116,9 @@ START_TEST(test_signals_other_manager)
 
     /* reload the account and see that it's enabled */
     account2 = ag_manager_load_account (manager2, account_id, &error);
-    fail_unless (AG_IS_ACCOUNT (account2),
-                 "Couldn't load account %u", account_id);
-    fail_unless (error == NULL, "Error is not NULL");
+    ck_assert_msg (AG_IS_ACCOUNT (account2),
+                   "Couldn't load account %u", account_id);
+    ck_assert_msg (error == NULL, "Error is not NULL");
 
     memset(&ecd, 0, sizeof(ecd));
     g_signal_connect (account2, "enabled",
@@ -2131,7 +2131,7 @@ START_TEST(test_signals_other_manager)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     main_loop = g_main_loop_new (NULL, FALSE);
@@ -2142,8 +2142,8 @@ START_TEST(test_signals_other_manager)
     g_main_loop_unref (main_loop);
     main_loop = NULL;
 
-    fail_unless (ecd.called);
-    fail_unless (g_strcmp0 (ecd.service, "MyService") == 0);
+    ck_assert (ecd.called);
+    ck_assert (g_strcmp0 (ecd.service, "MyService") == 0);
     g_free (ecd.service);
 
     ag_service_unref (service);
@@ -2172,10 +2172,10 @@ START_TEST(test_list)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (account->id != 0, "Account ID is still 0!");
+    ck_assert_msg (account->id != 0, "Account ID is still 0!");
 
     /* Test the account readable properties */
     {
@@ -2188,41 +2188,41 @@ START_TEST(test_list)
                       "manager", &manager_prop,
                       "provider", &provider_prop,
                       NULL);
-        fail_unless (id_prop == account->id);
-        fail_unless (manager_prop == manager);
-        fail_unless (g_strcmp0 (provider_prop, provider_name) == 0);
+        ck_assert (id_prop == account->id);
+        ck_assert (manager_prop == manager);
+        ck_assert (g_strcmp0 (provider_prop, provider_name) == 0);
         g_object_unref (manager);
         g_free (provider_prop);
     }
 
     list = ag_manager_list (manager);
-    fail_unless (list != NULL, "Empty list");
-    fail_unless (g_list_find (list, GUINT_TO_POINTER (account->id)) != NULL,
-                 "Created account not found in list");
+    ck_assert_msg (list != NULL, "Empty list");
+    ck_assert_msg (g_list_find (list, GUINT_TO_POINTER (account->id)) != NULL,
+                   "Created account not found in list");
     g_list_free (list);
 
     /* check that it doesn't support the service type provided by MyService */
     service = ag_manager_get_service (manager, my_service_name);
     service_type = ag_service_get_service_type (service);
-    fail_unless (service_type != NULL,
-                 "Service %s has no type", my_service_name);
+    ck_assert_msg (service_type != NULL,
+                   "Service %s has no type", my_service_name);
 
     list = ag_manager_list_by_service_type (manager, service_type);
-    fail_unless (g_list_find (list, GUINT_TO_POINTER (account->id)) == NULL,
-                 "New account supports %s service type, but shouldn't",
-                 service_type);
+    ck_assert_msg (g_list_find (list, GUINT_TO_POINTER (account->id)) == NULL,
+                   "New account supports %s service type, but shouldn't",
+                   service_type);
     g_list_free (list);
     ag_service_unref(service);
 
     service = ag_manager_get_service (manager, service_name);
     service_type = ag_service_get_service_type (service);
-    fail_unless (service_type != NULL,
-                 "Service %s has no type", service_name);
+    ck_assert_msg (service_type != NULL,
+                   "Service %s has no type", service_name);
 
     list = ag_manager_list_by_service_type (manager, service_type);
-    fail_unless (g_list_find (list, GUINT_TO_POINTER (account->id)) != NULL,
-                 "New account doesn't supports %s service type, but should",
-                 service_type);
+    ck_assert_msg (g_list_find (list, GUINT_TO_POINTER (account->id)) != NULL,
+                   "New account doesn't supports %s service type, but should",
+                   service_type);
     g_list_free (list);
 
     end_test ();
@@ -2271,10 +2271,10 @@ START_TEST(test_settings_iter_gvalue)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (account->id != 0, "Account ID is still 0!");
+    ck_assert_msg (account->id != 0, "Account ID is still 0!");
 
     /* iterate the settings */
     n_read = 0;
@@ -2289,21 +2289,21 @@ START_TEST(test_settings_iter_gvalue)
                 const gchar *text;
                 found = TRUE;
                 text = g_value_get_string (val);
-                fail_unless (g_strcmp0 (values[i], text) == 0,
-                             "Got value %s for key %s, expecting %s",
-                             text, key, values[i]);
+                ck_assert_msg (g_strcmp0 (values[i], text) == 0,
+                               "Got value %s for key %s, expecting %s",
+                               text, key, values[i]);
                 break;
             }
         }
 
-        fail_unless (found, "Unknown setting %s", key);
+        ck_assert_msg (found, "Unknown setting %s", key);
 
         n_read++;
     }
 
-    fail_unless (n_read == n_values,
-                 "Not all settings were retrieved (%d out of %d)",
-                 n_read, n_values);
+    ck_assert_msg (n_read == n_values,
+                   "Not all settings were retrieved (%d out of %d)",
+                   n_read, n_values);
 
     /* iterate settings with prefix */
     n_read = 0;
@@ -2312,8 +2312,8 @@ START_TEST(test_settings_iter_gvalue)
     {
         gboolean found = FALSE;
         gchar *full_key;
-        fail_unless (strncmp (key, "param/", 6) != 0,
-                     "Got key with unstripped prefix (%s)", key);
+        ck_assert_msg (strncmp (key, "param/", 6) != 0,
+                       "Got key with unstripped prefix (%s)", key);
 
         full_key = g_strconcat ("param/", key, NULL);
         for (i = 0; keys[i] != NULL; i++)
@@ -2323,20 +2323,20 @@ START_TEST(test_settings_iter_gvalue)
                 const gchar *text;
                 found = TRUE;
                 text = g_value_get_string (val);
-                fail_unless (g_strcmp0 (values[i], text) == 0,
-                             "Got value %s for key %s, expecting %s",
-                             text, key, values[i]);
+                ck_assert_msg (g_strcmp0 (values[i], text) == 0,
+                               "Got value %s for key %s, expecting %s",
+                               text, key, values[i]);
                 break;
             }
         }
         g_free (full_key);
 
-        fail_unless (found, "Unknown setting %s", key);
+        ck_assert_msg (found, "Unknown setting %s", key);
 
         n_read++;
     }
 
-    fail_unless (n_read == 3, "Not all settings were retrieved");
+    ck_assert_msg (n_read == 3, "Not all settings were retrieved");
 
     /* iterate template default settings */
     service = ag_manager_get_service (manager, service_name);
@@ -2349,7 +2349,7 @@ START_TEST(test_settings_iter_gvalue)
 
         n_read++;
     }
-    fail_unless (n_read == 4, "Not all settings were retrieved");
+    ck_assert_msg (n_read == 4, "Not all settings were retrieved");
 
     /* Add a setting that is also on the template, to check if it will
      * override the one on the template */
@@ -2367,7 +2367,7 @@ START_TEST(test_settings_iter_gvalue)
     /* save */
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* enumerate the parameters */
@@ -2375,8 +2375,8 @@ START_TEST(test_settings_iter_gvalue)
     ag_account_settings_iter_init (account, &iter, "parameters/");
     while (ag_account_settings_iter_next (&iter, &key, &val))
     {
-        fail_unless (strncmp (key, "parameters/", 6) != 0,
-                     "Got key with unstripped prefix (%s)", key);
+        ck_assert_msg (strncmp (key, "parameters/", 6) != 0,
+                       "Got key with unstripped prefix (%s)", key);
 
         g_debug ("Got key %s of type %s", key, G_VALUE_TYPE_NAME (val));
         if (g_strcmp0 (key, "port") == 0)
@@ -2384,15 +2384,15 @@ START_TEST(test_settings_iter_gvalue)
             gint port;
 
             port = g_value_get_int (val);
-            fail_unless (port == new_port_value,
-                         "Got value %d for key %s, expecting %d",
-                         port, key, new_port_value);
+            ck_assert_msg (port == new_port_value,
+                           "Got value %d for key %s, expecting %d",
+                           port, key, new_port_value);
         }
 
         n_read++;
     }
 
-    fail_unless (n_read == 5, "Not all settings were retrieved");
+    ck_assert_msg (n_read == 5, "Not all settings were retrieved");
 
 
     end_test ();
@@ -2438,10 +2438,10 @@ START_TEST(test_settings_iter)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (account->id != 0, "Account ID is still 0!");
+    ck_assert_msg (account->id != 0, "Account ID is still 0!");
 
     /* iterate the settings */
     n_read = 0;
@@ -2456,21 +2456,21 @@ START_TEST(test_settings_iter)
                 const gchar *text;
                 found = TRUE;
                 text = g_variant_get_string (val, NULL);
-                fail_unless (g_strcmp0 (values[i], text) == 0,
-                             "Got value %s for key %s, expecting %s",
-                             text, key, values[i]);
+                ck_assert_msg (g_strcmp0 (values[i], text) == 0,
+                               "Got value %s for key %s, expecting %s",
+                               text, key, values[i]);
                 break;
             }
         }
 
-        fail_unless (found, "Unknown setting %s", key);
+        ck_assert_msg (found, "Unknown setting %s", key);
 
         n_read++;
     }
 
-    fail_unless (n_read == n_values,
-                 "Not all settings were retrieved (%d out of %d)",
-                 n_read, n_values);
+    ck_assert_msg (n_read == n_values,
+                   "Not all settings were retrieved (%d out of %d)",
+                   n_read, n_values);
 
     /* iterate settings with prefix */
     n_read = 0;
@@ -2479,8 +2479,8 @@ START_TEST(test_settings_iter)
     {
         gboolean found = FALSE;
         gchar *full_key;
-        fail_unless (strncmp (key, "param/", 6) != 0,
-                     "Got key with unstripped prefix (%s)", key);
+        ck_assert_msg (strncmp (key, "param/", 6) != 0,
+                       "Got key with unstripped prefix (%s)", key);
 
         full_key = g_strconcat ("param/", key, NULL);
         for (i = 0; keys[i] != NULL; i++)
@@ -2490,20 +2490,20 @@ START_TEST(test_settings_iter)
                 const gchar *text;
                 found = TRUE;
                 text = g_variant_get_string (val, NULL);
-                fail_unless (g_strcmp0 (values[i], text) == 0,
-                             "Got value %s for key %s, expecting %s",
-                             text, key, values[i]);
+                ck_assert_msg (g_strcmp0 (values[i], text) == 0,
+                               "Got value %s for key %s, expecting %s",
+                               text, key, values[i]);
                 break;
             }
         }
         g_free (full_key);
 
-        fail_unless (found, "Unknown setting %s", key);
+        ck_assert_msg (found, "Unknown setting %s", key);
 
         n_read++;
     }
 
-    fail_unless (n_read == 3, "Not all settings were retrieved");
+    ck_assert_msg (n_read == 3, "Not all settings were retrieved");
 
     /* iterate template default settings */
     service = ag_manager_get_service (manager, service_name);
@@ -2517,7 +2517,7 @@ START_TEST(test_settings_iter)
 
         n_read++;
     }
-    fail_unless (n_read == 4, "Not all settings were retrieved");
+    ck_assert_msg (n_read == 4, "Not all settings were retrieved");
 
     /* Add a setting that is also on the template, to check if it will
      * override the one on the template */
@@ -2531,7 +2531,7 @@ START_TEST(test_settings_iter)
     /* save */
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* enumerate the parameters */
@@ -2539,8 +2539,8 @@ START_TEST(test_settings_iter)
     ag_account_settings_iter_init (account, &iter, "parameters/");
     while (ag_account_settings_iter_get_next (&iter, &key, &val))
     {
-        fail_unless (strncmp (key, "parameters/", 6) != 0,
-                     "Got key with unstripped prefix (%s)", key);
+        ck_assert_msg (strncmp (key, "parameters/", 6) != 0,
+                       "Got key with unstripped prefix (%s)", key);
 
         g_debug ("Got key %s of type %s",
                  key, g_variant_get_type_string (val));
@@ -2549,15 +2549,15 @@ START_TEST(test_settings_iter)
             gint port;
 
             port = g_variant_get_int16 (val);
-            fail_unless (port == new_port_value,
-                         "Got value %d for key %s, expecting %d",
-                         port, key, new_port_value);
+            ck_assert_msg (port == new_port_value,
+                           "Got value %d for key %s, expecting %d",
+                           port, key, new_port_value);
         }
 
         n_read++;
     }
 
-    fail_unless (n_read == 5, "Not all settings were retrieved");
+    ck_assert_msg (n_read == 5, "Not all settings were retrieved");
 
 
     end_test ();
@@ -2577,7 +2577,7 @@ START_TEST(test_list_services)
     services = ag_manager_list_services (manager);
 
     n_services = g_list_length (services);
-    fail_unless (n_services == 3, "Got %d services, expecting 3", n_services);
+    ck_assert_msg (n_services == 3, "Got %d services, expecting 3", n_services);
 
     for (list = services; list != NULL; list = list->next)
     {
@@ -2585,10 +2585,10 @@ START_TEST(test_list_services)
 
         name = ag_service_get_name (service);
         g_debug ("Service name: %s", name);
-        fail_unless (g_strcmp0 (name, "MyService") == 0 ||
-                     g_strcmp0 (name, "MyService2") == 0 ||
-                     g_strcmp0 (name, "OtherService") == 0,
-                     "Got unexpected service `%s'", name);
+        ck_assert_msg (g_strcmp0 (name, "MyService") == 0 ||
+                       g_strcmp0 (name, "MyService2") == 0 ||
+                       g_strcmp0 (name, "OtherService") == 0,
+                       "Got unexpected service `%s'", name);
     }
     ag_service_list_free (services);
 
@@ -2596,13 +2596,13 @@ START_TEST(test_list_services)
     services = ag_manager_list_services_by_type (manager, "sharing");
 
     n_services = g_list_length (services);
-    fail_unless (n_services == 1, "Got %d services, expecting 1", n_services);
+    ck_assert_msg (n_services == 1, "Got %d services, expecting 1", n_services);
 
     list = services;
     service = list->data;
     name = ag_service_get_name (service);
-    fail_unless (g_strcmp0 (name, "OtherService") == 0,
-                 "Got unexpected service `%s'", name);
+    ck_assert_msg (g_strcmp0 (name, "OtherService") == 0,
+                   "Got unexpected service `%s'", name);
     ag_service_list_free (services);
 
     end_test ();
@@ -2621,9 +2621,9 @@ START_TEST(test_list_service_types)
     service_types = ag_manager_list_service_types (manager);
 
     n_service_types = g_list_length (service_types);
-    fail_unless (n_service_types == 1,
-                 "Got %d service types, expecting 1",
-                 n_service_types);
+    ck_assert_msg (n_service_types == 1,
+                   "Got %d service types, expecting 1",
+                   n_service_types);
 
     for (list = service_types; list != NULL; list = list->next)
     {
@@ -2631,21 +2631,21 @@ START_TEST(test_list_service_types)
 
         name = ag_service_type_get_name (service_type);
         g_debug ("Service type name: %s", name);
-        fail_unless (g_strcmp0 (name, "e-mail") == 0,
-                     "Got unexpected service type `%s'", name);
+        ck_assert_msg (g_strcmp0 (name, "e-mail") == 0,
+                       "Got unexpected service type `%s'", name);
         
         tags = ag_service_type_get_tags (service_type);
         for (tag_list = tags; tag_list != NULL; tag_list = tag_list->next)
         {
             tag = (gchar *) tag_list->data;
             g_debug (" Service type tag: %s", tag);
-            fail_unless ((g_strcmp0 (tag, "e-mail") == 0 ||
-                          g_strcmp0 (tag, "messaging") == 0),
-                         "Got unexpected service type tag `%s'", tag);
+            ck_assert_msg ((g_strcmp0 (tag, "e-mail") == 0 ||
+                            g_strcmp0 (tag, "messaging") == 0),
+                           "Got unexpected service type tag `%s'", tag);
         }
         g_list_free (tags);
-        fail_unless (ag_service_type_has_tag (service_type, "messaging"),
-                     "Missing service type tag");
+        ck_assert_msg (ag_service_type_has_tag (service_type, "messaging"),
+                       "Missing service type tag");
     }
     ag_service_type_list_free (service_types);
 
@@ -2666,10 +2666,10 @@ START_TEST(test_delete)
     ag_account_set_enabled (account, TRUE);
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (account->id != 0, "Account ID is still 0!");
+    ck_assert_msg (account->id != 0, "Account ID is still 0!");
     id = account->id;
 
     /* monitor the account status */
@@ -2686,24 +2686,24 @@ START_TEST(test_delete)
 
     /* until ag_account_store() is called, the signals should not have been
      * emitted */
-    fail_unless (enabled_called == FALSE, "Accound disabled too early!");
-    fail_unless (deleted_called == FALSE, "Accound deleted too early!");
+    ck_assert_msg (enabled_called == FALSE, "Accound disabled too early!");
+    ck_assert_msg (deleted_called == FALSE, "Accound deleted too early!");
 
     /* really delete the account */
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* check that the signals are emitted */
-    fail_unless (enabled_called, "Accound enabled signal not emitted");
-    fail_unless (deleted_called, "Accound deleted signal not emitted");
+    ck_assert_msg (enabled_called, "Accound enabled signal not emitted");
+    ck_assert_msg (deleted_called, "Accound deleted signal not emitted");
 
     g_object_unref (account);
 
     /* load the account again: this must fail */
     account = ag_manager_get_account (manager, id);
-    fail_unless (account == NULL, "The account still exists");
+    ck_assert_msg (account == NULL, "The account still exists");
 
     end_test ();
 }
@@ -2712,25 +2712,25 @@ END_TEST
 static void
 key_changed_cb (AgAccount *account, const gchar *key, gboolean *invoked)
 {
-    fail_unless (invoked != NULL);
-    fail_unless (*invoked == FALSE, "Callback invoked twice!");
+    ck_assert (invoked != NULL);
+    ck_assert_msg (*invoked == FALSE, "Callback invoked twice!");
 
-    fail_unless (key != NULL);
-    fail_unless (g_strcmp0 (key, "parameters/server") == 0 ||
-                 g_strcmp0 (key, "parameters/port") == 0,
-                 "Callback invoked for wrong key %s", key);
+    ck_assert (key != NULL);
+    ck_assert_msg (g_strcmp0 (key, "parameters/server") == 0 ||
+                   g_strcmp0 (key, "parameters/port") == 0,
+                   "Callback invoked for wrong key %s", key);
     *invoked = TRUE;
 }
 
 static void
 dir_changed_cb (AgAccount *account, const gchar *key, gboolean *invoked)
 {
-    fail_unless (invoked != NULL);
-    fail_unless (*invoked == FALSE, "Callback invoked twice!");
+    ck_assert (invoked != NULL);
+    ck_assert_msg (*invoked == FALSE, "Callback invoked twice!");
 
-    fail_unless (key != NULL);
-    fail_unless (g_strcmp0 (key, "parameters/") == 0,
-                 "Callback invoked for wrong dir %s", key);
+    ck_assert (key != NULL);
+    ck_assert_msg (g_strcmp0 (key, "parameters/") == 0,
+                   "Callback invoked for wrong dir %s", key);
     *invoked = TRUE;
 }
 
@@ -2746,7 +2746,7 @@ START_TEST(test_watches)
     account = ag_manager_create_account (manager, PROVIDER);
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
 
     ag_account_select_service (account, service);
 
@@ -2754,17 +2754,17 @@ START_TEST(test_watches)
     w_server = ag_account_watch_key (account, "parameters/server",
                                      (AgAccountNotifyCb)key_changed_cb,
                                      &server_changed);
-    fail_unless (w_server != NULL);
+    ck_assert (w_server != NULL);
 
     w_port = ag_account_watch_key (account, "parameters/port",
                                    (AgAccountNotifyCb)key_changed_cb,
                                    &port_changed);
-    fail_unless (w_port != NULL);
+    ck_assert (w_port != NULL);
 
     w_dir = ag_account_watch_dir (account, "parameters/",
                                   (AgAccountNotifyCb)dir_changed_cb,
                                   &dir_changed);
-    fail_unless (w_dir != NULL);
+    ck_assert (w_dir != NULL);
 
     /* change the port */
     g_value_init (&value, G_TYPE_INT);
@@ -2774,18 +2774,18 @@ START_TEST(test_watches)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* if we didn't change the server, make sure the callback is not
      * invoked */
-    fail_unless (server_changed == FALSE, "Callback for 'server' invoked");
+    ck_assert_msg (server_changed == FALSE, "Callback for 'server' invoked");
 
     /* make sure the port callback was called */
-    fail_unless (port_changed == TRUE, "Callback for 'port' not invoked");
+    ck_assert_msg (port_changed == TRUE, "Callback for 'port' not invoked");
 
     /* make sure the dir callback was called */
-    fail_unless (dir_changed == TRUE, "Callback for 'parameters/' not invoked");
+    ck_assert_msg (dir_changed == TRUE, "Callback for 'parameters/' not invoked");
 
 
     /* remove the watch for the port */
@@ -2807,17 +2807,17 @@ START_TEST(test_watches)
     dir_changed = FALSE;
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* make sure the callback for the server is invoked */
-    fail_unless (server_changed == TRUE, "Callback for 'server' not invoked");
+    ck_assert_msg (server_changed == TRUE, "Callback for 'server' not invoked");
 
     /* make sure the port callback was not called (we removed the watch) */
-    fail_unless (port_changed == FALSE, "Callback for 'port' invoked");
+    ck_assert_msg (port_changed == FALSE, "Callback for 'port' invoked");
 
     /* make sure the dir callback was called */
-    fail_unless (dir_changed == TRUE, "Callback for 'parameters/' not invoked");
+    ck_assert_msg (dir_changed == TRUE, "Callback for 'parameters/' not invoked");
 
     end_test ();
 }
@@ -2876,7 +2876,7 @@ on_account_deleted (AgManager *manager, AgAccountId account_id,
 {
     g_debug ("%s called (%u)", G_STRFUNC, account_id);
 
-    fail_unless (account_id == *id, "Deletion of unexpected account");
+    ck_assert_msg (account_id == *id, "Deletion of unexpected account");
     *id = 0;
     g_main_loop_quit (main_loop);
 }
@@ -2884,10 +2884,10 @@ on_account_deleted (AgManager *manager, AgAccountId account_id,
 static void
 changed_cb (AgAccount *account, const gchar *key, gboolean *invoked)
 {
-    fail_unless (invoked != NULL);
-    fail_unless (*invoked == FALSE, "Callback invoked twice!");
+    ck_assert (invoked != NULL);
+    ck_assert_msg (*invoked == FALSE, "Callback invoked twice!");
 
-    fail_unless (key != NULL);
+    ck_assert (key != NULL);
     *invoked = TRUE;
     if (idle_finish == 0)
         idle_finish = g_idle_add ((GSourceFunc)g_main_loop_quit, main_loop);
@@ -2928,36 +2928,36 @@ START_TEST(test_concurrency)
 
     account_id = 0;
     ret = system ("test-process create myprovider MyAccountName");
-    fail_unless (ret != -1);
+    ck_assert (ret != -1);
 
     main_loop = g_main_loop_new (NULL, FALSE);
     source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
     g_debug ("Running loop");
     g_main_loop_run (main_loop);
 
-    fail_unless (source_id != 0, "Timeout happened");
+    ck_assert_msg (source_id != 0, "Timeout happened");
     g_source_remove (source_id);
 
-    fail_unless (account_id != 0, "Account ID still 0");
+    ck_assert_msg (account_id != 0, "Account ID still 0");
 
     account = ag_manager_get_account (manager, account_id);
-    fail_unless (AG_IS_ACCOUNT (account), "Got invalid account");
+    ck_assert_msg (AG_IS_ACCOUNT (account), "Got invalid account");
 
     provider_name = ag_account_get_provider_name (account);
-    fail_unless (g_strcmp0 (provider_name, "myprovider") == 0,
-                 "Wrong provider name '%s'", provider_name);
+    ck_assert_msg (g_strcmp0 (provider_name, "myprovider") == 0,
+                   "Wrong provider name '%s'", provider_name);
 
     display_name = ag_account_get_display_name (account);
-    fail_unless (g_strcmp0 (display_name, "MyAccountName") == 0,
-                 "Wrong display name '%s'", display_name);
+    ck_assert_msg (g_strcmp0 (display_name, "MyAccountName") == 0,
+                   "Wrong display name '%s'", display_name);
 
     {
         gchar *allocated_display_name = NULL;
         g_object_get (account,
                       "display-name", &allocated_display_name,
                       NULL);
-        fail_unless (g_strcmp0 (allocated_display_name, "MyAccountName") == 0,
-                     "Wrong display name '%s'", allocated_display_name);
+        ck_assert_msg (g_strcmp0 (allocated_display_name, "MyAccountName") == 0,
+                       "Wrong display name '%s'", allocated_display_name);
         g_free (allocated_display_name);
     }
 
@@ -2966,76 +2966,76 @@ START_TEST(test_concurrency)
                       G_CALLBACK (on_account_deleted), &account_id);
     sprintf (command, "test-process delete %d", account_id);
     ret = system (command);
-    fail_unless (ret != -1);
+    ck_assert (ret != -1);
 
     source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
     g_main_loop_run (main_loop);
-    fail_unless (source_id != 0, "Timeout happened");
+    ck_assert_msg (source_id != 0, "Timeout happened");
     g_source_remove (source_id);
     g_object_unref (account);
 
-    fail_unless (account_id == 0, "Account still alive");
+    ck_assert_msg (account_id == 0, "Account still alive");
 
     /* check a more complex creation */
     ret = system ("test-process create2 myprovider MyAccountName");
-    fail_unless (ret != -1);
+    ck_assert (ret != -1);
 
     source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
     g_main_loop_run (main_loop);
-    fail_unless (source_id != 0, "Timeout happened");
+    ck_assert_msg (source_id != 0, "Timeout happened");
     g_source_remove (source_id);
 
-    fail_unless (account_id != 0, "Account ID still 0");
+    ck_assert_msg (account_id != 0, "Account ID still 0");
 
     account = ag_manager_get_account (manager, account_id);
-    fail_unless (AG_IS_ACCOUNT (account), "Got invalid account");
+    ck_assert_msg (AG_IS_ACCOUNT (account), "Got invalid account");
 
-    fail_unless (ag_account_get_enabled (account) == TRUE);
+    ck_assert (ag_account_get_enabled (account) == TRUE);
 
     g_value_init (&value, G_TYPE_INT);
     ag_account_get_value (account, "integer", &value);
-    fail_unless (g_value_get_int (&value) == -12345);
+    ck_assert (g_value_get_int (&value) == -12345);
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_STRING);
     ag_account_get_value (account, "string", &value);
-    fail_unless (g_strcmp0 (g_value_get_string (&value), "a string") == 0);
+    ck_assert (g_strcmp0 (g_value_get_string (&value), "a string") == 0);
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_STRV);
     source = ag_account_get_value (account, "numbers", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
     string_list = g_value_get_boxed (&value);
-    fail_unless (test_strv_equal (string_list, numbers),
-                 "Wrong numbers");
+    ck_assert_msg (test_strv_equal (string_list, numbers),
+                   "Wrong numbers");
     g_value_unset (&value);
 
     /* we expect more keys in MyService */
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL, "Cannot get service");
+    ck_assert_msg (service != NULL, "Cannot get service");
 
     ag_account_select_service (account, service);
 
     g_value_init (&value, G_TYPE_UINT);
     ag_account_get_value (account, "unsigned", &value);
-    fail_unless (g_value_get_uint (&value) == 54321);
+    ck_assert (g_value_get_uint (&value) == 54321);
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_CHAR);
     ag_account_get_value (account, "character", &value);
 #if GLIB_CHECK_VERSION(2,32,0)
-    fail_unless (g_value_get_schar (&value) == 'z');
+    ck_assert (g_value_get_schar (&value) == 'z');
 #else
-    fail_unless (g_value_get_char (&value) == 'z');
+    ck_assert (g_value_get_char (&value) == 'z');
 #endif
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_BOOLEAN);
     ag_account_get_value (account, "boolean", &value);
-    fail_unless (g_value_get_boolean (&value) == TRUE);
+    ck_assert (g_value_get_boolean (&value) == TRUE);
     g_value_unset (&value);
 
-    fail_unless (ag_account_get_enabled (account) == FALSE);
+    ck_assert (ag_account_get_enabled (account) == FALSE);
 
     /* watch some key changes/deletions */
     ag_account_watch_key (account, "character",
@@ -3065,42 +3065,42 @@ START_TEST(test_concurrency)
     /* make changes remotely */
     sprintf (command, "test-process change %d", account_id);
     ret = system (command);
-    fail_unless (ret != -1);
+    ck_assert (ret != -1);
 
     source_id = g_timeout_add_seconds (2, concurrency_test_failed, NULL);
     g_main_loop_run (main_loop);
-    fail_unless (source_id != 0, "Timeout happened");
+    ck_assert_msg (source_id != 0, "Timeout happened");
     g_source_remove (source_id);
 
-    fail_unless (character_changed == TRUE);
-    fail_unless (boolean_changed == TRUE);
-    fail_unless (string_changed == TRUE);
-    fail_unless (unsigned_changed == FALSE);
+    ck_assert (character_changed == TRUE);
+    ck_assert (boolean_changed == TRUE);
+    ck_assert (string_changed == TRUE);
+    ck_assert (unsigned_changed == FALSE);
 
     g_value_init (&value, G_TYPE_STRING);
     ag_account_get_value (account, "string", &value);
-    fail_unless (g_strcmp0 (g_value_get_string (&value),
-                            "another string") == 0);
+    ck_assert (g_strcmp0 (g_value_get_string (&value),
+                          "another string") == 0);
     g_value_unset (&value);
 
     ag_account_select_service (account, service);
 
     g_value_init (&value, G_TYPE_CHAR);
     source = ag_account_get_value (account, "character", &value);
-    fail_unless (source == AG_SETTING_SOURCE_NONE);
+    ck_assert (source == AG_SETTING_SOURCE_NONE);
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_BOOLEAN);
     ag_account_get_value (account, "boolean", &value);
-    fail_unless (g_value_get_boolean (&value) == FALSE);
+    ck_assert (g_value_get_boolean (&value) == FALSE);
     g_value_unset (&value);
 
-    fail_unless (ag_account_get_enabled (account) == TRUE);
+    ck_assert (ag_account_get_enabled (account) == TRUE);
 
     /* verify that the signal has been emitted correctly */
-    fail_unless (ecd.called == TRUE);
-    fail_unless (ecd.enabled_check == TRUE);
-    fail_unless (g_strcmp0 (ecd.service, "MyService") == 0);
+    ck_assert (ecd.called == TRUE);
+    ck_assert (ecd.enabled_check == TRUE);
+    ck_assert (g_strcmp0 (ecd.service, "MyService") == 0);
     g_free (ecd.service);
 
     end_test ();
@@ -3133,7 +3133,7 @@ START_TEST(test_service_regression)
     account = ag_manager_create_account (manager, PROVIDER);
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
 
     ag_account_select_service (account, service);
 
@@ -3161,7 +3161,7 @@ START_TEST(test_service_regression)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     g_debug ("Account id: %d", account->id);
@@ -3172,42 +3172,42 @@ START_TEST(test_service_regression)
 
     manager = ag_manager_new ();
     account = ag_manager_get_account (manager, account_id);
-    fail_unless (AG_IS_ACCOUNT (account),
-                 "Couldn't load account %u", account_id);
+    ck_assert_msg (AG_IS_ACCOUNT (account),
+                   "Couldn't load account %u", account_id);
 
     provider_name = ag_account_get_provider_name (account);
-    fail_unless (g_strcmp0 (provider_name, PROVIDER) == 0,
-                 "Got provider %s, expecting %s", provider_name, PROVIDER);
+    ck_assert_msg (g_strcmp0 (provider_name, PROVIDER) == 0,
+                   "Got provider %s, expecting %s", provider_name, PROVIDER);
 
     /* check that the values are retained */
-    fail_unless (g_strcmp0 (ag_account_get_display_name (account),
-                         display_name) == 0,
-                 "Display name not retained!");
+    ck_assert_msg (g_strcmp0 (ag_account_get_display_name (account),
+                              display_name) == 0,
+                   "Display name not retained!");
 
     ag_account_select_service (account, service);
 
     /* we enabled the service before: check that it's still enabled */
-    fail_unless (ag_account_get_enabled (account) == TRUE,
-                 "Account service not enabled!");
+    ck_assert_msg (ag_account_get_enabled (account) == TRUE,
+                   "Account service not enabled!");
 
     g_value_init (&value, G_TYPE_STRING);
     source = ag_account_get_value (account, "username", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
-    fail_unless (g_strcmp0(g_value_get_string (&value), username) == 0,
-                 "Wrong value");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (g_strcmp0(g_value_get_string (&value), username) == 0,
+                   "Wrong value");
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_BOOLEAN);
     source = ag_account_get_value (account, "check_automatically", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
-    fail_unless (g_value_get_boolean (&value) == check_automatically,
-                 "Wrong value");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (g_value_get_boolean (&value) == check_automatically,
+                   "Wrong value");
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_INT);
     source = ag_account_get_value (account, "interval", &value);
-    fail_unless (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
-    fail_unless (g_value_get_int (&value) == interval, "Wrong value");
+    ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
+    ck_assert_msg (g_value_get_int (&value) == interval, "Wrong value");
     g_value_unset (&value);
 
     end_test ();
@@ -3228,21 +3228,21 @@ START_TEST(test_blocking)
     /* create an account */
     manager = ag_manager_new ();
     account = ag_manager_create_account (manager, PROVIDER);
-    fail_unless (account != NULL);
+    ck_assert (account != NULL);
     ag_account_set_display_name (account, "Blocked account");
     ok = ag_account_store_blocking (account, &error);
-    fail_unless (ok, "Got error %s", error ? error->message : "No error set");
-    fail_unless (account->id != 0);
+    ck_assert_msg (ok, "Got error %s", error ? error->message : "No error set");
+    ck_assert (account->id != 0);
 
     display_name = ag_account_get_display_name (account);
-    fail_unless (g_strcmp0 (display_name, "Blocked account") == 0,
-                 "Wrong display name '%s'", display_name);
+    ck_assert_msg (g_strcmp0 (display_name, "Blocked account") == 0,
+                   "Wrong display name '%s'", display_name);
 
     /* Now change the display name and make sure it's not updated
      * without storing :-) */
     ag_account_set_display_name (account, "Want to change");
     display_name = ag_account_get_display_name (account);
-    fail_unless (g_strcmp0 (display_name, "Blocked account") == 0);
+    ck_assert (g_strcmp0 (display_name, "Blocked account") == 0);
 
 
     /* Now start a process in the background to lock the DB for some time */
@@ -3256,7 +3256,7 @@ START_TEST(test_blocking)
     sprintf (command, "test-process lock_db %d %s &",
              timeout_ms, lock_filename);
     ret = system (command);
-    fail_unless (ret != -1);
+    ck_assert (ret != -1);
 
     /* wait till the file is locked */
     while (lockf(fd, F_TEST, 0) == 0)
@@ -3267,11 +3267,11 @@ START_TEST(test_blocking)
     clock_gettime (CLOCK_MONOTONIC, &end_time);
 
     /* the operation completed successfully */
-    fail_unless (ok, "Got error %s", error ? error->message : "No error set");
+    ck_assert_msg (ok, "Got error %s", error ? error->message : "No error set");
 
     /* make sure the display name changed */
     display_name = ag_account_get_display_name (account);
-    fail_unless (g_strcmp0 (display_name, "Want to change") == 0);
+    ck_assert (g_strcmp0 (display_name, "Want to change") == 0);
 
     /* make sure that we have been waiting for a reasonable time */
     block_ms = time_diff(&start_time, &end_time);
@@ -3280,11 +3280,11 @@ START_TEST(test_blocking)
     /* With WAL journaling, the DB might be locked for a much shorter time
      * than what we expect. The following line would fail in that case:
      *
-     * fail_unless (block_ms > timeout_ms - 100);
+     * ck_assert (block_ms > timeout_ms - 100);
      *
      * Instead, let's just check that we haven't been locking for too long.
      */
-    fail_unless (block_ms < timeout_ms + 10000);
+    ck_assert (block_ms < timeout_ms + 10000);
 
     end_test ();
 }
@@ -3309,13 +3309,13 @@ START_TEST(test_cache_regression)
 
     manager = ag_manager_new ();
     account = ag_manager_create_account (manager, provider1);
-    fail_unless (account != NULL);
+    ck_assert (account != NULL);
 
     ag_account_set_display_name (account, display_name1);
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     account_id = account->id;
@@ -3326,31 +3326,31 @@ START_TEST(test_cache_regression)
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* after deleting the account, we shouldn't get it anymore, even if we
      * didn't release our reference */
     account = ag_manager_get_account (manager, account_id);
-    fail_unless (account == NULL);
+    ck_assert (account == NULL);
 
     /* create another account */
     account = ag_manager_create_account (manager, provider2);
-    fail_unless (account != NULL);
+    ck_assert (account != NULL);
 
     ag_account_set_display_name (account, display_name2);
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* check that the values are the correct ones */
-    fail_unless (g_strcmp0 (ag_account_get_display_name (account),
-                         display_name2) == 0);
+    ck_assert (g_strcmp0 (ag_account_get_display_name (account),
+                          display_name2) == 0);
 
-    fail_unless (g_strcmp0 (ag_account_get_provider_name (account),
-                         provider2) == 0);
+    ck_assert (g_strcmp0 (ag_account_get_provider_name (account),
+                          provider2) == 0);
 
     g_object_unref (deleted_account);
 
@@ -3378,14 +3378,14 @@ START_TEST(test_serviceid_regression)
     manager2 = ag_manager_new ();
 
     account1 = ag_manager_create_account (manager1, provider);
-    fail_unless (account1 != NULL);
+    ck_assert (account1 != NULL);
     account2 = ag_manager_create_account (manager2, provider);
-    fail_unless (account2 != NULL);
+    ck_assert (account2 != NULL);
 
     service1 = ag_manager_get_service (manager1, "MyService");
-    fail_unless (service1 != NULL);
+    ck_assert (service1 != NULL);
     service2 = ag_manager_get_service (manager2, "MyService");
-    fail_unless (service2 != NULL);
+    ck_assert (service2 != NULL);
 
     ag_account_select_service (account1, service1);
     ag_account_set_enabled (account1, TRUE);
@@ -3394,16 +3394,16 @@ START_TEST(test_serviceid_regression)
 
     ag_account_store (account1, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     ag_account_store (account2, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (account1->id != 0);
-    fail_unless (account2->id != 0);
+    ck_assert (account1->id != 0);
+    ck_assert (account2->id != 0);
 
     /* clear up */
     ag_service_unref (service1);
@@ -3424,7 +3424,7 @@ START_TEST(test_enabled_regression)
     manager = ag_manager_new ();
     account = ag_manager_create_account (manager, PROVIDER);
 
-    fail_unless (account != NULL);
+    ck_assert (account != NULL);
 
     g_signal_connect (account, "enabled",
                       G_CALLBACK (on_enabled),
@@ -3434,17 +3434,17 @@ START_TEST(test_enabled_regression)
     ag_account_set_enabled (account, TRUE);
     ag_account_store (account, NULL, TEST_STRING);
 
-    fail_unless (ecd.called == TRUE);
-    fail_unless (ecd.service == NULL);
-    fail_unless (ecd.enabled_check == TRUE, "Settings are not updated!");
+    ck_assert (ecd.called == TRUE);
+    ck_assert (ecd.service == NULL);
+    ck_assert_msg (ecd.enabled_check == TRUE, "Settings are not updated!");
 
     memset (&ecd, 0, sizeof (ecd));
     ag_account_set_enabled (account, FALSE);
     ag_account_store (account, NULL, TEST_STRING);
 
-    fail_unless (ecd.called == TRUE);
-    fail_unless (ecd.service == NULL);
-    fail_unless (ecd.enabled_check == TRUE, "Settings are not updated!");
+    ck_assert (ecd.called == TRUE);
+    ck_assert (ecd.service == NULL);
+    ck_assert_msg (ecd.enabled_check == TRUE, "Settings are not updated!");
 
     end_test ();
 }
@@ -3462,16 +3462,16 @@ START_TEST(test_delete_regression)
     ag_account_set_enabled (account, TRUE);
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
     ag_account_select_service (account, service);
     ag_account_set_enabled (account, TRUE);
 
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (account->id != 0, "Account ID is still 0!");
+    ck_assert_msg (account->id != 0, "Account ID is still 0!");
 
     account_service = ag_account_service_new (account, service);
 
@@ -3489,18 +3489,18 @@ START_TEST(test_delete_regression)
 
     /* until ag_account_store() is called, the signals should not have been
      * emitted */
-    fail_unless (enabled_called == FALSE, "Accound disabled too early!");
-    fail_unless (deleted_called == FALSE, "Accound deleted too early!");
+    ck_assert_msg (enabled_called == FALSE, "Accound disabled too early!");
+    ck_assert_msg (deleted_called == FALSE, "Accound deleted too early!");
 
     /* really delete the account */
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     /* check that the signals are emitted */
-    fail_unless (enabled_called, "Accound enabled signal not emitted");
-    fail_unless (deleted_called, "Accound deleted signal not emitted");
+    ck_assert_msg (enabled_called, "Accound enabled signal not emitted");
+    ck_assert_msg (deleted_called, "Accound deleted signal not emitted");
 
     g_object_unref (account_service);
 
@@ -3532,13 +3532,13 @@ START_TEST(test_duplicate_create_regression)
     ag_account_set_enabled (account, TRUE);
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
     ag_account_select_service (account, service);
     ag_account_set_enabled (account, TRUE);
     ag_service_unref(service);
 
     service = ag_manager_get_service (manager, "MyService2");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
     ag_account_select_service (account, service);
     ag_account_set_enabled (account, TRUE);
 
@@ -3550,8 +3550,8 @@ START_TEST(test_duplicate_create_regression)
     g_debug ("Running loop");
     g_main_loop_run (main_loop);
 
-    fail_unless(create_signal_counter == 1,
-                "account-created emitted %d times!", create_signal_counter);
+    ck_assert_msg(create_signal_counter == 1,
+                  "account-created emitted %d times!", create_signal_counter);
 
     end_test ();
 }
@@ -3568,18 +3568,18 @@ START_TEST(test_manager_new_for_service_type)
     g_unlink (db_filename);
 
     manager = ag_manager_new_for_service_type ("e-mail");
-    fail_unless (g_strcmp0 (ag_manager_get_service_type (manager),
-                         "e-mail") == 0);
+    ck_assert (g_strcmp0 (ag_manager_get_service_type (manager),
+                          "e-mail") == 0);
 
     account1 = ag_manager_create_account (manager, provider);
-    fail_unless (account1 != NULL);
+    ck_assert (account1 != NULL);
     account2 = ag_manager_create_account (manager, provider);
-    fail_unless (account2 != NULL);
+    ck_assert (account2 != NULL);
 
     service1 = ag_manager_get_service (manager, "MyService");
-    fail_unless (service1 != NULL);
+    ck_assert (service1 != NULL);
     service2 = ag_manager_get_service (manager, "OtherService");
-    fail_unless (service2 != NULL);
+    ck_assert (service2 != NULL);
 
     ag_account_set_enabled (account1, TRUE);
     ag_account_select_service (account1, service1);
@@ -3590,19 +3590,19 @@ START_TEST(test_manager_new_for_service_type)
 
     ag_account_store (account1, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
     ag_account_store (account2, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
-    fail_unless (account1->id != 0);
-    fail_unless (account2->id != 0);
+    ck_assert (account1->id != 0);
+    ck_assert (account2->id != 0);
 
     list = ag_manager_list_enabled_by_service_type (manager, "e-mail");
-    fail_unless (g_list_length (list) == 1);
-    fail_unless (account1->id == GPOINTER_TO_UINT(list->data));
+    ck_assert (g_list_length (list) == 1);
+    ck_assert (account1->id == GPOINTER_TO_UINT(list->data));
 
     /* clear up */
     ag_service_unref (service1);
@@ -3624,13 +3624,13 @@ on_enabled_event (AgManager *manager, AgAccountId account_id,
     AgService *service;
 
     acc = ag_manager_get_account (manager, account_id);
-    fail_unless (acc != NULL);
-    fail_unless (ag_account_get_enabled (acc));
+    ck_assert (acc != NULL);
+    ck_assert (ag_account_get_enabled (acc));
 
     service = ag_manager_get_service (manager, "MyService");
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
     ag_account_select_service (acc, service);
-    fail_unless (ag_account_get_enabled (acc));
+    ck_assert (ag_account_get_enabled (acc));
     ag_service_unref (service);
 
     *id = account_id;
@@ -3663,14 +3663,14 @@ START_TEST(test_manager_enabled_event)
     AgAccountId account_id = 0;
 
     manager = ag_manager_new_for_service_type ("e-mail");
-    fail_unless (manager != NULL);
+    ck_assert (manager != NULL);
     account = ag_manager_create_account (manager, "maemo");
-    fail_unless (account != NULL);
+    ck_assert (account != NULL);
 
     ag_account_set_enabled (account, TRUE);
     ag_account_store (account, account_store_now_cb, TEST_STRING);
     run_main_loop_for_n_seconds(0);
-    fail_unless (data_stored, "Callback not invoked immediately");
+    ck_assert_msg (data_stored, "Callback not invoked immediately");
     data_stored = FALSE;
 
     main_loop = g_main_loop_new (NULL, FALSE);
@@ -3681,28 +3681,28 @@ START_TEST(test_manager_enabled_event)
     /* this command will enable MyService (which is of type e-mail) */
     sprintf (command, "test-process enabled_event %d", account->id);
     ret = system (command);
-    fail_unless (ret != -1);
+    ck_assert (ret != -1);
 
     source_id = g_timeout_add_seconds (2, enabled_event_test_failed, NULL);
     g_main_loop_run (main_loop);
-    fail_unless (source_id != 0, "Timeout happened");
+    ck_assert_msg (source_id != 0, "Timeout happened");
     g_source_remove (source_id);
 
-    fail_unless (account_id == account->id);
+    ck_assert (account_id == account->id);
 
     account_id = 0;
 
     /* now disable the account. This also should trigger the enabled-event. */
     sprintf (command, "test-process enabled_event2 %d", account->id);
     ret = system (command);
-    fail_unless (ret != -1);
+    ck_assert (ret != -1);
 
     source_id = g_timeout_add_seconds (2, enabled_event_test_failed, NULL);
     g_main_loop_run (main_loop);
-    fail_unless (source_id != 0, "Timeout happened");
+    ck_assert_msg (source_id != 0, "Timeout happened");
     g_source_remove (source_id);
 
-    fail_unless (account_id == account->id);
+    ck_assert (account_id == account->id);
 
     end_test ();
 }
@@ -3719,26 +3719,26 @@ START_TEST(test_list_enabled_account)
     const gchar *name = NULL;
 
     manager = ag_manager_new ();
-    fail_unless (manager != NULL, "Manager should not be NULL");
+    ck_assert_msg (manager != NULL, "Manager should not be NULL");
 
     account1 = ag_manager_create_account (manager, "MyProvider");
-    fail_unless (AG_IS_ACCOUNT (account1),
-                 "Failed to create the AgAccount.");
+    ck_assert_msg (AG_IS_ACCOUNT (account1),
+                   "Failed to create the AgAccount.");
     ag_account_set_display_name (account1, "EnabledAccount");
     ag_account_set_enabled (account1, TRUE);
     ag_account_store (account1, account_store_now_cb, TEST_STRING);
 
     account2 = ag_manager_create_account (manager, "MyProvider");
-    fail_unless (AG_IS_ACCOUNT (account2),
-                 "Failed to create the AgAccount.");
+    ck_assert_msg (AG_IS_ACCOUNT (account2),
+                   "Failed to create the AgAccount.");
     ag_account_set_display_name (account2, "DisabledAccount");
     ag_account_set_enabled (account2, FALSE);
     ag_account_store (account2, account_store_now_cb, TEST_STRING);
 
 
     list = ag_manager_list_enabled (manager);
-    fail_unless (g_list_length (list) > 0,
-                 "No enabled accounts?");
+    ck_assert_msg (g_list_length (list) > 0,
+                   "No enabled accounts?");
 
     for (iter = list; iter != NULL; iter = g_list_next (iter))
     {
@@ -3755,7 +3755,7 @@ START_TEST(test_list_enabled_account)
         account3 = NULL;
     }
 
-    fail_unless (found == TRUE, "Required account not enabled");
+    ck_assert_msg (found == TRUE, "Required account not enabled");
 
     if (account3)
         g_object_unref (account3);
@@ -3799,21 +3799,21 @@ START_TEST(test_account_list_enabled_services)
     g_unlink (db_filename);
 
     manager = ag_manager_new ();
-    fail_unless (manager != NULL);
+    ck_assert (manager != NULL);
 
     manager2 = ag_manager_new_for_service_type ("e-mail");
-    fail_unless (manager2 != NULL);
+    ck_assert (manager2 != NULL);
 
     manager3 = ag_manager_new_for_service_type ("sharing");
-    fail_unless (manager3 != NULL);
+    ck_assert (manager3 != NULL);
 
     account = ag_manager_create_account (manager, "maemo");
-    fail_unless (account != NULL);
+    ck_assert (account != NULL);
 
     service1 = ag_manager_get_service (manager, "MyService");
-    fail_unless (service1 != NULL);
+    ck_assert (service1 != NULL);
     service2 = ag_manager_get_service (manager, "OtherService");
-    fail_unless (service2 != NULL);
+    ck_assert (service2 != NULL);
 
     /* 2 services, 1 enabled  */
     ag_account_select_service (account, service1);
@@ -3826,7 +3826,7 @@ START_TEST(test_account_list_enabled_services)
 
     services = ag_account_list_enabled_services (account);
     n_services = g_list_length (services);
-    fail_unless (n_services == 1, "Got %d services, expecting 1", n_services);
+    ck_assert_msg (n_services == 1, "Got %d services, expecting 1", n_services);
     ag_service_list_free (services);
 
     /* 2 services, 2 enabled  */
@@ -3837,30 +3837,30 @@ START_TEST(test_account_list_enabled_services)
     services = ag_account_list_enabled_services (account);
 
     n_services = g_list_length (services);
-    fail_unless (n_services == 2, "Got %d services, expecting 2", n_services);
+    ck_assert_msg (n_services == 2, "Got %d services, expecting 2", n_services);
     ag_service_list_free (services);
 
     account2 = ag_manager_get_account (manager2, account->id);
-    fail_unless (account2 != NULL);
+    ck_assert (account2 != NULL);
 
     account3 = ag_manager_get_account (manager3, account->id);
-    fail_unless (account3 != NULL);
+    ck_assert (account3 != NULL);
 
     services = ag_account_list_enabled_services (account2);
 
     n_services = g_list_length (services);
-    fail_unless (n_services == 1, "Got %d services, expecting 1", n_services);
+    ck_assert_msg (n_services == 1, "Got %d services, expecting 1", n_services);
     ag_service_list_free (services);
 
     services = ag_account_list_enabled_services (account3);
 
     n_services = g_list_length (services);
-    fail_unless (n_services == 1, "Got %d services, expecting 1", n_services);
+    ck_assert_msg (n_services == 1, "Got %d services, expecting 1", n_services);
     ag_service_list_free (services);
 
     /* 2 services, 0 enabled  */
     account4 = ag_manager_create_account (manager, "maemo");
-    fail_unless (account4 != NULL);
+    ck_assert (account4 != NULL);
 
     ag_account_select_service (account, service1);
     ag_account_set_enabled (account, FALSE);
@@ -3877,7 +3877,7 @@ START_TEST(test_account_list_enabled_services)
     services = ag_account_list_enabled_services (account);
 
     n_services = g_list_length (services);
-    fail_unless (n_services == 0, "Got %d services, expecting 0", n_services);
+    ck_assert_msg (n_services == 0, "Got %d services, expecting 0", n_services);
     services = ag_account_list_enabled_services (account);
     /* clear up */
     ag_service_unref (service1);
@@ -3902,30 +3902,30 @@ START_TEST(test_service_type)
     manager = ag_manager_new ();
 
     service_type = ag_manager_load_service_type (manager, "I don't exist");
-    fail_unless (service_type == NULL);
+    ck_assert (service_type == NULL);
 
     service_type = ag_manager_load_service_type (manager, "e-mail");
-    fail_unless (service_type != NULL);
+    ck_assert (service_type != NULL);
 
     string = ag_service_type_get_name (service_type);
-    fail_unless (g_strcmp0 (string, "e-mail") == 0,
-                 "Wrong service type name: %s", string);
+    ck_assert_msg (g_strcmp0 (string, "e-mail") == 0,
+                   "Wrong service type name: %s", string);
 
     string = ag_service_type_get_display_name (service_type);
-    fail_unless (g_strcmp0 (string, "Electronic mail") == 0,
-                 "Wrong service type display name: %s", string);
+    ck_assert_msg (g_strcmp0 (string, "Electronic mail") == 0,
+                   "Wrong service type display name: %s", string);
 
     string = ag_service_type_get_description (service_type);
-    fail_unless (g_strcmp0 (string, "Electronic mail description") == 0,
-                 "Wrong service type description: %s", string);
+    ck_assert_msg (g_strcmp0 (string, "Electronic mail description") == 0,
+                   "Wrong service type description: %s", string);
 
     string = ag_service_type_get_icon_name (service_type);
-    fail_unless (g_strcmp0 (string, "email_icon") == 0,
-                 "Wrong service type icon name: %s", string);
+    ck_assert_msg (g_strcmp0 (string, "email_icon") == 0,
+                   "Wrong service type icon name: %s", string);
 
     string = ag_service_type_get_i18n_domain (service_type);
-    fail_unless (g_strcmp0 (string, "translation_file") == 0,
-                 "Wrong service type i18n name: %s", string);
+    ck_assert_msg (g_strcmp0 (string, "translation_file") == 0,
+                   "Wrong service type i18n name: %s", string);
 
     ag_service_type_unref (service_type);
 
@@ -3944,18 +3944,18 @@ on_account_created_with_db_locked (AgManager *manager, AgAccountId account_id)
     g_debug ("%s called (%u)", G_STRFUNC, account_id);
 
     account = ag_manager_get_account (manager, account_id);
-    fail_unless (account != NULL);
+    ck_assert (account != NULL);
 
     g_debug ("account loaded");
     list = ag_account_list_enabled_services (account);
-    fail_unless (list != NULL);
-    fail_unless (g_list_length (list) == 1);
+    ck_assert (list != NULL);
+    ck_assert (g_list_length (list) == 1);
 
     service = list->data;
-    fail_unless (service != NULL);
+    ck_assert (service != NULL);
 
     name = ag_service_get_name (service);
-    fail_unless (strcmp (name, "MyService") == 0);
+    ck_assert (strcmp (name, "MyService") == 0);
 
     ag_service_list_free (list);
     g_main_loop_quit (main_loop);
@@ -3993,13 +3993,13 @@ START_TEST(test_db_access)
 
     /* create an account with the e-mail service type enabled */
     ret = system ("test-process create3 myprovider MyAccountName");
-    fail_unless (ret != -1);
+    ck_assert (ret != -1);
 
     /* lock the DB for the specified timeout */
     sprintf (command, "test-process lock_db %d %s &",
              timeout_ms, lock_filename);
     ret = system (command);
-    fail_unless (ret != -1);
+    ck_assert (ret != -1);
 
     /* wait till the file is locked */
     while (lockf (fd, F_TEST, 0) == 0)
@@ -4016,7 +4016,7 @@ START_TEST(test_db_access)
     g_debug ("Running loop");
     g_main_loop_run (main_loop);
 
-    fail_unless (source_id != 0, "Timeout happened");
+    ck_assert_msg (source_id != 0, "Timeout happened");
     g_source_remove (source_id);
 
     end_test ();
