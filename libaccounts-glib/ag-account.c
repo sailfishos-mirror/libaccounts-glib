@@ -641,7 +641,12 @@ update_settings (AgAccount *account, GHashTable *services)
                         g_signal_emit (account, signals[DISPLAY_NAME_CHANGED], 0);
                         g_object_notify_by_pspec ((GObject *)account,
                                                   properties[PROP_DISPLAY_NAME]);
-                        continue;
+                        /* special case keys are updated only if already
+                           existing in the properties */
+                        if (!g_hash_table_contains (ss->settings, key))
+                        {
+                            continue;
+                        }
                     }
                     else if (strcmp (key, "enabled") == 0)
                     {
@@ -653,7 +658,10 @@ update_settings (AgAccount *account, GHashTable *services)
                         params->service_name = NULL;
                         params->enabled = priv->enabled;
                         enabled_signals = g_slist_prepend (enabled_signals, params);
-                        continue;
+                        if (!g_hash_table_contains (ss->settings, key))
+                        {
+                            continue;
+                        }
                     }
                 }
 
