@@ -1959,11 +1959,7 @@ START_TEST(test_service)
     g_value_init (&value, G_TYPE_CHAR);
     source = ag_account_get_value (account, "interval", &value);
     ck_assert_msg (source == AG_SETTING_SOURCE_ACCOUNT, "Wrong source");
-#if GLIB_CHECK_VERSION(2,32,0)
     ck_assert_msg (g_value_get_schar (&value) == interval, "Wrong value");
-#else
-    ck_assert_msg (g_value_get_char (&value) == interval, "Wrong value");
-#endif
     g_value_unset (&value);
 
     /* change a value */
@@ -3023,11 +3019,7 @@ START_TEST(test_concurrency)
 
     g_value_init (&value, G_TYPE_CHAR);
     ag_account_get_value (account, "character", &value);
-#if GLIB_CHECK_VERSION(2,32,0)
     ck_assert (g_value_get_schar (&value) == 'z');
-#else
-    ck_assert (g_value_get_char (&value) == 'z');
-#endif
     g_value_unset (&value);
 
     g_value_init (&value, G_TYPE_BOOLEAN);

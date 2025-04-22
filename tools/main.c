@@ -30,11 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if GLIB_CHECK_VERSION (2, 30, 0)
-#else
-#define G_VALUE_INIT { 0, { { 0 } } }
-#endif
-
 static gchar *gl_app_name = NULL;
 
 enum
