@@ -146,9 +146,7 @@ enum
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-G_DEFINE_TYPE (AgAccountService, ag_account_service, G_TYPE_OBJECT);
-
-#define AG_ACCOUNT_SERVICE_PRIV(obj) (AG_ACCOUNT_SERVICE(obj)->priv)
+G_DEFINE_TYPE_WITH_PRIVATE (AgAccountService, ag_account_service, G_TYPE_OBJECT);
 
 static gboolean
 check_enabled (AgAccountServicePrivate *priv)
@@ -186,7 +184,7 @@ on_account_enabled (G_GNUC_UNUSED AgAccount *account,
                     gboolean service_enabled,
                     AgAccountService *self)
 {
-    AgAccountServicePrivate *priv = self->priv;
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
     gboolean enabled;
 
     DEBUG_INFO ("service: %s, enabled: %d", service_name, service_enabled);
@@ -205,17 +203,18 @@ ag_account_service_get_property (GObject *object, guint property_id,
                                  GValue *value, GParamSpec *pspec)
 {
     AgAccountService *self = AG_ACCOUNT_SERVICE (object);
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
 
     switch (property_id)
     {
     case PROP_ACCOUNT:
-        g_value_set_object (value, self->priv->account);
+        g_value_set_object (value, priv->account);
         break;
     case PROP_SERVICE:
-        g_value_set_boxed (value, self->priv->service);
+        g_value_set_boxed (value, priv->service);
         break;
     case PROP_ENABLED:
-        g_value_set_boolean (value, self->priv->enabled);
+        g_value_set_boolean (value, priv->enabled);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -227,7 +226,7 @@ static void
 ag_account_service_set_property (GObject *object, guint property_id,
                                  const GValue *value, GParamSpec *pspec)
 {
-    AgAccountServicePrivate *priv = AG_ACCOUNT_SERVICE_PRIV (object);
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (AG_ACCOUNT_SERVICE (object));
 
     switch (property_id)
     {
@@ -249,7 +248,7 @@ ag_account_service_set_property (GObject *object, guint property_id,
 static void
 ag_account_service_constructed (GObject *object)
 {
-    AgAccountServicePrivate *priv = AG_ACCOUNT_SERVICE_PRIV (object);
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (AG_ACCOUNT_SERVICE (object));
 
     if (G_UNLIKELY (!priv->account))
     {
@@ -271,7 +270,7 @@ ag_account_service_constructed (GObject *object)
 static void
 ag_account_service_dispose (GObject *object)
 {
-    AgAccountServicePrivate *priv = AG_ACCOUNT_SERVICE_PRIV (object);
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (AG_ACCOUNT_SERVICE (object));
 
     DEBUG_REFS ("Disposing account-service %p", object);
 
@@ -279,15 +278,10 @@ ag_account_service_dispose (GObject *object)
     {
         ag_account_remove_watch (priv->account, priv->watch);
         g_signal_handler_disconnect (priv->account, priv->account_enabled_id);
-        g_object_unref (priv->account);
-        priv->account = NULL;
+        g_clear_object (&priv->account);
     }
 
-    if (priv->service)
-    {
-        ag_service_unref (priv->service);
-        priv->service = NULL;
-    }
+    g_clear_pointer (&priv->service, ag_service_unref);
 
     G_OBJECT_CLASS (ag_account_service_parent_class)->dispose (object);
 }
@@ -296,8 +290,6 @@ static void
 ag_account_service_class_init(AgAccountServiceClass *klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
-
-    g_type_class_add_private (object_class, sizeof (AgAccountServicePrivate));
 
     object_class->constructed = ag_account_service_constructed;
     object_class->dispose = ag_account_service_dispose;
@@ -312,9 +304,9 @@ ag_account_service_class_init(AgAccountServiceClass *klass)
      * Since: 1.4
      */
     properties[PROP_ACCOUNT] =
-        g_param_spec_object ("account", "account", "account",
+        g_param_spec_object ("account", NULL, NULL,
                              AG_TYPE_ACCOUNT,
-                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
     /**
      * AgAccountService:service:
@@ -324,9 +316,9 @@ ag_account_service_class_init(AgAccountServiceClass *klass)
      * Since: 1.4
      */
     properties[PROP_SERVICE] =
-        g_param_spec_boxed ("service", "service", "service",
-                            ag_service_get_type(),
-                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+        g_param_spec_boxed ("service", NULL, NULL,
+                            AG_TYPE_SERVICE,
+                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
     /**
      * AgAccountService:enabled:
@@ -340,8 +332,7 @@ ag_account_service_class_init(AgAccountServiceClass *klass)
      * Since: 1.4
      */
     properties[PROP_ENABLED] =
-        g_param_spec_boolean ("enabled", "Enabled",
-                              "Whether the account service is enabled",
+        g_param_spec_boolean ("enabled", NULL, NULL,
                               FALSE,
                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
@@ -386,8 +377,7 @@ ag_account_service_class_init(AgAccountServiceClass *klass)
 static void
 ag_account_service_init(AgAccountService *self)
 {
-    self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, AG_TYPE_ACCOUNT_SERVICE,
-                                              AgAccountServicePrivate);
+    self->priv = ag_account_service_get_instance_private (self);
 }
 
 /**
@@ -402,7 +392,7 @@ ag_account_service_init(AgAccountService *self)
  * this object anymore.
  */
 AgAccountService *
-ag_account_service_new(AgAccount *account, AgService *service)
+ag_account_service_new (AgAccount *account, AgService *service)
 {
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
 
@@ -425,9 +415,11 @@ ag_account_service_new(AgAccount *account, AgService *service)
 AgAccount *
 ag_account_service_get_account (AgAccountService *self)
 {
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
+
     g_return_val_if_fail (AG_IS_ACCOUNT_SERVICE (self), NULL);
 
-    return self->priv->account;
+    return priv->account;
 }
 
 /**
@@ -436,16 +428,18 @@ ag_account_service_get_account (AgAccountService *self)
  *
  * Get the #AgService associated with @self.
  *
- * Returns: (transfer none): the underlying #AgService. The reference count on
- * it is not incremented, so if you need to use it beyond the lifetime of
- * @self, you need to call ag_service_ref() on it yourself.
+ * Returns: (transfer none) (nullable): the underlying #AgService. The reference
+ * count on it is not incremented, so if you need to use it beyond the lifetime
+ * of @self, you need to call ag_service_ref() on it yourself.
  */
 AgService *
 ag_account_service_get_service (AgAccountService *self)
 {
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
+
     g_return_val_if_fail (AG_IS_ACCOUNT_SERVICE (self), NULL);
 
-    return self->priv->service;
+    return priv->service;
 }
 
 /**
@@ -461,9 +455,11 @@ ag_account_service_get_service (AgAccountService *self)
 gboolean
 ag_account_service_get_enabled (AgAccountService *self)
 {
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
+
     g_return_val_if_fail (AG_IS_ACCOUNT_SERVICE (self), FALSE);
 
-    return self->priv->enabled;
+    return priv->enabled;
 }
 
 /**
@@ -486,10 +482,9 @@ AgSettingSource
 ag_account_service_get_value (AgAccountService *self, const gchar *key,
                               GValue *value)
 {
-    AgAccountServicePrivate *priv;
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
 
     g_return_val_if_fail (AG_IS_ACCOUNT_SERVICE (self), AG_SETTING_SOURCE_NONE);
-    priv = self->priv;
 
     ag_account_select_service (priv->account, priv->service);
     return ag_account_get_value (priv->account, key, value);
@@ -510,10 +505,9 @@ void
 ag_account_service_set_value (AgAccountService *self, const gchar *key,
                               const GValue *value)
 {
-    AgAccountServicePrivate *priv;
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
 
     g_return_if_fail (AG_IS_ACCOUNT_SERVICE (self));
-    priv = self->priv;
 
     ag_account_select_service (priv->account, priv->service);
     ag_account_set_value (priv->account, key, value);
@@ -540,10 +534,9 @@ GVariant *
 ag_account_service_get_variant (AgAccountService *self, const gchar *key,
                                 AgSettingSource *source)
 {
-    AgAccountServicePrivate *priv;
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
 
     g_return_val_if_fail (AG_IS_ACCOUNT_SERVICE (self), NULL);
-    priv = self->priv;
 
     ag_account_select_service (priv->account, priv->service);
     return ag_account_get_variant (priv->account, key, source);
@@ -566,10 +559,9 @@ void
 ag_account_service_set_variant (AgAccountService *self, const gchar *key,
                                 GVariant *value)
 {
-    AgAccountServicePrivate *priv;
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
 
     g_return_if_fail (AG_IS_ACCOUNT_SERVICE (self));
-    priv = self->priv;
 
     ag_account_select_service (priv->account, priv->service);
     ag_account_set_variant (priv->account, key, value);
@@ -593,10 +585,9 @@ ag_account_service_settings_iter_init (AgAccountService *self,
                                        AgAccountSettingIter *iter,
                                        const gchar *key_prefix)
 {
-    AgAccountServicePrivate *priv;
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
 
     g_return_if_fail (AG_IS_ACCOUNT_SERVICE (self));
-    priv = self->priv;
 
     ag_account_select_service (priv->account, priv->service);
     ag_account_settings_iter_init (priv->account, iter, key_prefix);
@@ -617,10 +608,9 @@ ag_account_service_get_settings_iter (AgAccountService *self,
                                       const gchar *key_prefix)
 {
     AgAccountSettingIter *iter;
-    AgAccountServicePrivate *priv;
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
 
     g_return_val_if_fail (AG_IS_ACCOUNT_SERVICE (self), NULL);
-    priv = self->priv;
 
     ag_account_select_service (priv->account, priv->service);
     iter = g_slice_new (AgAccountSettingIter);
@@ -668,10 +658,9 @@ ag_account_service_settings_iter_next (AgAccountSettingIter *iter,
 AgAuthData *
 ag_account_service_get_auth_data (AgAccountService *self)
 {
-    AgAccountServicePrivate *priv;
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
 
     g_return_val_if_fail (AG_IS_ACCOUNT_SERVICE (self), NULL);
-    priv = self->priv;
 
     return _ag_auth_data_new (priv->account, priv->service);
 }
@@ -691,14 +680,13 @@ ag_account_service_get_auth_data (AgAccountService *self)
 gchar **
 ag_account_service_get_changed_fields (AgAccountService *self)
 {
-    AgAccountServicePrivate *priv;
+    AgAccountServicePrivate *priv = ag_account_service_get_instance_private (self);
     GHashTable *settings;
     GList *keys, *list;
     gchar **fields;
     gint i;
 
     g_return_val_if_fail (AG_IS_ACCOUNT_SERVICE (self), NULL);
-    priv = self->priv;
 
     settings = _ag_account_get_service_changes (priv->account, priv->service);
     keys = g_hash_table_get_keys (settings);
