@@ -1604,7 +1604,7 @@ ag_manager_dispose (GObject *object)
     g_clear_pointer (&priv->services, g_hash_table_unref);
     g_clear_pointer (&priv->accounts, g_hash_table_unref);
 
-    G_OBJECT_CLASS (ag_manager_parent_class)->finalize (object);
+    G_OBJECT_CLASS (ag_manager_parent_class)->dispose (object);
 }
 
 static void
