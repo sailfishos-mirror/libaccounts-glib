@@ -187,7 +187,7 @@ struct _AgAccountPrivate {
 
     /* The "foreign" flag means that the account has been created by another
      * instance and we got informed about it from D-Bus. In this case, all the
-     * informations that we get via D-Bus will be cached in the
+     * information that we get via D-Bus will be cached in the
      * AgServiceSetting structures. */
     guint foreign : 1;
     guint enabled : 1;
@@ -237,9 +237,8 @@ static void ag_account_initable_iface_init(gpointer g_iface,
 
 G_DEFINE_TYPE_WITH_CODE (AgAccount, ag_account, G_TYPE_OBJECT,
                          G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
-                                            ag_account_initable_iface_init));
-
-#define AG_ACCOUNT_PRIV(obj) (AG_ACCOUNT(obj)->priv)
+                                            ag_account_initable_iface_init)
+                         G_ADD_PRIVATE (AgAccount));
 
 static inline gboolean
 ensure_has_provider (AgAccountPrivate *priv)
@@ -283,12 +282,13 @@ GVariant *
 _ag_account_build_dbus_changes (AgAccount *account, AgAccountChanges *changes,
                                 const struct timespec *ts)
 {
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     GVariantBuilder builder;
     const gchar *provider_name;
 
     g_variant_builder_init (&builder, G_VARIANT_TYPE_TUPLE);
 
-    provider_name = account->priv->provider_name;
+    provider_name = priv->provider_name;
     if (!provider_name) provider_name = "";
 
     if (ts)
@@ -394,7 +394,7 @@ static AgAccountWatch
 ag_account_watch_int (AgAccount *account, gchar *key, gchar *prefix,
                       AgAccountNotifyCb callback, gpointer user_data)
 {
-    AgAccountPrivate *priv = account->priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     AgAccountWatch watch;
     GHashTable *service_watches;
 
@@ -584,7 +584,7 @@ match_watch_with_key (GHashTable *watches, const gchar *key, GList *watch_list)
 static void
 update_settings (AgAccount *account, GHashTable *services)
 {
-    AgAccountPrivate *priv = account->priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     GHashTableIter iter;
     AgServiceChanges *sc;
     gchar *service_name;
@@ -712,7 +712,7 @@ update_settings (AgAccount *account, GHashTable *services)
 void
 _ag_account_store_completed (AgAccount *account, AgAccountChanges *changes)
 {
-    AgAccountPrivate *priv = account->priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
     g_clear_object (&priv->store_task);
 
@@ -729,7 +729,7 @@ _ag_account_store_completed (AgAccount *account, AgAccountChanges *changes)
 void
 _ag_account_done_changes (AgAccount *account, AgAccountChanges *changes)
 {
-    AgAccountPrivate *priv = account->priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
     g_return_if_fail (changes != NULL);
 
@@ -807,10 +807,11 @@ account_service_changes_get (AgAccountPrivate *priv, AgService *service,
 GHashTable *
 _ag_account_get_service_changes (AgAccount *account, AgService *service)
 {
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     GHashTable *services;
     AgServiceChanges *sc;
 
-    services = account->priv->changes_for_watches;
+    services = priv->changes_for_watches;
     if (!services) return NULL;
 
     sc = g_hash_table_lookup (services,
@@ -840,8 +841,8 @@ change_selected_service_value (AgAccountPrivate *priv,
 static void
 ag_account_init (AgAccount *account)
 {
-    account->priv = G_TYPE_INSTANCE_GET_PRIVATE (account, AG_TYPE_ACCOUNT,
-                                                 AgAccountPrivate);
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
+    account->priv = priv;
 }
 
 static gboolean
@@ -858,7 +859,7 @@ got_account (sqlite3_stmt *stmt, AgAccountPrivate *priv)
 static gboolean
 ag_account_load (AgAccount *account, GError **error)
 {
-    AgAccountPrivate *priv = account->priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     gchar sql[128];
     gint rows;
 
@@ -886,14 +887,14 @@ ag_account_initable_init (GInitable *initable,
                           GError **error)
 {
     AgAccount *account = AG_ACCOUNT (initable);
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
     if (account->id)
     {
-        if (account->priv->changes && account->priv->changes->created)
+        if (priv->changes && priv->changes->created)
         {
             /* this is a new account and we should not load it */
-            _ag_account_changes_free (account->priv->changes);
-            account->priv->changes = NULL;
+            g_clear_pointer (&priv->changes, _ag_account_changes_free);
         }
         else if (!ag_account_load (account, error))
         {
@@ -902,7 +903,7 @@ ag_account_initable_init (GInitable *initable,
         }
     }
 
-    if (!account->priv->foreign)
+    if (!priv->foreign)
         ag_account_select_service (account, NULL);
 
     return TRUE;
@@ -921,6 +922,7 @@ ag_account_get_property (GObject *object, guint property_id,
                          GValue *value, GParamSpec *pspec)
 {
     AgAccount *account = AG_ACCOUNT (object);
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
     switch (property_id)
     {
@@ -928,16 +930,16 @@ ag_account_get_property (GObject *object, guint property_id,
         g_value_set_uint (value, account->id);
         break;
     case PROP_MANAGER:
-        g_value_set_object (value, account->priv->manager);
+        g_value_set_object (value, priv->manager);
         break;
     case PROP_PROVIDER:
-        g_value_set_string (value, account->priv->provider_name);
+        g_value_set_string (value, priv->provider_name);
         break;
     case PROP_ENABLED:
-        g_value_set_boolean (value, account->priv->enabled);
+        g_value_set_boolean (value, priv->enabled);
         break;
     case PROP_DISPLAY_NAME:
-        g_value_set_string (value, account->priv->display_name);
+        g_value_set_string (value, priv->display_name);
         break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -950,7 +952,7 @@ ag_account_set_property (GObject *object, guint property_id,
                          const GValue *value, GParamSpec *pspec)
 {
     AgAccount *account = AG_ACCOUNT (object);
-    AgAccountPrivate *priv = account->priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
     switch (property_id)
     {
@@ -985,7 +987,7 @@ static void
 ag_account_dispose (GObject *object)
 {
     AgAccount *account = AG_ACCOUNT (object);
-    AgAccountPrivate *priv = account->priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
     DEBUG_REFS ("Disposing account %p", object);
 
@@ -1004,7 +1006,7 @@ ag_account_dispose (GObject *object)
 static void
 ag_account_finalize (GObject *object)
 {
-    AgAccountPrivate *priv = AG_ACCOUNT_PRIV (object);
+    AgAccountPrivate *priv = ag_account_get_instance_private (AG_ACCOUNT (object));
 
     g_clear_pointer (&priv->provider_name, g_free);
     g_clear_pointer (&priv->display_name, g_free);
@@ -1025,8 +1027,6 @@ ag_account_class_init (AgAccountClass *klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
 
-    g_type_class_add_private (object_class, sizeof (AgAccountPrivate));
-
     object_class->get_property = ag_account_get_property;
     object_class->set_property = ag_account_set_property;
     object_class->dispose = ag_account_dispose;
@@ -1038,8 +1038,7 @@ ag_account_class_init (AgAccountClass *klass)
      * The AgAccountId for the account.
      */
     properties[PROP_ID] =
-        g_param_spec_uint ("id", "Account ID",
-                           "The AgAccountId of the account",
+        g_param_spec_uint ("id", NULL, NULL,
                            0, G_MAXUINT, 0,
                            G_PARAM_STATIC_STRINGS |
                            G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
@@ -1052,7 +1051,7 @@ ag_account_class_init (AgAccountClass *klass)
      * Since: 1.4
      */
     properties[PROP_MANAGER] =
-        g_param_spec_object ("manager", "manager", "manager",
+        g_param_spec_object ("manager", NULL, NULL,
                              AG_TYPE_MANAGER,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
@@ -1064,13 +1063,13 @@ ag_account_class_init (AgAccountClass *klass)
      * Since: 1.4
      */
     properties[PROP_PROVIDER] =
-        g_param_spec_string ("provider", "provider", "provider",
+        g_param_spec_string ("provider", NULL, NULL,
                              NULL,
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY |
                              G_PARAM_STATIC_STRINGS);
 
     properties[PROP_FOREIGN] =
-        g_param_spec_boolean ("foreign", "foreign", "foreign",
+        g_param_spec_boolean ("foreign", NULL, NULL,
                               FALSE,
                               G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY |
                               G_PARAM_STATIC_STRINGS);
@@ -1083,8 +1082,7 @@ ag_account_class_init (AgAccountClass *klass)
      * Since: 1.4
      */
     properties[PROP_ENABLED] =
-        g_param_spec_boolean ("enabled", "Enabled",
-                              "Whether the account is enabled",
+        g_param_spec_boolean ("enabled", NULL, NULL,
                               FALSE,
                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
@@ -1096,8 +1094,7 @@ ag_account_class_init (AgAccountClass *klass)
      * Since: 1.4
      */
     properties[PROP_DISPLAY_NAME] =
-        g_param_spec_string ("display-name", "Display name",
-                             "The display name of the account",
+        g_param_spec_string ("display-name", NULL, NULL,
                              NULL,
                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
@@ -1225,11 +1222,9 @@ _ag_account_changes_from_dbus (AgManager *manager, GVariant *v_services,
 AgAccountChanges *
 _ag_account_steal_changes (AgAccount *account)
 {
-    AgAccountChanges *changes;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
-    changes = account->priv->changes;
-    account->priv->changes = NULL;
-    return changes;
+    return g_steal_pointer (&priv->changes);
 }
 
 static void
@@ -1363,13 +1358,11 @@ ag_account_store_signature (AgAccount *account, AgServiceChanges *sc, GString *s
 gchar *
 _ag_account_get_store_sql (AgAccount *account, GError **error)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     AgAccountChanges *changes;
     GString *sql;
     gchar account_id_buffer[16];
     const gchar *account_id_str;
-
-    priv = account->priv;
 
     if (G_UNLIKELY (priv->deleted))
     {
@@ -1555,12 +1548,11 @@ ag_account_supports_service (AgAccount *account, const gchar *service_type)
 GList *
 ag_account_list_services (AgAccount *account)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     GList *all_services, *list;
     GList *services = NULL;
 
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    priv = account->priv;
 
     if (!priv->provider_name)
         return NULL;
@@ -1599,13 +1591,12 @@ GList *
 ag_account_list_services_by_type (AgAccount *account,
                                   const gchar *service_type)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     GList *all_services, *list;
     GList *services = NULL;
 
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
     g_return_val_if_fail (service_type != NULL, NULL);
-    priv = account->priv;
 
     if (!priv->provider_name)
         return NULL;
@@ -1684,13 +1675,12 @@ _ag_account_settings_iter_init (AgAccount *account,
                                 const gchar *key_prefix,
                                 gboolean copy_string)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     AgServiceSettings *ss;
     RealIter *ri = (RealIter *)iter;
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
     g_return_if_fail (iter != NULL);
-    priv = account->priv;
 
     ri->account = account;
     if (copy_string)
@@ -1728,7 +1718,7 @@ _ag_account_settings_iter_init (AgAccount *account,
 GList *
 ag_account_list_enabled_services (AgAccount *account)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     GList *list = NULL;
     GList *iter;
     GList *services = NULL;
@@ -1736,7 +1726,6 @@ ag_account_list_enabled_services (AgAccount *account)
     char sql[512];
 
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    priv = account->priv;
 
     service_type = ag_manager_get_service_type (priv->manager);
 
@@ -1794,8 +1783,11 @@ ag_account_list_enabled_services (AgAccount *account)
 AgManager *
 ag_account_get_manager (AgAccount *account)
 {
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
+
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    return account->priv->manager;
+
+    return priv->manager;
 }
 
 /**
@@ -1809,8 +1801,11 @@ ag_account_get_manager (AgAccount *account)
 const gchar *
 ag_account_get_provider_name (AgAccount *account)
 {
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
+
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    return account->priv->provider_name;
+
+    return priv->provider_name;
 }
 
 /**
@@ -1824,8 +1819,11 @@ ag_account_get_provider_name (AgAccount *account)
 const gchar *
 ag_account_get_display_name (AgAccount *account)
 {
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
+
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    return account->priv->display_name;
+
+    return priv->display_name;
 }
 
 /**
@@ -1838,16 +1836,18 @@ ag_account_get_display_name (AgAccount *account)
 void
 ag_account_set_display_name (AgAccount *account, const gchar *display_name)
 {
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
+
     g_return_if_fail (AG_IS_ACCOUNT (account));
 
-    change_service_value (account->priv, NULL, "name",
+    change_service_value (priv, NULL, "name",
                           g_variant_new_string (display_name));
 }
 
 /**
  * ag_account_select_service:
  * @account: the #AgAccount.
- * @service: (allow-none): the #AgService to select.
+ * @service: (nullable): the #AgService to select.
  *
  * Selects the configuration of service @service: from now on, all the
  * subsequent calls on the #AgAccount configuration will act on the @service.
@@ -1859,12 +1859,11 @@ ag_account_set_display_name (AgAccount *account, const gchar *display_name)
 void
 ag_account_select_service (AgAccount *account, AgService *service)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     gboolean load_settings = FALSE;
     AgServiceSettings *ss;
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    priv = account->priv;
 
     priv->service = service;
 
@@ -1899,13 +1898,16 @@ ag_account_select_service (AgAccount *account, AgService *service)
  *
  * Gets the selected #AgService for @account.
  *
- * Returns: the selected service, or %NULL if no service is selected.
+ * Returns: (nullable): the selected service, or %NULL if no service is selected.
  */
 AgService *
 ag_account_get_selected_service (AgAccount *account)
 {
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
+
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    return account->priv->service;
+
+    return priv->service;
 }
 
 /**
@@ -1920,13 +1922,12 @@ ag_account_get_selected_service (AgAccount *account)
 gboolean
 ag_account_get_enabled (AgAccount *account)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     gboolean ret = FALSE;
     AgServiceSettings *ss;
     GVariant *val;
 
     g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
-    priv = account->priv;
 
     if (priv->service == NULL)
     {
@@ -1954,9 +1955,11 @@ ag_account_get_enabled (AgAccount *account)
 void
 ag_account_set_enabled (AgAccount *account, gboolean enabled)
 {
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
+
     g_return_if_fail (AG_IS_ACCOUNT (account));
 
-    change_selected_service_value (account->priv, "enabled",
+    change_selected_service_value (priv, "enabled",
                                    g_variant_new_boolean (enabled));
 }
 
@@ -1970,11 +1973,12 @@ ag_account_set_enabled (AgAccount *account, gboolean enabled)
 void
 ag_account_delete (AgAccount *account)
 {
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     AgAccountChanges *changes;
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
 
-    changes = account_changes_get (account->priv);
+    changes = account_changes_get (priv);
     changes->deleted = TRUE;
 }
 
@@ -2035,11 +2039,10 @@ void
 ag_account_set_value (AgAccount *account, const gchar *key,
                       const GValue *value)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     GVariant *variant;
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    priv = account->priv;
 
     if (value != NULL)
     {
@@ -2079,12 +2082,11 @@ GVariant *
 ag_account_get_variant (AgAccount *account, const gchar *key,
                         AgSettingSource *source)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     AgServiceSettings *ss;
     GVariant *value = NULL;
 
     g_return_val_if_fail (AG_IS_ACCOUNT (account), NULL);
-    priv = account->priv;
 
     ss = get_service_settings (priv, priv->service, FALSE);
     if (ss)
@@ -2133,10 +2135,9 @@ void
 ag_account_set_variant (AgAccount *account, const gchar *key,
                         GVariant *value)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    priv = account->priv;
 
     change_selected_service_value (priv, key, value);
 }
@@ -2279,7 +2280,7 @@ ag_account_settings_iter_get_next (AgAccountSettingIter *iter,
     g_return_val_if_fail (iter != NULL, FALSE);
     g_return_val_if_fail (AG_IS_ACCOUNT (iter->account), FALSE);
     g_return_val_if_fail (key != NULL && value != NULL, FALSE);
-    priv = iter->account->priv;
+    priv = ag_account_get_instance_private (iter->account);
 
     prefix_length = ri->key_prefix ? strlen(ri->key_prefix) : 0;
 
@@ -2412,12 +2413,11 @@ ag_account_watch_dir (AgAccount *account, const gchar *key_prefix,
 void
 ag_account_remove_watch (AgAccount *account, AgAccountWatch watch)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
     GHashTable *service_watches;
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
     g_return_if_fail (watch != NULL);
-    priv = account->priv;
 
     if (G_LIKELY (priv->watches))
     {
@@ -2484,10 +2484,9 @@ void
 ag_account_store_async (AgAccount *account, GCancellable *cancellable,
                         GAsyncReadyCallback callback, gpointer user_data)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
     g_return_if_fail (AG_IS_ACCOUNT (account));
-    priv = account->priv;
 
     if (G_UNLIKELY (priv->store_task != NULL))
     {
@@ -2552,10 +2551,9 @@ ag_account_store_finish (AgAccount *account, GAsyncResult *res,
 gboolean
 ag_account_store_blocking (AgAccount *account, GError **error)
 {
-    AgAccountPrivate *priv;
+    AgAccountPrivate *priv = ag_account_get_instance_private (account);
 
     g_return_val_if_fail (AG_IS_ACCOUNT (account), FALSE);
-    priv = account->priv;
 
     if (G_UNLIKELY (priv->changes == NULL))
     {
