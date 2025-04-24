@@ -1,7 +1,7 @@
 check_dep = dependency('check')
 
 test_manager = gnome.gdbus_codegen('test-manager',
-    join_paths(meson.source_root (), 'libaccounts-glib', 'com.google.code.AccountsSSO.Accounts.Manager.xml'),
+    join_paths(meson.project_source_root (), 'libaccounts-glib', 'com.google.code.AccountsSSO.Accounts.Manager.xml'),
     namespace: 'Test',
     interface_prefix: 'com.google.code.AccountsSSO.Accounts.',
     object_manager: true
@@ -58,7 +58,7 @@ if xmllint.found ()
         ['accounts-service-type.dtd', 'service-types', ['e-mail.service-type']]
     ]
     foreach xml_file : xml_files
-        dtd_path = join_paths (meson.source_root(), 'data', xml_file[0])
+        dtd_path = join_paths (meson.project_source_root(), 'data', xml_file[0])
         foreach target_file : xml_file[2]
             xml_path = join_paths (meson.current_source_dir(), 'data', 'accounts', xml_file[1], target_file)
             test('xmllint-@0@-@1@'.format(xml_file[1], target_file),
