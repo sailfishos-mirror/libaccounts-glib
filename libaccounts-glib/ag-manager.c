@@ -165,9 +165,8 @@ static void ag_manager_initable_iface_init(gpointer g_iface,
 
 G_DEFINE_TYPE_WITH_CODE (AgManager, ag_manager, G_TYPE_OBJECT,
                          G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
-                                            ag_manager_initable_iface_init));
-
-#define AG_MANAGER_PRIV(obj) (AG_MANAGER(obj)->priv)
+                                            ag_manager_initable_iface_init)
+                         G_ADD_PRIVATE (AgManager));
 
 static void store_cb_data_free (StoreCbData *sd);
 static void account_weak_notify (gpointer userdata, GObject *dead_account);
@@ -221,7 +220,7 @@ static void
 ag_manager_store_dbus_async (AgManager *manager, AgAccount *account,
                              GTask *task)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     AgAccountChanges *changes;
     GVariant *dbus_changes;
 
@@ -258,7 +257,7 @@ static gboolean
 ag_manager_store_dbus_sync (AgManager *manager, AgAccount *account,
                             GError **error)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     AgAccountChanges *changes;
     GVariant *dbus_changes;
     GVariant *result;
@@ -523,7 +522,7 @@ get_account_services_from_accounts (AgManager *manager,
 static void
 set_error_from_db (AgManager *manager)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     AgAccountsError code;
     GError *error;
 
@@ -561,7 +560,7 @@ timed_unref_account (gpointer account)
 static gboolean
 ag_manager_must_emit_updated (AgManager *manager, AgAccountChanges *changes)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
 
     /* Don't emit the "updated" signal along with "created" or "deleted" */
     if (changes->created || changes->deleted)
@@ -577,7 +576,7 @@ ag_manager_must_emit_updated (AgManager *manager, AgAccountChanges *changes)
 static gboolean
 ag_manager_must_emit_enabled (AgManager *manager, AgAccountChanges *changes)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
 
     /* TODO: the enabled-event is emitted whenever enabled status has changed on
      * any service or account. This has some possibility for optimization.
@@ -685,7 +684,7 @@ dbus_filter_callback (G_GNUC_UNUSED GDBusConnection *dbus_conn,
                       gpointer user_data)
 {
     AgManager *manager = AG_MANAGER (user_data);
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     const gchar *provider_name = NULL;
     AgAccountId account_id = 0;
     AgAccount *account;
@@ -818,6 +817,7 @@ signal_account_changes_on_service_types (AgManager *manager,
                                          AgAccountChanges *changes,
                                          GVariant *msg)
 {
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     GPtrArray *service_types;
     guint i;
 
@@ -839,7 +839,7 @@ signal_account_changes_on_service_types (AgManager *manager,
                     AG_DBUS_PATH_SERVICE, escaped_type);
         g_free (escaped_type);
 
-        ret = g_dbus_connection_emit_signal (manager->priv->dbus_conn,
+        ret = g_dbus_connection_emit_signal (priv->dbus_conn,
                                              NULL,
                                              path,
                                              AG_DBUS_IFACE,
@@ -857,7 +857,7 @@ static void
 signal_account_changes (AgManager *manager, AgAccount *account,
                         AgAccountChanges *changes)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     GVariant *msg;
     EmittedSignalData eds;
 
@@ -954,7 +954,7 @@ add_id_to_list (sqlite3_stmt *stmt, GList **plist)
 static void
 account_weak_notify (gpointer userdata, GObject *dead_account)
 {
-    AgManagerPrivate *priv = AG_MANAGER_PRIV (userdata);
+    AgManagerPrivate *priv = ag_manager_get_instance_private (AG_MANAGER (userdata));
     GHashTableIter iter;
     GObject *account;
 
@@ -987,7 +987,7 @@ exec_transaction (AgManager *manager, AgAccount *account,
                   const gchar *sql, AgAccountChanges *changes,
                   GError **error)
 {
-    AgManagerPrivate *priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     gchar *err_msg = NULL;
     int ret;
     gboolean updated, enabled;
@@ -995,7 +995,6 @@ exec_transaction (AgManager *manager, AgAccount *account,
     DEBUG_LOCKS ("Accounts DB is now locked");
     DEBUG_QUERIES ("called: %s", sql);
     g_return_if_fail (AG_IS_MANAGER (manager));
-    priv = manager->priv;
     g_return_if_fail (AG_IS_ACCOUNT (account));
     g_return_if_fail (sql != NULL);
     g_return_if_fail (priv->db != NULL);
@@ -1072,12 +1071,11 @@ exec_transaction_idle (StoreCbData *sd)
 {
     AgManager *manager = sd->manager;
     AgAccount *account = sd->account;
-    AgManagerPrivate *priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);;
     GError *error = NULL;
     int ret;
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), FALSE);
-    priv = manager->priv;
 
     g_object_ref (manager);
     g_object_ref (account);
@@ -1342,7 +1340,7 @@ file_is_read_only (const gchar *filename)
 static gboolean
 open_db (AgManager *manager)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     const gchar *basedir;
     gchar *filename, *pathname;
     gint version;
@@ -1416,7 +1414,7 @@ open_db (AgManager *manager)
 static inline void
 add_matches (AgManager *manager)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     guint i;
 
     for (i = 0; i < priv->object_paths->len; i++)
@@ -1442,7 +1440,7 @@ add_matches (AgManager *manager)
 static inline void
 add_typeless_match (AgManager *manager)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     guint id;
 
     id = g_dbus_connection_signal_subscribe (priv->dbus_conn,
@@ -1462,7 +1460,7 @@ add_typeless_match (AgManager *manager)
 static gboolean
 setup_dbus (AgManager *manager, GError **error)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     GError *error_int = NULL;
 
     priv->dbus_conn = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &error_int);
@@ -1501,11 +1499,8 @@ setup_dbus (AgManager *manager, GError **error)
 static void
 ag_manager_init (AgManager *manager)
 {
-    AgManagerPrivate *priv;
-
-    manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager, AG_TYPE_MANAGER,
-                                                 AgManagerPrivate);
-    priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+    manager->priv = priv;
 
     priv->services =
         g_hash_table_new_full (g_str_hash, g_str_equal,
@@ -1525,7 +1520,7 @@ ag_manager_get_property (GObject *object, guint property_id,
                          GValue *value, GParamSpec *pspec)
 {
     AgManager *manager = AG_MANAGER (object);
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
 
     switch (property_id)
     {
@@ -1552,7 +1547,7 @@ ag_manager_set_property (GObject *object, guint property_id,
                          const GValue *value, GParamSpec *pspec)
 {
     AgManager *manager = AG_MANAGER (object);
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
 
     switch (property_id)
     {
@@ -1578,7 +1573,7 @@ ag_manager_set_property (GObject *object, guint property_id,
 static void
 ag_manager_dispose (GObject *object)
 {
-    AgManagerPrivate *priv = AG_MANAGER_PRIV (object);
+    AgManagerPrivate *priv = ag_manager_get_instance_private (AG_MANAGER (object));
 
     if (priv->is_disposed) return;
     priv->is_disposed = TRUE;
@@ -1610,7 +1605,7 @@ ag_manager_dispose (GObject *object)
 static void
 ag_manager_finalize (GObject *object)
 {
-    AgManagerPrivate *priv = AG_MANAGER_PRIV (object);
+    AgManagerPrivate *priv = ag_manager_get_instance_private (AG_MANAGER (object));
 
     g_clear_pointer (&priv->object_paths, g_ptr_array_unref);
 
@@ -1652,6 +1647,7 @@ ag_manager_initable_init (GInitable *initable,
                           GError **error)
 {
     AgManager *manager = AG_MANAGER (initable);
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
 
     if (G_UNLIKELY (!open_db (manager)))
     {
@@ -1660,7 +1656,7 @@ ag_manager_initable_init (GInitable *initable,
         return FALSE;
     }
 
-    if (G_UNLIKELY (manager->priv->use_dbus && !setup_dbus (manager, error)))
+    if (G_UNLIKELY (priv->use_dbus && !setup_dbus (manager, error)))
     {
         return FALSE;
     }
@@ -1679,19 +1675,19 @@ ag_manager_initable_iface_init (gpointer g_iface,
 static void
 ag_manager_account_deleted (AgManager *manager, AgAccountId id)
 {
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+
     g_return_if_fail (AG_IS_MANAGER (manager));
 
     /* The weak reference is removed automatically when the account is removed
      * from the hash table */
-    g_hash_table_remove (manager->priv->accounts, GUINT_TO_POINTER (id));
+    g_hash_table_remove (priv->accounts, GUINT_TO_POINTER (id));
 }
 
 static void
 ag_manager_class_init (AgManagerClass *klass)
 {
     GObjectClass* object_class = G_OBJECT_CLASS (klass);
-
-    g_type_class_add_private (object_class, sizeof (AgManagerPrivate));
 
     klass->account_deleted = ag_manager_account_deleted;
     object_class->dispose = ag_manager_dispose;
@@ -1707,7 +1703,7 @@ ag_manager_class_init (AgManagerClass *klass)
      * to only affect accounts or services with that service type.
      */
     properties[PROP_SERVICE_TYPE] =
-        g_param_spec_string ("service-type", "service type", "Set service type",
+        g_param_spec_string ("service-type", NULL, NULL,
                              NULL,
                              G_PARAM_STATIC_STRINGS |
                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
@@ -1718,8 +1714,7 @@ ag_manager_class_init (AgManagerClass *klass)
      * Timeout for database operations, in milliseconds.
      */
     properties[PROP_DB_TIMEOUT] =
-        g_param_spec_uint ("db-timeout", "DB timeout",
-                           "Timeout for DB operations (ms)",
+        g_param_spec_uint ("db-timeout", NULL, NULL,
                            0, G_MAXUINT, MAX_SQLITE_BUSY_LOOP_TIME_MS,
                            G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE);
 
@@ -1729,8 +1724,7 @@ ag_manager_class_init (AgManagerClass *klass)
      * Whether to abort the application when a database timeout occurs.
      */
     properties[PROP_ABORT_ON_DB_TIMEOUT] =
-        g_param_spec_boolean ("abort-on-db-timeout", "Abort on DB timeout",
-                              "Whether to abort the application on DB timeout",
+        g_param_spec_boolean ("abort-on-db-timeout", NULL, NULL,
                               FALSE,
                               G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE);
 
@@ -1744,8 +1738,7 @@ ag_manager_class_init (AgManagerClass *klass)
      * such as maintenance programs.
      */
     properties[PROP_USE_DBUS] =
-        g_param_spec_boolean ("use-dbus", "Use D-Bus",
-                              "Whether to use D-Bus for IPC",
+        g_param_spec_boolean ("use-dbus", NULL, NULL,
                               TRUE,
                               G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE |
                               G_PARAM_CONSTRUCT_ONLY);
@@ -1865,10 +1858,9 @@ _ag_manager_list_all (AgManager *manager)
 void
 _ag_manager_take_error (AgManager *manager, GError *error)
 {
-    AgManagerPrivate *priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
 
     g_return_if_fail (AG_IS_MANAGER (manager));
-    priv = manager->priv;
 
     if (priv->last_error)
         g_error_free (priv->last_error);
@@ -1878,9 +1870,11 @@ _ag_manager_take_error (AgManager *manager, GError *error)
 const GError *
 _ag_manager_get_last_error (AgManager *manager)
 {
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
 
-    return manager->priv->last_error;
+    return priv->last_error;
 }
 
 /**
@@ -1898,10 +1892,9 @@ _ag_manager_get_last_error (AgManager *manager)
 GList *
 ag_manager_list (AgManager *manager)
 {
-    AgManagerPrivate *priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
-    priv = manager->priv;
 
     if (priv->service_type)
         return ag_manager_list_by_service_type (manager, priv->service_type);
@@ -1952,10 +1945,9 @@ ag_manager_list_enabled (AgManager *manager)
 {
     GList *list = NULL;
     char sql[512];
-    AgManagerPrivate *priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
-    priv = manager->priv;
 
     if (priv->service_type == NULL)
     {
@@ -2121,12 +2113,11 @@ AgAccount *
 ag_manager_load_account (AgManager *manager, AgAccountId account_id,
                          GError **error)
 {
-    AgManagerPrivate *priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     AgAccount *account;
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_return_val_if_fail (account_id != 0, NULL);
-    priv = manager->priv;
 
     account = g_hash_table_lookup (priv->accounts,
                                    GUINT_TO_POINTER (account_id));
@@ -2180,12 +2171,11 @@ AgService *
 _ag_manager_get_service_lazy (AgManager *manager, const gchar *service_name,
                               const gchar *service_type, const gint service_id)
 {
-    AgManagerPrivate *priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     AgService *service;
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_return_val_if_fail (service_name != NULL, NULL);
-    priv = manager->priv;
 
     service = g_hash_table_lookup (priv->services, service_name);
     if (service)
@@ -2214,13 +2204,12 @@ _ag_manager_get_service_lazy (AgManager *manager, const gchar *service_name,
 AgService *
 ag_manager_get_service (AgManager *manager, const gchar *service_name)
 {
-    AgManagerPrivate *priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     AgService *service;
     gchar *sql;
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
     g_return_val_if_fail (service_name != NULL, NULL);
-    priv = manager->priv;
 
     service = g_hash_table_lookup (priv->services, service_name);
     if (service)
@@ -2301,10 +2290,9 @@ _ag_manager_get_service_id (AgManager *manager, AgService *service)
 GList *
 ag_manager_list_services (AgManager *manager)
 {
-    AgManagerPrivate *priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
-    priv = manager->priv;
 
     if (priv->service_type)
         return ag_manager_list_services_by_type (manager, priv->service_type);
@@ -2368,7 +2356,7 @@ _ag_manager_exec_transaction (AgManager *manager, const gchar *sql,
                               AgAccountChanges *changes, AgAccount *account,
                               GTask *task)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     GError *error = NULL;
     int ret;
 
@@ -2422,7 +2410,7 @@ _ag_manager_exec_transaction_blocking (AgManager *manager, const gchar *sql,
                                        AgAccount *account,
                                        GError **error)
 {
-    AgManagerPrivate *priv = manager->priv;
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     gint sleep_ms = 200;
     int ret;
 
@@ -2519,7 +2507,9 @@ void
 _ag_manager_store_async (AgManager *manager, AgAccount *account,
                          GTask *task)
 {
-    if (manager->priv->is_readonly)
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+
+    if (priv->is_readonly)
     {
         ag_manager_store_dbus_async (manager, account, task);
     }
@@ -2533,7 +2523,9 @@ gboolean
 _ag_manager_store_sync (AgManager *manager, AgAccount *account,
                         GError **error)
 {
-    if (manager->priv->is_readonly)
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+
+    if (priv->is_readonly)
     {
         return ag_manager_store_dbus_sync (manager, account, error);
     }
@@ -2559,6 +2551,7 @@ _ag_manager_exec_query (AgManager *manager,
                         AgQueryCallback callback, gpointer user_data,
                         const gchar *sql)
 {
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
     sqlite3 *db;
     int ret;
     sqlite3_stmt *stmt;
@@ -2566,7 +2559,7 @@ _ag_manager_exec_query (AgManager *manager,
     gint rows = 0;
 
     g_return_val_if_fail (AG_IS_MANAGER (manager), 0);
-    db = manager->priv->db;
+    db = priv->db;
 
     g_return_val_if_fail (db != NULL, 0);
 
@@ -2602,7 +2595,7 @@ _ag_manager_exec_query (AgManager *manager,
 
             case SQLITE_BUSY:
                 clock_gettime(CLOCK_MONOTONIC, &ts1);
-                if (timespec_diff_ms(&ts1, &ts0) < manager->priv->db_timeout)
+                if (timespec_diff_ms(&ts1, &ts0) < priv->db_timeout)
                 {
                     /* If timeout was specified and table is locked,
                      * wait instead of executing default runtime
@@ -2692,9 +2685,11 @@ ag_manager_new_for_service_type (const gchar *service_type)
 const gchar *
 ag_manager_get_service_type (AgManager *manager)
 {
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), NULL);
 
-    return manager->priv->service_type;
+    return priv->service_type;
 }
 
 /**
@@ -2711,8 +2706,14 @@ ag_manager_get_service_type (AgManager *manager)
 void
 ag_manager_set_db_timeout (AgManager *manager, guint timeout_ms)
 {
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+
     g_return_if_fail (AG_IS_MANAGER (manager));
-    manager->priv->db_timeout = timeout_ms;
+
+    if (priv->db_timeout != timeout_ms) {
+        priv->db_timeout = timeout_ms;
+        g_object_notify_by_pspec (G_OBJECT (manager), properties[PROP_DB_TIMEOUT]);
+    }
 }
 
 /**
@@ -2726,8 +2727,11 @@ ag_manager_set_db_timeout (AgManager *manager, guint timeout_ms)
 guint
 ag_manager_get_db_timeout (AgManager *manager)
 {
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), 0);
-    return manager->priv->db_timeout;
+
+    return priv->db_timeout;
 }
 
 /**
@@ -2741,8 +2745,14 @@ ag_manager_get_db_timeout (AgManager *manager)
 void
 ag_manager_set_abort_on_db_timeout (AgManager *manager, gboolean abort)
 {
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+
     g_return_if_fail (AG_IS_MANAGER (manager));
-    manager->priv->abort_on_db_timeout = abort;
+
+    if (priv->abort_on_db_timeout != abort) {
+        priv->abort_on_db_timeout = abort;
+        g_object_notify_by_pspec (G_OBJECT (manager), properties[PROP_ABORT_ON_DB_TIMEOUT]);
+    }
 }
 
 /**
@@ -2757,8 +2767,11 @@ ag_manager_set_abort_on_db_timeout (AgManager *manager, gboolean abort)
 gboolean
 ag_manager_get_abort_on_db_timeout (AgManager *manager)
 {
+    AgManagerPrivate *priv = ag_manager_get_instance_private (manager);
+
     g_return_val_if_fail (AG_IS_MANAGER (manager), FALSE);
-    return manager->priv->abort_on_db_timeout;
+
+    return priv->abort_on_db_timeout;
 }
 
 /**
