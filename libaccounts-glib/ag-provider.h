@@ -37,6 +37,7 @@
 
 G_BEGIN_DECLS
 
+#define AG_TYPE_PROVIDER (ag_provider_get_type ())
 GType ag_provider_get_type (void) G_GNUC_CONST;
 
 const gchar *ag_provider_get_name (AgProvider *provider);

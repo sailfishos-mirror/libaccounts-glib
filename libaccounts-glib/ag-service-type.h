@@ -38,6 +38,7 @@
 
 G_BEGIN_DECLS
 
+#define AG_TYPE_SERVICE_TYPE (ag_service_type_get_type ())
 GType ag_service_type_get_type (void) G_GNUC_CONST;
 
 const gchar *ag_service_type_get_name (AgServiceType *service_type);

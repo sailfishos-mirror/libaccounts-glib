@@ -34,6 +34,7 @@
 
 G_BEGIN_DECLS
 
+#define AG_TYPE_AUTH_DATA (ag_auth_data_get_type ())
 GType ag_auth_data_get_type (void) G_GNUC_CONST;
 
 AgAuthData *ag_auth_data_ref (AgAuthData *self);
