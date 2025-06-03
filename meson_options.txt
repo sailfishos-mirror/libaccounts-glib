@@ -1,2 +1,5 @@
 option('install-py-overrides', type: 'boolean', value: false, description: 'Install Python gi overrides file')
 option('py-overrides-dir', type : 'string', value : '', description: 'Path to pygobject overrides directory')
+option('introspection', type : 'boolean', value : true, description: 'Install gobject and vapi introspection data')
+option('docs', type : 'boolean', value : true, description: 'Install documentation')
+option('tests', type : 'boolean', value : true, description: 'Build and run tests')

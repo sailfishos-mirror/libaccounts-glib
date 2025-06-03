@@ -83,26 +83,28 @@ accounts_glib_dep = declare_dependency(
     include_directories: [ include_directories('.'), root_dir ]
 )
 
-# GObject introspection
-gir_targets = gnome.generate_gir(ag_library,
-    sources: public_headers + c_files,
-    nsversion: api_version,
-    namespace: 'Accounts',
-    identifier_prefix: 'Ag',
-    symbol_prefix: 'ag',
-    includes: ['GObject-2.0', 'Gio-2.0'],
-    dependencies: accounts_glib_library_deps,
-    header: 'libaccounts-glib.h',
-    extra_args: ['-DACCOUNTS_GLIB_COMPILATION=1'],
-    install: true
-)
+if get_option('introspection')
+    # GObject introspection
+    gir_targets = gnome.generate_gir(ag_library,
+        sources: public_headers + c_files,
+        nsversion: api_version,
+        namespace: 'Accounts',
+        identifier_prefix: 'Ag',
+        symbol_prefix: 'ag',
+        includes: ['GObject-2.0', 'Gio-2.0'],
+        dependencies: accounts_glib_library_deps,
+        header: 'libaccounts-glib.h',
+        extra_args: ['-DACCOUNTS_GLIB_COMPILATION=1'],
+        install: true
+    )
 
-# Vala .vapi generation
-gnome.generate_vapi('libaccounts-glib',
-    sources: gir_targets[0],
-    packages: ['glib-2.0', 'gio-unix-2.0'],
-    install: true
-)
+    # Vala .vapi generation
+    gnome.generate_vapi('libaccounts-glib',
+        sources: gir_targets[0],
+        packages: ['glib-2.0', 'gio-unix-2.0'],
+        install: true
+    )
+endif
 
 install_data('libaccounts-glib.deps',
     install_dir: join_paths(get_option('datadir'), 'vala', 'vapi')

@@ -44,5 +44,9 @@ root_dir = include_directories('.')
 subdir('libaccounts-glib')
 subdir('tools')
 subdir('data')
-subdir('docs')
-subdir('tests')
+if get_option('docs')
+  subdir('docs')
+endif
+if get_option('tests')
+  subdir('tests')
+endif
